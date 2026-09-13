@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk – Portal Latihan TKA 2026 | SD Muhammadiyah 01 Kukusan</title>
+<meta name="description" content="Masuk atau daftar untuk mulai latihan soal Tes Kompetensi Akademik (TKA) 2026 — SD Muhammadiyah 01 Kukusan.">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #12296b;
+    --primary-mid: #1e429f;
+    --accent-light: #93c5fd;
+    --green: #057a55;
+    --amber: #d97706;
+    --amber-light: #fef3c7;
+    --text: #1f2a37;
+    --text-muted: #6b7280;
+    --panel-bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 20px 50px rgba(15, 41, 107, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 1.05vw + 8px, 16px); }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  a { color: inherit; }
+
+  .shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+  }
+
+  /* ─────────── LEFT: BRAND / HERO ─────────── */
+  .brand-side {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(155deg, var(--primary-dark) 0%, var(--primary-mid) 55%, var(--primary) 100%);
+    color: #fff;
+    padding: 40px 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  .brand-side::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -160px;
+    width: 480px; height: 480px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+  }
+  .brand-side::after {
+    content: '';
+    position: absolute;
+    bottom: -180px; right: -80px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
+  }
+
+  .brand-header {
+    display: flex; align-items: center; gap: 14px;
+    position: relative;
+  }
+
+  .brand-logo {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
+
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: 1.15rem; font-weight: 800; }
+  .brand-sub { font-size: 0.78rem; opacity: 0.75; font-weight: 600; margin-top: 2px; }
+
+  .hero-text { position: relative; max-width: 460px; }
+  .hero-text h1 {
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    line-height: 1.15;
+  }
+  .hero-text h1 span {
+    display: block;
+    font-style: italic;
+    font-weight: 700;
+    color: var(--accent-light);
+  }
+  .hero-text p {
+    margin-top: 16px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    opacity: 0.85;
+    font-weight: 600;
+  }
+
+  .feature-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 560px;
+  }
+
+  .feature-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    backdrop-filter: blur(6px);
+  }
+
+  .feature-icon { font-size: 1.3rem; margin-bottom: 8px; }
+  .feature-title { font-weight: 800; font-size: 0.88rem; margin-bottom: 4px; }
+  .feature-desc { font-size: 0.76rem; line-height: 1.45; opacity: 0.78; font-weight: 600; }
+
+  /* ─────────── RIGHT: AUTH PANEL ─────────── */
+  .auth-side {
+    background: var(--panel-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+
+  .auth-wrap { width: 100%; max-width: 380px; }
+
+  .dev-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--amber-light); color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.68rem; font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .dev-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--amber);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .auth-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 28px 26px;
+  }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
+  .tab-btn {
+    flex: 1; text-align: center;
+    background: none; border: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem; font-weight: 800;
+    color: var(--text-muted);
+    padding: 0 0 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab-btn.active { color: var(--primary); border-color: var(--primary); }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.25s ease both; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 0.68rem; font-weight: 800;
+    letter-spacing: 0.4px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.92rem; font-weight: 700;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: #f4f7fb;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--primary);
+    background: var(--white);
+  }
+  .field-error {
+    display: none;
+    font-size: 0.72rem; font-weight: 700;
+    color: #dc2626; margin-top: 5px;
+  }
+  .field.has-error input, .field.has-error select { border-color: #dc2626; }
+  .field.has-error .field-error { display: block; }
+
+  .btn-submit {
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary-mid), var(--primary));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 13px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.94rem; font-weight: 800;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(26,86,219,0.3); }
+  .btn-submit:active { transform: translateY(0); }
+
+  .auth-footer {
+    margin-top: 18px; text-align: center;
+    font-size: 0.76rem; color: var(--text-muted); font-weight: 700;
+    line-height: 1.7;
+  }
+  .auth-footer button.link {
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--primary); font-weight: 800; font-size: 0.76rem; font-family: inherit;
+  }
+  .auth-footer a { color: var(--primary); font-weight: 800; text-decoration: none; }
+  .auth-footer a:hover { text-decoration: underline; }
+
+  .status-box {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem; font-weight: 700; line-height: 1.5;
+    background: var(--amber-light); color: #92400e;
+    border: 1px solid #fde68a;
+  }
+  .status-box.show { display: block; animation: fadeIn 0.25s ease both; }
+
+  /* ─────────── RESPONSIVE ─────────── */
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .auth-side { order: 1; padding: 28px 20px 8px; }
+    .brand-side { order: 2; padding: 32px 24px 40px; }
+    .hero-text { max-width: 100%; }
+    .feature-grid { max-width: 100%; }
+  }
+
+  @media (max-width: 480px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .brand-side, .auth-side { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══════════ LEFT: BRAND / HERO ═══════════ -->
+  <section class="brand-side">
+    <div class="brand-header">
+      <div class="brand-logo">📚</div>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="brand-sub">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+      </div>
+    </div>
+
+    <div class="hero-text">
+      <h1>Siap Hadapi<span>TKA 2026!</span></h1>
+      <p>Platform latihan soal interaktif untuk siswa kelas 6 SD Muhammadiyah 01 Kukusan. Soal disusun per kompetensi, terkoreksi otomatis, dan hasilnya tersimpan rapi ke akunmu — bisa dikerjakan kapan saja dari HP maupun laptop.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Latihan Terarah</div>
+        <div class="feature-desc">Soal disusun per kompetensi sesuai kisi-kisi TKA.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Koreksi Otomatis</div>
+        <div class="feature-desc">Nilai dan rekap kompetensi langsung muncul setelah selesai.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Rekap Tersimpan</div>
+        <div class="feature-desc">Riwayat dan skor terbaik tersimpan ke akun masing-masing.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🆓</div>
+        <div class="feature-title">Gratis Sepenuhnya</div>
+        <div class="feature-desc">Tidak ada biaya, murni untuk mendukung belajar siswa.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ RIGHT: AUTH PANEL ═══════════ -->
+  <section class="auth-side">
+    <div class="auth-wrap">
+
+      <div class="dev-pill"><span class="dot"></span>Pratinjau UI — belum tersambung Firebase</div>
+
+      <div class="auth-card">
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-masuk" onclick="AuthUI.switchTab('masuk')">Masuk</button>
+          <button class="tab-btn" id="tab-daftar" onclick="AuthUI.switchTab('daftar')">Daftar</button>
+        </div>
+
+        <!-- PANEL MASUK -->
+        <form class="panel active" id="panel-masuk" onsubmit="return AuthUI.submitMasuk(event)" novalidate>
+          <div class="field" id="f-masuk-email">
+            <label for="masuk-email">Email</label>
+            <input type="email" id="masuk-email" placeholder="nama@email.com" autocomplete="email">
+            <div class="field-error">Masukkan email yang valid.</div>
+          </div>
+          <div class="field" id="f-masuk-pass">
+            <label for="masuk-pass">Kata Sandi</label>
+            <input type="password" id="masuk-pass" placeholder="••••••••" autocomplete="current-password">
+            <div class="field-error">Kata sandi wajib diisi.</div>
+          </div>
+          <button type="submit" class="btn-submit">Masuk</button>
+          <div class="status-box" id="status-masuk"></div>
+        </form>
+
+        <!-- PANEL DAFTAR -->
+        <form class="panel" id="panel-daftar" onsubmit="return AuthUI.submitDaftar(event)" novalidate>
+          <div class="field" id="f-daftar-nama">
+            <label for="daftar-nama">Nama Lengkap</label>
+            <input type="text" id="daftar-nama" placeholder="Nama siswa" autocomplete="name">
+            <div class="field-error">Nama wajib diisi.</div>
+          </div>
+          <div class="field" id="f-daftar-kelas">
+            <label for="daftar-kelas">Kelas</label>
+            <select id="daftar-kelas">
+              <option value="">Pilih kelas</option>
+              <option value="6A">6A</option>
+              <option value="6B">6B</option>
+              <option value="6C">6C</option>
+            </select>
+            <div class="field-error">Kelas wajib dipilih.</div>
+          </div>
+          <div class="field" id="f-daftar-email">
+            <label for="daftar-email">Email</label>
+            <input type="email" id="daftar-email" placeholder="nama@email.com" autocomplete="email">
+            <div class="field-error">Masukkan email yang valid.</div>
+          </div>
+          <div class="field" id="f-daftar-pass">
+            <label for="daftar-pass">Kata Sandi</label>
+            <input type="password" id="daftar-pass" placeholder="Minimal 6 karakter" autocomplete="new-password">
+            <div class="field-error">Kata sandi minimal 6 karakter.</div>
+          </div>
+          <div class="field" id="f-daftar-pass2">
+            <label for="daftar-pass2">Ulangi Kata Sandi</label>
+            <input type="password" id="daftar-pass2" placeholder="Ulangi kata sandi" autocomplete="new-password">
+            <div class="field-error">Kata sandi tidak sama.</div>
+          </div>
+          <button type="submit" class="btn-submit">Daftar</button>
+          <div class="status-box" id="status-daftar"></div>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        <div id="foot-masuk">Belum punya akun? <button class="link" onclick="AuthUI.switchTab('daftar')">Klik tab Daftar di atas.</button></div>
+        <div id="foot-daftar" style="display:none;">Sudah punya akun? <button class="link" onclick="AuthUI.switchTab('masuk')">Klik tab Masuk di atas.</button></div>
+        <div>Guru atau admin? <a href="./admin/">Masuk ke Panel Guru ↗</a></div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const AuthUI = {
+    switchTab(name) {
+      document.getElementById('tab-masuk').classList.toggle('active', name === 'masuk');
+      document.getElementById('tab-daftar').classList.toggle('active', name === 'daftar');
+      document.getElementById('panel-masuk').classList.toggle('active', name === 'masuk');
+      document.getElementById('panel-daftar').classList.toggle('active', name === 'daftar');
+      document.getElementById('foot-masuk').style.display = name === 'masuk' ? 'block' : 'none';
+      document.getElementById('foot-daftar').style.display = name === 'daftar' ? 'block' : 'none';
+    },
+
+    setError(fieldId, hasError) {
+      document.getElementById(fieldId).classList.toggle('has-error', hasError);
+    },
+
+    showStatus(boxId, message) {
+      const box = document.getElementById(boxId);
+      box.textContent = message;
+      box.classList.add('show');
+    },
+
+    submitMasuk(e) {
+      e.preventDefault();
+      const email = document.getElementById('masuk-email').value.trim();
+      const pass = document.getElementById('masuk-pass').value;
+      let ok = true;
+
+      const validEmail = /\S+@\S+\.\S+/.test(email);
+      this.setError('f-masuk-email', !validEmail);
+      if (!validEmail) ok = false;
+
+      this.setError('f-masuk-pass', pass.length === 0);
+      if (pass.length === 0) ok = false;
+
+      if (!ok) return false;
+
+      // TODO(Fase 1 — Firebase Auth): ganti blok ini dengan
+      // signInWithEmailAndPassword(auth, email, pass) lalu redirect ke /app/
+      this.showStatus('status-masuk', '🚧 Fitur masuk akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
+      return false;
+    },
+
+    submitDaftar(e) {
+      e.preventDefault();
+      const nama = document.getElementById('daftar-nama').value.trim();
+      const kelas = document.getElementById('daftar-kelas').value;
+      const email = document.getElementById('daftar-email').value.trim();
+      const pass = document.getElementById('daftar-pass').value;
+      const pass2 = document.getElementById('daftar-pass2').value;
+      let ok = true;
+
+      this.setError('f-daftar-nama', nama.length === 0);
+      if (nama.length === 0) ok = false;
+
+      this.setError('f-daftar-kelas', kelas.length === 0);
+      if (kelas.length === 0) ok = false;
+
+      const validEmail = /\S+@\S+\.\S+/.test(email);
+      this.setError('f-daftar-email', !validEmail);
+      if (!validEmail) ok = false;
+
+      this.setError('f-daftar-pass', pass.length < 6);
+      if (pass.length < 6) ok = false;
+
+      this.setError('f-daftar-pass2', pass2 !== pass || pass2.length === 0);
+      if (pass2 !== pass || pass2.length === 0) ok = false;
+
+      if (!ok) return false;
+
+      // TODO(Fase 1 — Firebase Auth): ganti blok ini dengan
+      // createUserWithEmailAndPassword(auth, email, pass), lalu simpan
+      // { nama, kelas } ke koleksi Firestore `students` dengan uid sebagai id.
+      this.showStatus('status-daftar', '🚧 Fitur pendaftaran akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
+      return false;
+    }
+  };
+</script>
+
+</body>
+</html>

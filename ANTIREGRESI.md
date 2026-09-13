@@ -1,0 +1,83 @@
+# 🛡️ Panduan Anti-Regresi
+
+Dokumen ini adalah **checklist wajib** sebelum dan sesudah membuat perubahan di repo ini — baik oleh manusia maupun AI (Claude/Copilot/dll). Tujuannya satu: **jangan sampai fitur yang sudah jalan malah rusak** karena perubahan yang tidak terkait.
+
+Proyek pendahulu (portal TKA versi lama) beberapa kali mengalami regresi dengan pola yang sama: perubahan kecil di satu file lupa diterapkan konsisten ke file lain, atau perbaikan bug tidak diuji ulang di semua skenario. Dokumen ini dibuat supaya pola itu tidak terulang di proyek baru.
+
+---
+
+## 1. Prinsip Umum
+
+1. **Baca dulu sebelum menulis.** Sebelum mengubah kode yang sudah berjalan, pahami dulu alurnya secara utuh (jangan tempel-patch berdasarkan tebakan).
+2. **Satu perubahan, satu tujuan.** Jangan gabungkan perbaikan bug dengan refactor besar-besaran dalam satu commit — menyulitkan pelacakan kalau terjadi regresi.
+3. **Jangan ubah "yang tidak diminta".** Kalau tugasnya "perbaiki tampilan tombol", jangan sekalian mengubah logika penilaian di file yang sama.
+4. **Setiap perbaikan bug → dicatat di [CHANGELOG.md](./CHANGELOG.md)**, termasuk *akar masalah*, bukan cuma gejalanya.
+5. **Kalau ragu, jangan asumsikan "sudah pasti benar".** Bug lama di portal sebelumnya sering muncul karena kode diasumsikan lengkap padahal ada properti/variabel yang lupa didefinisikan di file tertentu (lihat §4).
+
+---
+
+## 2. Area Sensitif — Wajib Diuji Ulang Setiap Ada Perubahan
+
+| Area | Kenapa sensitif | Cara verifikasi minimum |
+|---|---|---|
+| **Firestore Security Rules** | Salah aturan → kunci jawaban bocor ke siswa, atau siswa tidak bisa submit sama sekali | Jalankan emulator + test rules (`firebase emulators:exec`) sebelum deploy |
+| **Cloud Function penilaian (`submitAttempt`)** | Kalau scoring balik ke client-side atau ada celah, siswa bisa manipulasi skor | Cek di DevTools Network: pastikan field `kunciJawaban`/`ans` tidak pernah muncul di response ke client sebelum attempt selesai |
+| **Skema Firestore (`subjects`, `questionPool`, `packages`, `attempts`)** | Perubahan field/struktur bisa membuat data lama tidak terbaca aplikasi baru | Jalankan migrasi/backfill kalau ada perubahan skema; jangan hapus field lama sebelum semua kode yang membacanya diperbarui |
+| **Integrasi Google Apps Script (import soal & backup+email)** | GAS punya kuirk: redirect ke `script.googleusercontent.com` pernah diblokir Safe Exam Browser (SEB) di versi lama | Uji di browser biasa **dan** SEB (jika masih dipakai untuk ujian resmi); jangan asumsikan respons selalu JSON valid |
+| **Spreadsheet "Bank Soal Master" (`1JzjZZLQZfrc-6INdJT_ko-En7F3UVz4Fs9lgps0zESs`)** | Perubahan struktur kolom di spreadsheet tanpa update Apps Script → import soal gagal diam-diam | Kalau ubah struktur kolom, update juga parser di Apps Script & validasi di panel admin secara bersamaan |
+| **Firebase Auth (role admin vs siswa)** | Salah custom claim → siswa bisa akses panel admin, atau guru terkunci dari akun sendiri | Uji login dengan minimal 1 akun tiap role setelah perubahan apa pun di alur auth |
+| **UI kuis (timer, drawer navigasi soal, font size)** | Perubahan CSS/JS di satu tempat gampang merembet ke breakpoint mobile | Uji di lebar layar mobile (≤375px) dan desktop setelah perubahan tampilan |
+| **Penanganan jaringan gagal saat submit** | Jika tidak ditangani, siswa bisa kehilangan jawaban saat koneksi putus di tengah submit | Simulasikan offline/lambat (DevTools → Network throttling) saat menguji alur submit |
+
+---
+
+## 3. Checklist Sebelum Deploy / Merge
+
+- [ ] Sudah dites di **browser biasa** (Chrome/Safari mobile & desktop)?
+- [ ] Kalau menyentuh alur ujian resmi: sudah dites di **Safe Exam Browser** (jika dipakai)?
+- [ ] Firestore Security Rules dites ulang (bukan cuma "kelihatannya jalan" di UI)?
+- [ ] Tidak ada `kunciJawaban`/jawaban benar yang terekspos ke response client sebelum submit?
+- [ ] Perubahan skema data disertai rencana migrasi data lama (kalau ada data produksi)?
+- [ ] `CHANGELOG.md` sudah diupdate dengan format yang benar (lihat template di `CHANGELOG.md`)?
+- [ ] Kalau memperbaiki bug: akar masalah dicatat, bukan cuma "sudah diperbaiki"?
+- [ ] Kalau bug ditemukan di satu file/komponen serupa: sudah dicek apakah **file/komponen lain** punya bug yang sama? (Ini adalah penyebab regresi paling sering di proyek sebelumnya — satu perbaikan tidak diterapkan konsisten ke semua tempat yang seharusnya identik.)
+
+---
+
+## 4. Lessons Learned dari Portal Lama (dibawa maju sebagai pengingat)
+
+Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitektur baru masih mewarisi komponen yang sama (Google Apps Script + Brevo untuk email):
+
+1. **Jangan diam-diam anggap sukses kalau respons gagal di-parse.**
+   Pola lama: `.then(r => r.json().catch(() => ({status:'success'})))` — ini menyembunyikan kegagalan asli (timeout, quota exceeded, permission error) dan membuat UI menampilkan "berhasil" padahal tidak. Selalu baca `r.status` dan teks mentah dulu, baru coba parse JSON dengan `try/catch` eksplisit.
+
+2. **Redirect Google Apps Script bisa diblokir oleh lingkungan terkunci (SEB).**
+   `script.google.com` melakukan redirect 302 ke `script.googleusercontent.com`. Di lingkungan browser terkunci, redirect ini bisa diblokir meski request awal sudah diterima dan diproses di server. Kalau fitur ini dipakai lagi untuk ujian resmi berpengaman, siapkan jalur alternatif (mis. `no-cors` + `keepalive`, dengan estimasi delay) — tapi kalau itu dilakukan, ukur risikonya: `no-cors` berarti tidak bisa memverifikasi respons asli sukses/gagal.
+
+3. **Variabel yang dipakai tapi tidak pernah didefinisikan — cek konsistensi lintas modul.**
+   Bug klasik di proyek lama: satu file punya `const desc = ...` yang dipakai di payload, tapi saat kode itu disalin ke file lain, baris definisinya kelupaan ikut disalin. Kalau proyek baru pakai pola "satu komponen dipakai berulang dengan sedikit variasi per mapel", pastikan ada **satu sumber kebenaran** (fungsi/komponen bersama) — bukan copy-paste manual per mapel seperti dulu. Ini salah satu alasan kuat migrasi ke Firestore + komponen aplikasi tunggal, bukan 1 file HTML per paket soal.
+
+4. **Properti/state yang tidak diinisialisasi di semua varian.**
+   Di proyek lama, properti seperti `_fontSteps`/`_lastPayload` ada di sebagian besar file tapi lupa ditambahkan di file yang strukturnya sedikit beda. Di arsitektur baru: hindari duplikasi struktur file per mapel; gunakan satu aplikasi dengan data dinamis dari Firestore, supaya kelas bug ini tidak mungkin terjadi lagi secara struktural.
+
+---
+
+## 5. Jika Terjadi Regresi
+
+1. **Jangan panik-fix langsung di production.** Cek dulu commit/rilis terakhir yang masih berfungsi normal.
+2. **Rollback dulu** (Firebase Hosting punya versioning bawaan — bisa rollback ke rilis sebelumnya lewat Console/CLI) sambil menyelidiki akar masalah dengan tenang.
+3. **Tulis laporan regresi** di `CHANGELOG.md` dengan format yang sama seperti bug lama di proyek pendahulu: gejala → akar masalah → perbaikan → apa yang sengaja tidak diubah.
+4. **Tambahkan kasus ini ke §2 atau §4 di atas** kalau ternyata ini kelas bug baru yang berpotensi terulang.
+
+---
+
+## 6. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+
+Sebuah fitur baru dianggap selesai kalau:
+
+- [ ] Berfungsi sesuai spesifikasi di skenario normal.
+- [ ] Sudah diuji skenario gagal/edge case yang relevan (jaringan putus, input kosong, dsb).
+- [ ] Tidak menurunkan performa/aksesibilitas fitur lain yang sudah ada.
+- [ ] Firestore Rules & Cloud Functions terkait (kalau ada) sudah diuji, bukan cuma diasumsikan aman.
+- [ ] Dicatat di `CHANGELOG.md`.
+- [ ] Kalau menyentuh area di §2, checklist §3 sudah dijalankan penuh.
