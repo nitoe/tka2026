@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beranda Siswa – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
+    --green: #057a55; --green-light: #def7ec; --green-dark: #046c4e;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --slate: #64748b; --slate-light: #f1f5f9;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 3.5vw, 16px); }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 20px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(26,86,219,0.4);
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .logo { font-size: 1.5rem; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 800; line-height: 1.1; }
+  .sub-brand { font-size: 0.68rem; opacity: 0.8; font-weight: 600; }
+  .btn-logout {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: white; border-radius: 20px; padding: 6px 14px;
+    font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; transition: background 0.15s ease;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.28); }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 28px 16px 48px; }
+
+  .welcome-card {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; border-radius: var(--radius); padding: 22px 24px;
+    margin-bottom: 28px; box-shadow: var(--shadow);
+  }
+  .welcome-card .hi { font-size: 0.85rem; opacity: 0.85; font-weight: 700; }
+  .welcome-card h1 { font-family: 'Baloo 2', cursive; font-size: clamp(1.2rem, 4vw, 1.6rem); margin-top: 2px; }
+  .welcome-card .kelas-badge {
+    display: inline-block; margin-top: 10px; background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+    padding: 4px 14px; font-size: 0.78rem; font-weight: 700;
+  }
+
+  .section-title {
+    font-family: 'Baloo 2', cursive; font-size: 1.05rem; font-weight: 800;
+    color: var(--primary-dark); margin-bottom: 14px;
+  }
+
+  .cards-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px; margin-bottom: 32px;
+  }
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    border: 2px solid transparent; padding: 20px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    box-shadow: var(--shadow); text-align: center; position: relative; overflow: hidden;
+    opacity: 0.8;
+  }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--slate), #94a3b8); }
+  .card-icon { font-size: 1.8rem; }
+  .card-name { font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; color: var(--slate); }
+  .card-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: var(--slate-light); color: var(--slate); }
+
+  .empty-state {
+    text-align: center; padding: 40px 20px; color: var(--text-muted);
+    font-weight: 600; font-size: 0.9rem; display: none;
+  }
+
+  .loading-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-weight: 700; font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
+
+<div id="page" style="display:none;">
+  <header class="header">
+    <div class="header-brand">
+      <span class="logo">📚</span>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+      </div>
+    </div>
+    <button class="btn-logout" id="btn-logout">Keluar</button>
+  </header>
+
+  <main class="container">
+    <div class="welcome-card">
+      <div class="hi">Halo,</div>
+      <h1 id="nama-siswa">—</h1>
+      <span class="kelas-badge" id="kelas-siswa">Kelas —</span>
+    </div>
+
+    <div class="section-title">📝 Pilih Mata Pelajaran</div>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon">📐</div>
+        <div class="card-name">Matematika</div>
+        <div class="card-tag">Segera Hadir</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📝</div>
+        <div class="card-name">Bahasa Indonesia</div>
+        <div class="card-tag">Segera Hadir</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="not-configured" class="loading-screen" style="display:none; flex-direction:column; gap:10px; text-align:center; padding:20px;">
+  <div style="font-size:1.4rem;">⚙️</div>
+  <div>Firebase belum dikonfigurasi.<br>Isi <code>firebase-config.js</code> terlebih dahulu.</div>
+  <a href="../index.html" style="color:#1a56db; font-weight:800;">← Kembali ke halaman masuk</a>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '../index.html';
+        return;
+      }
+      const siswa = await getStudentDoc(user.uid);
+      if (!siswa) {
+        // Bukan akun siswa (mungkin akun staff nyasar ke sini) — kembalikan ke gerbang login.
+        await signOut(auth);
+        window.location.href = '../index.html';
+        return;
+      }
+      document.getElementById('nama-siswa').textContent = siswa.nama;
+      document.getElementById('kelas-siswa').textContent = 'Kelas ' + siswa.kelas;
+      loading.style.display = 'none';
+      page.style.display = 'block';
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await signOut(auth);
+      window.location.href = '../index.html';
+    });
+  }
+</script>
+
+</body>
+</html>
