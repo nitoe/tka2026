@@ -26,6 +26,40 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ---
 
+## [0.6.0] — 2026-09-14
+
+### Added
+- **`guru/bank-soal.html`**: jalur import baru "Dari JSON Pool" (tab terpisah dari Excel), mendukung format pool soal hasil olahan (base64 ilustrasi) dengan deteksi otomatis dua bentuk file:
+  - *Soal lengkap* → import ke `questionPool` (+ `bacaanPool` untuk soal berbasis bacaan bersama).
+  - *Ilustrasi saja* (belum ada teks soal) → import ke koleksi baru `ilustrasiSoal` sebagai staging, menunggu teks soal menyusul.
+- Kartu "Pustaka Ilustrasi Menunggu Teks Soal" di `guru/bank-soal.html` — muncul otomatis kalau ada entri di `ilustrasiSoal`.
+- Skema `pgk-cat` digeneralisasi: kolom (`cols`) sekarang bisa berisi label kustom apa pun (bukan cuma Benar/Salah) — mengakomodasi variasi nyata di data (ditemukan 6 variasi label berbeda di 7 soal `pgk-cat` pada `pool_bahasa_indonesia.json`).
+- `firestore.rules`: tambah aturan untuk koleksi `bacaanPool` dan `ilustrasiSoal` (staff baca, admin tulis — pola sama seperti `questionPool`).
+- Import lewat jalur JSON memakai **ID dari data sumber sebagai document ID Firestore** (bukan auto-id), membuat proses import idempotent — aman diimpor ulang tanpa duplikasi.
+
+### Fixed
+- Penomoran heading di `ANTIREGRESI.md` dirapikan (sempat ada lompatan nomor akibat beberapa kali sisip bagian baru tanpa renumbering).
+
+### Verifikasi
+- Fungsi `detectJsonShape()` dan `mapSoalLengkap()` diuji lewat Node langsung terhadap file asli yang diunggah pemilik proyek (bukan data contoh): 30/30 soal Bahasa Indonesia berhasil divalidasi & dipetakan benar, distribusi kompleksitas hasil mapping sesuai ekspektasi (10/10/10 untuk L1/L2/L3), deteksi bentuk file benar untuk kedua file (`soal-lengkap` vs `ilustrasi-saja`).
+- Ukuran base64 terbesar dicek (±225KB) — aman di bawah batas 1MiB/dokumen Firestore.
+- Layout tab Excel/JSON Pool & kartu Pustaka Ilustrasi diperiksa lewat screenshot browser.
+- **Belum diuji end-to-end** (upload sungguhan sampai tersimpan ke Firestore asli) — perlu dicoba langsung oleh pemilik proyek.
+
+### Tidak Berubah
+- Jalur import Excel tidak diubah — `pgk-cat` di jalur itu tetap dibatasi Benar/Salah (lebih sederhana untuk pengisian manual guru).
+- Belum ada mekanisme otomatis menggabungkan `ilustrasiSoal` dengan teks soal yang datang belakangan — masih manual (lihat ANTIREGRESI.md §8 untuk catatan desainnya).
+
+### Konteks Penting (bukan bug, tapi perlu diketahui)
+- `pool_matematika.json` yang diunggah **tidak berisi teks soal sama sekali** — hanya 116 ilustrasi. `pool_bahasa_indonesia.json` berisi 30 dari 300 soal yang diklaim (hanya yang butuh ilustrasi). Ini dikonfirmasi memang seluruh data yang ada saat ini, bukan kesalahan upload.
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: coba import `pool_bahasa_indonesia.json` & `pool_matematika.json` lewat `guru/bank-soal.html` di project Firebase asli, kabari kalau ada hasil tak terduga.
+- Lanjutkan proses pembuatan 270 soal Bahasa Indonesia & 300 soal Matematika (teks) yang tersisa.
+- Bangun mekanisme penggabungan otomatis `ilustrasiSoal` ↔ teks soal yang datang belakangan.
+
+---
+
 ## [0.5.0] — 2026-09-13
 
 ### Added

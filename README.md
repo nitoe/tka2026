@@ -119,7 +119,18 @@ Koleksi `questionPool` menyimpan soal dengan taksonomi 3 sumbu supaya guru bisa 
 
 Field lain: `stimulus`, `pertanyaan`, `opsi` (array), `kunciJawaban`, `rows`/`cols` (khusus `pgk-cat`), `skor`, `sourceFile`, `createdAt`.
 
-Soal diimpor lewat **`guru/bank-soal.html`** (khusus admin) memakai template Excel di `contoh/template-bank-soal.xlsx` — guru mengisi soal di Excel dengan format baku, admin upload lewat panel, sistem memvalidasi tiap baris sebelum ditulis ke Firestore. Guru (non-admin) bisa melihat & memfilter bank soal di halaman yang sama untuk menyusun paket, tapi tidak bisa mengimpor/mengubah bank soal mentahnya.
+Soal diimpor lewat **`guru/bank-soal.html`** (khusus admin) lewat dua jalur:
+1. **Excel** — guru mengisi template `contoh/template-bank-soal.xlsx`, admin upload lewat panel.
+2. **JSON Pool** — untuk file hasil olahan pool soal (format JSON + ilustrasi base64). Mendukung dua bentuk:
+   - *Soal lengkap* (field `pertanyaan`/`opsi`/`jawaban` sudah ada) → langsung masuk `questionPool` + `bacaanPool` (untuk soal yang berbasis teks bacaan bersama).
+   - *Ilustrasi saja* (baru ada `id` + gambar, belum ada teks soal) → disimpan ke koleksi `ilustrasiSoal` sebagai "menunggu teks soal", untuk digabung menyusul.
+
+Guru (non-admin) bisa melihat & memfilter bank soal di halaman yang sama untuk menyusun paket, tapi tidak bisa mengimpor/mengubah bank soal mentahnya.
+
+**Catatan skema tambahan untuk jalur JSON:**
+- `pgk-cat` di jalur JSON **tidak dibatasi Benar/Salah** — kolom (`cols`) bisa berupa label kustom apa pun (mis. "Dapat Diverifikasi" / "Menyesatkan"), beda dari jalur Excel yang masih tetap Benar/Salah untuk kesederhanaan pengisian guru.
+- Pemetaan `lingkup_materi` (dari data sumber) → `kompleksitas` (skema kita): `Pemahaman Tekstual→L1-Pemahaman`, `Pemahaman Inferensial→L2-Aplikasi`, `Evaluasi dan Apresiasi→L3-Penalaran`. Kalau data sumber punya label lain di luar tiga ini, baris tsb akan ditandai bermasalah saat pratinjau import (lihat ANTIREGRESI.md §9).
+- Gambar (base64) disimpan langsung sebagai field Firestore (bukan Firebase Storage) — cukup untuk skala saat ini, tapi ada batas ukuran; lihat ANTIREGRESI.md §9 untuk kapan perlu migrasi ke Storage.
 
 ---
 

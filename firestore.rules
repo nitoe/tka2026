@@ -73,6 +73,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── BACAAN (stimulus bersama untuk beberapa soal Bahasa Indonesia) ──
+    match /bacaanPool/{bacaanId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ── PUSTAKA ILUSTRASI (menunggu teks soal, lihat ANTIREGRESI.md §9) ──
+    match /ilustrasiSoal/{ilustrasiId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
     // ── PAKET SOAL ──
     // Guru DAN admin boleh membuat/menyusun paket (memilih soal dari
     // questionPool untuk dijadikan paket latihan/try out), tapi tidak

@@ -71,7 +71,7 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 7. Catatan Arsitektur Login & Database (mulai v0.4.0)
+## 6. Catatan Arsitektur Login & Database (mulai v0.4.0)
 
 - **`assets/firebase-init.js` adalah satu-satunya tempat `initializeApp()` dipanggil.** Semua halaman (`index.html`, `app/`, `guru/`, `tools/`) mengimpor dari sana. Kalau butuh fungsi Firebase baru (mis. Storage), tambahkan exportnya di sana — **jangan** panggil `initializeApp()` lagi di file lain, supaya tidak terulang pola "copy-paste drift" (lihat §4).
 - **Peran (admin/guru/siswa) ditentukan lewat dokumen Firestore** (`staff/{uid}` dan `students/{uid}`), bukan custom claims Firebase Auth. Konsekuensinya: kalau menambah peran baru atau mengubah logika akses, ubah di **dua tempat sekaligus** — `firestore.rules` (server-side, wajib) dan halaman guard (`app/index.html`, `guru/index.html`) yang membaca dokumen tsb (client-side, untuk UX). Kalau hanya ubah salah satu, bisa terjadi celah keamanan (rules longgar tapi UI ketat) atau UX rusak (UI ketat tapi rules sudah benar).
@@ -81,7 +81,7 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 9. Catatan Bank Soal (mulai v0.5.0)
+## 7. Catatan Bank Soal (mulai v0.5.0)
 
 - **Kolom template Excel (`contoh/template-bank-soal.xlsx`, sheet "Template Soal") dan fungsi `validateRow()` di `guru/bank-soal.html` harus SELALU berubah bersamaan.** Kalau menambah/mengganti nama kolom di template, wajib update juga logika validasi & mapping-nya di kode — ini persis kelas bug "copy-paste drift" yang sudah diwanti-wanti di §4. Salah satu cara mendeteksi kalau lupa: import beberapa baris dari template versi lama setelah kode diubah, harusnya tetap tervalidasi benar (atau gagal dengan pesan yang jelas, bukan diam-diam salah simpan).
 - **Nilai enum (`mataPelajaran`, `kompleksitas`, `tipeSoal`) dicocokkan persis (case-sensitive).** Kalau menambah pilihan baru (mis. mapel IPA), update di TIGA tempat: dropdown validasi Excel (`DataValidation` di script pembuat template), array `*_VALID` di `guru/bank-soal.html`, dan dokumentasi kolom di sheet "Petunjuk Pengisian".
@@ -89,7 +89,17 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 10. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 8. Catatan Import JSON Pool Soal (mulai v0.6.0)
+
+- **File `pool_matematika.json` dan `pool_bahasa_indonesia.json` yang pertama kali diberikan TIDAK LENGKAP** dibanding field `total_soal` di dalamnya sendiri (matematika: 0 dari 300 soal, cuma 116 ilustrasi tanpa teks; bahasa-indonesia: 30 dari 300 soal). Ini dikonfirmasi memang demikian (belum ada file lanjutan). **Kalau ada file pool baru datang di kemudian hari, JANGAN asumsikan `total_soal` di dalam file = jumlah data yang benar-benar ada** — selalu hitung ulang panjang array sebenarnya sebelum dipercaya, seperti yang dilakukan `detectJsonShape()`/preview import.
+- **Pemetaan `lingkup_materi → kompleksitas` ada di DUA tempat yang harus sinkron**: fungsi `LINGKUP_KE_KOMPLEKSITAS` di `guru/bank-soal.html`, dan tabel di README.md. Kalau sumber data mulai memakai label `lingkup_materi` baru di luar 3 yang sudah dipetakan, baris tsb akan otomatis ditandai bermasalah di pratinjau (bukan silently salah kompleksitas) — pertahankan perilaku "gagal kelihatan" ini, jangan diam-diam kasih fallback default kompleksitas kalau label tidak dikenali.
+- **Koleksi `ilustrasiSoal` adalah staging area, bukan tujuan akhir.** Saat file teks soal Matematika yang sesungguhnya datang (dengan `id` yang match, mis. "MTK-006"), belum ada mekanisme OTOMATIS untuk menggabungkannya dengan ilustrasi yang sudah tersimpan — ini masih manual/belum dibangun. Kalau membangun fitur itu nanti, pertimbangkan: cek `ilustrasiSoal/{id}` saat import soal baru, kalau ada gabungkan gambarnya ke dokumen `questionPool` yang baru dibuat, lalu opsional hapus dari `ilustrasiSoal`.
+- **Base64 gambar disimpan langsung di field Firestore** (bukan Firebase Storage). Ukuran terbesar yang pernah ditemukan ±225KB per gambar, aman di bawah batas 1MiB per dokumen Firestore. **Kalau ke depan jumlah soal berilustrasi jauh lebih banyak (ribuan) atau gambar jauh lebih besar, migrasi ke Firebase Storage** (simpan file di Storage, simpan URL-nya saja di Firestore) — jangan terus menambah base64 langsung tanpa mengecek dulu total ukuran koleksi.
+- **Import JSON memakai ID dari data sumber sebagai document ID Firestore** (bukan auto-id seperti jalur Excel) — ini sengaja, supaya re-import file yang sama bersifat idempotent (menimpa, bukan menduplikasi). Kalau mengubah jalur ini, pertahankan sifat idempotent-nya, atau jelaskan konsekuensinya kalau sengaja diubah.
+
+---
+
+## 9. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 
