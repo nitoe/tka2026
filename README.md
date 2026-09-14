@@ -79,7 +79,8 @@ Konfigurasi Firebase project (`firebaseConfig`) akan ditambahkan di `firebase-co
 │   └── index.html            # Halaman utama siswa (setelah login)
 ├── guru/
 │   ├── index.html             # Dashboard guru & admin (setelah login)
-│   └── bank-soal.html         # Kelola & impor bank soal (khusus admin untuk impor, guru bisa lihat)
+│   ├── bank-soal.html         # Kelola & impor bank soal (khusus admin untuk impor, guru bisa lihat)
+│   └── susun-paket.html       # Susun paket latihan/try out dari bank soal (admin & guru)
 ├── contoh/
 │   └── template-bank-soal.xlsx  # Template Excel untuk mengisi soal (dipakai di guru/bank-soal.html)
 ├── tools/
@@ -140,6 +141,20 @@ Guru (non-admin) bisa melihat & memfilter bank soal di halaman yang sama untuk m
 3. Deploy `firestore.rules` lewat tab **Firestore > Rules** di Console (salin-tempel isinya), atau lewat Firebase CLI (`firebase deploy --only firestore:rules`) kalau sudah pakai CLI.
 4. Buat 3 akun guru/admin manual di **Authentication > Users** (lihat kredensial di file kerja lokal, bukan di repo), lalu buat dokumen `staff/{uid}` yang sesuai secara manual di **Firestore > Data** (field: `nama`, `peran`).
 5. Jalankan `tools/import-siswa.html` (login sebagai admin, pilih file data siswa lokal) untuk membuat 52 akun siswa + dokumen `students/{uid}` sekaligus.
+
+---
+
+## 🧩 Susun Paket (Firestore: `packages`)
+
+Halaman **`guru/susun-paket.html`** (bisa diakses admin & guru) untuk merakit paket latihan/try out dari bank soal:
+
+1. Pilih mata pelajaran → tampil daftar soal, bisa difilter lagi per tipe materi & kompleksitas.
+2. Centang soal yang mau dimasukkan — panel kanan menampilkan jumlah soal & total skor secara real-time.
+3. Isi nama paket → Simpan Paket.
+
+Dokumen `packages/{autoId}`: `{ nama, subjectId, questionIds: [...], totalSkor, aktif, createdBy, createdAt }`. Paket yang tersimpan tampil di kartu "Paket Tersimpan" di halaman yang sama, bisa dihapus.
+
+> Catatan: paket hanya menyimpan **daftar ID soal**, bukan salinan isi soalnya — kalau soal aslinya di `questionPool` diubah/dihapus setelah masuk paket, paket akan ikut berubah/rusak. Belum ada validasi untuk mencegah ini (lihat ANTIREGRESI.md §10).
 
 ---
 

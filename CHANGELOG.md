@@ -26,6 +26,31 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ---
 
+## [0.7.0] — 2026-09-14
+
+### Added
+- **`guru/susun-paket.html`** — halaman baru untuk merakit paket latihan/try out (bisa diakses admin & guru, sesuai `firestore.rules` yang sudah mengizinkan `isStaff()` menulis `packages` sejak v0.5.0):
+  - Filter soal per mapel → tipe materi → kompleksitas.
+  - Pilih soal lewat checkbox, panel kanan menampilkan ringkasan (jumlah soal + total skor) secara real-time.
+  - Simpan sebagai dokumen `packages` baru; daftar paket tersimpan ditampilkan & bisa dihapus di halaman yang sama.
+- Dashboard guru (`guru/index.html`): tambah kartu tautan ke Susun Paket.
+
+### Verifikasi
+- Sintaks JS divalidasi lewat `node --check`.
+- Layout & interaksi (render daftar soal, panel ringkasan, status simpan) diperiksa lewat screenshot browser dengan data simulasi (karena login sungguhan butuh project Firebase asli, sama seperti keterbatasan pengujian di versi-versi sebelumnya).
+- **Belum diuji end-to-end** (pilih soal sungguhan dari Firestore asli → simpan paket → muncul di daftar) — perlu dicoba langsung oleh pemilik proyek.
+
+### Tidak Berubah
+- Belum ada fitur edit paket yang sudah tersimpan (cuma buat baru & hapus) — kalau perlu ubah, hapus lalu buat ulang untuk saat ini.
+- Belum ada pengecekan dampak ke paket kalau soal di bank soal diubah/dihapus (lihat ANTIREGRESI.md §10).
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: coba susun 1 paket sungguhan dari 30 soal Bahasa Indonesia yang sudah masuk, kabari kalau ada hasil tak terduga.
+- Aplikasi kuis siswa yang mengambil soal dari `packages` (lewat Cloud Function, supaya kunci jawaban tidak terkirim ke client — lihat ANTIREGRESI.md §2).
+- Dashboard rekap nilai guru (masih placeholder).
+
+---
+
 ## [0.6.0] — 2026-09-14
 
 ### Added
@@ -44,7 +69,7 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 - Fungsi `detectJsonShape()` dan `mapSoalLengkap()` diuji lewat Node langsung terhadap file asli yang diunggah pemilik proyek (bukan data contoh): 30/30 soal Bahasa Indonesia berhasil divalidasi & dipetakan benar, distribusi kompleksitas hasil mapping sesuai ekspektasi (10/10/10 untuk L1/L2/L3), deteksi bentuk file benar untuk kedua file (`soal-lengkap` vs `ilustrasi-saja`).
 - Ukuran base64 terbesar dicek (±225KB) — aman di bawah batas 1MiB/dokumen Firestore.
 - Layout tab Excel/JSON Pool & kartu Pustaka Ilustrasi diperiksa lewat screenshot browser.
-- **Belum diuji end-to-end** (upload sungguhan sampai tersimpan ke Firestore asli) — perlu dicoba langsung oleh pemilik proyek.
+- ✅ **[Update 2026-09-14] Diverifikasi end-to-end oleh pemilik proyek:** `pool_bahasa_indonesia.json` berhasil masuk 30 soal ke Bank Soal (dari 300 yang diklaim — sesuai ekspektasi, karena memang baru itu yang tersedia), dan `pool_matematika.json` berhasil masuk ke Pustaka Ilustrasi (bukan Bank Soal aktif) sesuai desain.
 
 ### Tidak Berubah
 - Jalur import Excel tidak diubah — `pgk-cat` di jalur itu tetap dibatasi Benar/Salah (lebih sederhana untuk pengisian manual guru).

@@ -99,7 +99,15 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 9. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 10. Catatan Susun Paket (mulai v0.7.0)
+
+- **`packages` menyimpan referensi ID soal, bukan salinan isinya.** Kalau nanti ada fitur edit/hapus soal di bank soal, pertimbangkan dampaknya ke paket yang sudah dibuat — idealnya cek dulu apakah soal itu dipakai di paket manapun sebelum mengizinkan hapus, atau minimal beri peringatan. Belum ada validasi ini sama sekali saat ini.
+- **Tidak ada pengecekan nama paket duplikat** — guru bisa menyimpan beberapa paket dengan nama sama persis. Kalau ini jadi masalah nyata di pemakaian, tambahkan validasi nama unik per mapel.
+- **Query `questionPool` per mapel di `susun-paket.html` mengambil SEMUA soal mapel tsb sekaligus** (tidak dipaginasi). Aman untuk ratusan soal, tapi kalau bank soal tumbuh jadi ribuan per mapel, perlu ditambah paginasi atau server-side filtering (Cloud Function) supaya tidak berat di browser guru.
+
+---
+
+## 11. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 
