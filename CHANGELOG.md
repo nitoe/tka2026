@@ -26,6 +26,36 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ---
 
+## [0.5.0] — 2026-09-13
+
+### Added
+- **`guru/bank-soal.html`** — halaman kelola bank soal:
+  - Admin: upload Excel → preview tervalidasi per baris (baris salah ditandai merah + alasan spesifik, tidak ikut terimpor) → import ke Firestore `questionPool` (batch write, aman untuk ratusan soal sekaligus).
+  - Semua staff (admin & guru): lihat & filter bank soal (per mapel / tipe materi / kompleksitas) untuk keperluan menyusun paket di fase berikutnya.
+- **`contoh/template-bank-soal.xlsx`** — template Excel 3 sheet: "Petunjuk Pengisian" (penjelasan tiap kolom), "Template Soal" (siap isi, sudah ada dropdown validasi bawaan Excel untuk kolom mataPelajaran/kompleksitas/tipeSoal/kunci Benar-Salah), "Contoh Terisi" (4 contoh soal mencakup ketiga tipeSoal).
+- Taksonomi bank soal baru: `tipeMateri` (domain konten, meneruskan struktur `cat` dari portal lama), **`kompleksitas`** (level kognitif L1-Pemahaman/L2-Aplikasi/L3-Penalaran — field baru, tidak ada di portal lama, mengikuti kerangka AKM Kemendikbud).
+- Dashboard guru (`guru/index.html`): tambah kartu tautan ke Bank Soal.
+
+### Changed
+- **`firestore.rules`**: koleksi `packages` sekarang bisa ditulis oleh **guru maupun admin** (`isStaff()`, sebelumnya `isAdmin()` saja) — karena guru yang akan menyusun paket latihan/try out dari bank soal, bukan hanya admin. Koleksi `questionPool` (bank soal mentah) tetap admin-only.
+
+### Verifikasi
+- Fungsi `validateRow()` diuji terpisah lewat Node dengan 8 skenario (pg/pgk/pgk-cat valid, dan berbagai kasus salah format) — semua lulus.
+- Template Excel diverifikasi bisa dibaca ulang dengan benar lewat openpyxl (header & isi cocok seperti yang dirancang).
+- Layout `guru/bank-soal.html` dan kartu baru di `guru/index.html` diperiksa lewat screenshot browser (mode bypass-auth khusus untuk cek visual, karena login sungguhan butuh project Firebase asli).
+- Belum diuji end-to-end oleh pemilik proyek (upload Excel asli → benar-benar tersimpan ke Firestore) — perlu dicoba langsung karena lingkungan kerja di sini tidak punya akses ke project Firebase asli.
+
+### Tidak Berubah
+- Belum ada fitur "susun paket dari bank soal" — itu langkah berikutnya setelah bank soal ini terisi.
+- Belum ada fitur tambah/edit soal manual satu-satu (hanya lewat impor Excel) — lihat ANTIREGRESI.md §9 kalau nanti mau ditambahkan.
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: isi `contoh/template-bank-soal.xlsx` dengan soal sungguhan, coba import lewat `guru/bank-soal.html`, kabari kalau ada baris yang tertolak tapi seharusnya valid (atau sebaliknya).
+- Fitur susun paket (guru pilih mapel+kompleksitas+tipeMateri → pilih soal dari hasil filter → simpan sebagai `packages`).
+- Aplikasi kuis siswa yang mengambil soal dari `packages`/`questionPool`.
+
+---
+
 ## [0.4.0] — 2026-09-13
 
 ### Added
@@ -45,7 +75,7 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 - Semua file `.js`/`<script type="module">` divalidasi sintaksnya lewat `node --check` — tidak ada error.
 - Semua halaman diuji lewat server HTTP lokal dengan Playwright: path impor modul relatif (`../assets/firebase-init.js`, `../firebase-config.js`) sudah benar dari kedalaman folder mana pun.
 - Alur "Firebase belum dikonfigurasi" (placeholder `firebase-config.js`) menampilkan fallback yang wajar di `index.html` (tidak ada elemen rusak/hilang).
-- Pemanggilan Firebase Authentication sungguhan **belum bisa diuji end-to-end** di lingkungan kerja ini (belum ada project Firebase asli) — perlu diuji ulang oleh pemilik proyek setelah `firebase-config.js` diisi nilai sungguhan.
+- ✅ **[Update 2026-09-13] Diverifikasi end-to-end oleh pemilik proyek setelah `firebase-config.js` diisi nilai asli project `tka2026-sdm01`:** 3 akun staff + akun siswa berhasil dibuat lewat kombinasi Firebase Console (staff) dan `tools/import-siswa.html` (siswa), dan login sungguhan berhasil di kedua tab (Siswa, Guru & Admin) dengan redirect ke `app/` dan `guru/` sesuai peran.
 
 ### Tidak Berubah
 - Belum ada Cloud Functions / penilaian server-side — itu untuk fase aplikasi kuis (belum dikerjakan).

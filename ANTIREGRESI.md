@@ -81,7 +81,15 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 8. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 9. Catatan Bank Soal (mulai v0.5.0)
+
+- **Kolom template Excel (`contoh/template-bank-soal.xlsx`, sheet "Template Soal") dan fungsi `validateRow()` di `guru/bank-soal.html` harus SELALU berubah bersamaan.** Kalau menambah/mengganti nama kolom di template, wajib update juga logika validasi & mapping-nya di kode — ini persis kelas bug "copy-paste drift" yang sudah diwanti-wanti di §4. Salah satu cara mendeteksi kalau lupa: import beberapa baris dari template versi lama setelah kode diubah, harusnya tetap tervalidasi benar (atau gagal dengan pesan yang jelas, bukan diam-diam salah simpan).
+- **Nilai enum (`mataPelajaran`, `kompleksitas`, `tipeSoal`) dicocokkan persis (case-sensitive).** Kalau menambah pilihan baru (mis. mapel IPA), update di TIGA tempat: dropdown validasi Excel (`DataValidation` di script pembuat template), array `*_VALID` di `guru/bank-soal.html`, dan dokumentasi kolom di sheet "Petunjuk Pengisian".
+- **`questionPool` sengaja hanya bisa ditulis oleh admin** (lihat `firestore.rules`) — kalau nanti guru juga perlu menambah soal individual (bukan cuma lewat impor Excel), perubahan rules HARUS dibarengi perubahan UI (tombol tambah soal manual) supaya tidak ada guru yang mencoba fitur yang diam-diam ditolak rules.
+
+---
+
+## 10. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 

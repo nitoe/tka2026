@@ -74,9 +74,12 @@ service cloud.firestore {
     }
 
     // ── PAKET SOAL ──
+    // Guru DAN admin boleh membuat/menyusun paket (memilih soal dari
+    // questionPool untuk dijadikan paket latihan/try out), tapi tidak
+    // boleh mengubah isi bank soal mentahnya (lihat questionPool di atas).
     match /packages/{packageId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     // ── HASIL PENGERJAAN ──

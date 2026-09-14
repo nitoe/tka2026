@@ -78,7 +78,10 @@ Konfigurasi Firebase project (`firebaseConfig`) akan ditambahkan di `firebase-co
 ├── app/
 │   └── index.html            # Halaman utama siswa (setelah login)
 ├── guru/
-│   └── index.html            # Dashboard guru & admin (setelah login)
+│   ├── index.html             # Dashboard guru & admin (setelah login)
+│   └── bank-soal.html         # Kelola & impor bank soal (khusus admin untuk impor, guru bisa lihat)
+├── contoh/
+│   └── template-bank-soal.xlsx  # Template Excel untuk mengisi soal (dipakai di guru/bank-soal.html)
 ├── tools/
 │   └── import-siswa.html     # Alat impor akun siswa massal (khusus admin, sekali pakai)
 ├── README.md
@@ -105,7 +108,21 @@ Peran (admin/guru/siswa) ditentukan lewat dokumen di Firestore (koleksi `staff` 
 
 ---
 
-## 🧑‍💻 Setup Firebase (sekali di awal)
+## 🗂️ Skema Bank Soal (Firestore)
+
+Koleksi `questionPool` menyimpan soal dengan taksonomi 3 sumbu supaya guru bisa menyusun paket dengan memilih kombinasi ketiganya:
+
+- **`subjectId`** — `matematika` / `bahasa-indonesia`
+- **`tipeMateri`** — domain/topik. Matematika: `Bilangan`, `Geometri dan Pengukuran`, `Data` (mengikuti struktur portal lama). Bahasa Indonesia: bebas sesuai jenis teks.
+- **`kompleksitas`** — level kognitif: `L1-Pemahaman`, `L2-Aplikasi`, `L3-Penalaran` (kerangka AKM Kemendikbud)
+- **`tipe`** — jenis soal: `pg` (pilihan ganda), `pgk` (pilihan ganda kompleks), `pgk-cat` (benar/salah per pernyataan)
+
+Field lain: `stimulus`, `pertanyaan`, `opsi` (array), `kunciJawaban`, `rows`/`cols` (khusus `pgk-cat`), `skor`, `sourceFile`, `createdAt`.
+
+Soal diimpor lewat **`guru/bank-soal.html`** (khusus admin) memakai template Excel di `contoh/template-bank-soal.xlsx` — guru mengisi soal di Excel dengan format baku, admin upload lewat panel, sistem memvalidasi tiap baris sebelum ditulis ke Firestore. Guru (non-admin) bisa melihat & memfilter bank soal di halaman yang sama untuk menyusun paket, tapi tidak bisa mengimpor/mengubah bank soal mentahnya.
+
+---
+
 
 1. Buat project di [Firebase Console](https://console.firebase.google.com), aktifkan **Firestore** (mode production, lokasi `asia-southeast2`) dan **Authentication** (provider Email/Password).
 2. Daftarkan Web App, salin `firebaseConfig` yang muncul ke file `firebase-config.js` di root repo (menggantikan nilai placeholder `GANTI_DENGAN_...`).
