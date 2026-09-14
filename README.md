@@ -66,35 +66,66 @@ Konfigurasi Firebase project (`firebaseConfig`) akan ditambahkan di `firebase-co
 
 ---
 
-## 📂 Struktur Repo (rencana)
+## 📂 Struktur Repo
 
 ```
 /
-├── index.html              # Landing page / portal utama
+├── index.html              # Halaman masuk (login siswa & guru/admin)
+├── firebase-config.js       # Konfigurasi Firebase (isi setelah project dibuat)
+├── firestore.rules          # Security Rules Firestore
+├── assets/
+│   └── firebase-init.js     # Satu-satunya tempat initializeApp() dipanggil
+├── app/
+│   └── index.html            # Halaman utama siswa (setelah login)
+├── guru/
+│   └── index.html            # Dashboard guru & admin (setelah login)
+├── tools/
+│   └── import-siswa.html     # Alat impor akun siswa massal (khusus admin, sekali pakai)
 ├── README.md
 ├── CHANGELOG.md
-├── ANTIREGRESI.md
-├── firebase.json            # (akan ditambahkan) konfigurasi Firebase Hosting
-├── firestore.rules          # (akan ditambahkan) Security Rules
-├── functions/                # (akan ditambahkan) Cloud Functions (Node.js)
-├── public/                   # (akan ditambahkan) aset aplikasi siswa & admin
-│   ├── app/                  # aplikasi kuis siswa
-│   └── admin/                 # panel guru/admin
-└── apps-script/               # (akan ditambahkan) salinan kode .gs untuk referensi/versi kontrol
+└── ANTIREGRESI.md
 ```
+
+Belum ada di repo (menyusul di fase berikutnya): `functions/` (Cloud Functions untuk penilaian server-side), halaman aplikasi kuis sungguhan di `app/matematika/` & `app/bahasa-indonesia/`, dan `firebase.json` untuk konfigurasi Hosting.
 
 ---
 
-## 🚀 Menjalankan Secara Lokal (setelah setup Firebase tersedia)
+## 🔐 Skema Akun & Login
+
+Halaman masuk (`index.html`) punya dua tab, keduanya berbasis **dropdown nama** (bukan ketik email):
+
+- **Tab Siswa** — pilih nama dari dropdown (dikelompokkan per kelas), lalu masukkan kata sandi.
+  Email login internal: `nama.siswa@sdm01tka2026.id` (bukan email sungguhan). Kata sandi: **NISN** siswa.
+- **Tab Guru & Admin** — pilih nama dari dropdown, lalu masukkan kata sandi.
+  Akun ditetapkan tetap (tidak ada pendaftaran mandiri): Arif Azwar Anas (admin), Ratih Yuniati (guru), Asuroh Susanti (guru).
+
+Peran (admin/guru/siswa) ditentukan lewat dokumen di Firestore (koleksi `staff` dan `students`), **bukan** custom claims — supaya tidak perlu Cloud Functions hanya untuk mengatur peran. Lihat `firestore.rules` untuk detail aturan aksesnya.
+
+> ⚠️ Data akun siswa (nama, kelas, NISN) dan daftar kredensialnya **tidak disimpan di repo ini** karena repo bersifat publik — lihat catatan privasi di `CHANGELOG.md` versi 0.3.0.
+
+---
+
+## 🧑‍💻 Setup Firebase (sekali di awal)
+
+1. Buat project di [Firebase Console](https://console.firebase.google.com), aktifkan **Firestore** (mode production, lokasi `asia-southeast2`) dan **Authentication** (provider Email/Password).
+2. Daftarkan Web App, salin `firebaseConfig` yang muncul ke file `firebase-config.js` di root repo (menggantikan nilai placeholder `GANTI_DENGAN_...`).
+3. Deploy `firestore.rules` lewat tab **Firestore > Rules** di Console (salin-tempel isinya), atau lewat Firebase CLI (`firebase deploy --only firestore:rules`) kalau sudah pakai CLI.
+4. Buat 3 akun guru/admin manual di **Authentication > Users** (lihat kredensial di file kerja lokal, bukan di repo), lalu buat dokumen `staff/{uid}` yang sesuai secara manual di **Firestore > Data** (field: `nama`, `peran`).
+5. Jalankan `tools/import-siswa.html` (login sebagai admin, pilih file data siswa lokal) untuk membuat 52 akun siswa + dokumen `students/{uid}` sekaligus.
+
+---
+
+## 🚀 Menjalankan Secara Lokal
+
+Karena halaman ini pakai **ES Modules** (`import`/`export`), **tidak bisa dibuka langsung dengan dobel klik** (`file://`) — browser akan memblokirnya karena kebijakan CORS. Jalankan server lokal sederhana dulu:
 
 ```bash
-npm install -g firebase-tools
-firebase login
-firebase use --add        # pilih/isi project Firebase
-firebase emulators:start  # jalankan Auth + Firestore + Hosting emulator lokal
+# dari folder root repo
+python3 -m http.server 8000
+# lalu buka http://localhost:8000 di browser
 ```
 
-Detail lengkap akan diperbarui begitu `firebase.json` dan struktur `functions/` sudah ditambahkan.
+Atau pakai ekstensi "Live Server" kalau memakai VS Code. Setelah nanti sudah pakai Firebase Hosting, kendala ini otomatis hilang karena diakses lewat `https://`, bukan `file://`.
 
 ---
 

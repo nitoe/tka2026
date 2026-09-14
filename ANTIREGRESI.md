@@ -71,7 +71,17 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 6. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 7. Catatan Arsitektur Login & Database (mulai v0.4.0)
+
+- **`assets/firebase-init.js` adalah satu-satunya tempat `initializeApp()` dipanggil.** Semua halaman (`index.html`, `app/`, `guru/`, `tools/`) mengimpor dari sana. Kalau butuh fungsi Firebase baru (mis. Storage), tambahkan exportnya di sana — **jangan** panggil `initializeApp()` lagi di file lain, supaya tidak terulang pola "copy-paste drift" (lihat §4).
+- **Peran (admin/guru/siswa) ditentukan lewat dokumen Firestore** (`staff/{uid}` dan `students/{uid}`), bukan custom claims Firebase Auth. Konsekuensinya: kalau menambah peran baru atau mengubah logika akses, ubah di **dua tempat sekaligus** — `firestore.rules` (server-side, wajib) dan halaman guard (`app/index.html`, `guru/index.html`) yang membaca dokumen tsb (client-side, untuk UX). Kalau hanya ubah salah satu, bisa terjadi celah keamanan (rules longgar tapi UI ketat) atau UX rusak (UI ketat tapi rules sudah benar).
+- **Bootstrap 3 akun staff pertama kali dilakukan manual** lewat Firebase Console (Authentication > Add user, lalu Firestore > buat dokumen `staff/{uid}` manual) — bukan lewat `tools/import-siswa.html`, karena rules `staff/{uid}` butuh `isAdmin()` yang belum ada sebelum dokumen staff pertama dibuat. Kalau perlu menambah staff baru di kemudian hari, tetap lewat Console manual (jumlahnya sedikit, tidak butuh alat khusus).
+- **`tools/import-siswa.html` sengaja membaca file dari komputer admin saat itu juga** (lewat `<input type="file">`), bukan mengambil file dari repo — karena file data siswa memuat NISN yang juga menjadi kata sandi. Kalau ke depan alat ini dikembangkan lagi, pertahankan pola ini; jangan ubah jadi fetch file dari path repo.
+- **ES Modules butuh server HTTP, tidak bisa dibuka lewat `file://`.** Kalau menguji perubahan secara lokal, jalankan `python3 -m http.server` dulu (lihat README). Kalau lupa dan membuka lewat dobel klik, halaman `app/`/`guru/`/`tools/` akan macet di layar "Memeriksa sesi masuk..." karena modul gagal dimuat — ini bukan bug baru, cek dulu caranya dibuka sebelum menyelidiki lebih jauh.
+
+---
+
+## 8. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 

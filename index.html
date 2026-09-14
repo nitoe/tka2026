@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Masuk – Portal Latihan TKA 2026 | SD Muhammadiyah 01 Kukusan</title>
-<meta name="description" content="Masuk atau daftar untuk mulai latihan soal Tes Kompetensi Akademik (TKA) 2026 — SD Muhammadiyah 01 Kukusan.">
+<meta name="description" content="Masuk untuk mulai latihan soal Tes Kompetensi Akademik (TKA) 2026 — SD Muhammadiyah 01 Kukusan.">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -197,10 +197,18 @@
     color: var(--text);
     outline: none;
     transition: border-color 0.15s ease, background 0.15s ease;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.6' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 34px;
   }
   .field input:focus, .field select:focus {
     border-color: var(--primary);
-    background: var(--white);
+    background-color: var(--white);
   }
   .field-error {
     display: none;
@@ -231,12 +239,6 @@
     font-size: 0.76rem; color: var(--text-muted); font-weight: 700;
     line-height: 1.7;
   }
-  .auth-footer button.link {
-    background: none; border: none; padding: 0; cursor: pointer;
-    color: var(--primary); font-weight: 800; font-size: 0.76rem; font-family: inherit;
-  }
-  .auth-footer a { color: var(--primary); font-weight: 800; text-decoration: none; }
-  .auth-footer a:hover { text-decoration: underline; }
 
   .status-box {
     display: none;
@@ -315,67 +317,49 @@
 
       <div class="auth-card">
         <div class="tabs">
-          <button class="tab-btn active" id="tab-masuk" onclick="AuthUI.switchTab('masuk')">Masuk</button>
-          <button class="tab-btn" id="tab-daftar" onclick="AuthUI.switchTab('daftar')">Daftar</button>
+          <button class="tab-btn active" id="tab-siswa" onclick="AuthUI.switchTab('siswa')">Siswa</button>
+          <button class="tab-btn" id="tab-guru" onclick="AuthUI.switchTab('guru')">Guru &amp; Admin</button>
         </div>
 
-        <!-- PANEL MASUK -->
-        <form class="panel active" id="panel-masuk" onsubmit="return AuthUI.submitMasuk(event)" novalidate>
-          <div class="field" id="f-masuk-email">
-            <label for="masuk-email">Email</label>
-            <input type="email" id="masuk-email" placeholder="nama@email.com" autocomplete="email">
-            <div class="field-error">Masukkan email yang valid.</div>
+        <!-- PANEL SISWA -->
+        <form class="panel active" id="panel-siswa" onsubmit="return AuthUI.submitLogin(event, 'siswa')" novalidate>
+          <div class="field" id="f-siswa-nama">
+            <label for="siswa-nama">Nama Siswa</label>
+            <select id="siswa-nama">
+              <option value="">Pilih namamu...</option>
+            </select>
+            <div class="field-error">Pilih nama terlebih dahulu.</div>
           </div>
-          <div class="field" id="f-masuk-pass">
-            <label for="masuk-pass">Kata Sandi</label>
-            <input type="password" id="masuk-pass" placeholder="••••••••" autocomplete="current-password">
+          <div class="field" id="f-siswa-pass">
+            <label for="siswa-pass">Kata Sandi</label>
+            <input type="password" id="siswa-pass" placeholder="Kata sandi (NISN)" autocomplete="current-password">
             <div class="field-error">Kata sandi wajib diisi.</div>
           </div>
           <button type="submit" class="btn-submit">Masuk</button>
-          <div class="status-box" id="status-masuk"></div>
+          <div class="status-box" id="status-siswa"></div>
         </form>
 
-        <!-- PANEL DAFTAR -->
-        <form class="panel" id="panel-daftar" onsubmit="return AuthUI.submitDaftar(event)" novalidate>
-          <div class="field" id="f-daftar-nama">
-            <label for="daftar-nama">Nama Lengkap</label>
-            <input type="text" id="daftar-nama" placeholder="Nama siswa" autocomplete="name">
-            <div class="field-error">Nama wajib diisi.</div>
-          </div>
-          <div class="field" id="f-daftar-kelas">
-            <label for="daftar-kelas">Kelas</label>
-            <select id="daftar-kelas">
-              <option value="">Pilih kelas</option>
-              <option value="6A">6A</option>
-              <option value="6B">6B</option>
-              <option value="6C">6C</option>
+        <!-- PANEL GURU & ADMIN -->
+        <form class="panel" id="panel-guru" onsubmit="return AuthUI.submitLogin(event, 'guru')" novalidate>
+          <div class="field" id="f-guru-nama">
+            <label for="guru-nama">Nama</label>
+            <select id="guru-nama">
+              <option value="">Pilih nama...</option>
             </select>
-            <div class="field-error">Kelas wajib dipilih.</div>
+            <div class="field-error">Pilih nama terlebih dahulu.</div>
           </div>
-          <div class="field" id="f-daftar-email">
-            <label for="daftar-email">Email</label>
-            <input type="email" id="daftar-email" placeholder="nama@email.com" autocomplete="email">
-            <div class="field-error">Masukkan email yang valid.</div>
+          <div class="field" id="f-guru-pass">
+            <label for="guru-pass">Kata Sandi</label>
+            <input type="password" id="guru-pass" placeholder="••••••••" autocomplete="current-password">
+            <div class="field-error">Kata sandi wajib diisi.</div>
           </div>
-          <div class="field" id="f-daftar-pass">
-            <label for="daftar-pass">Kata Sandi</label>
-            <input type="password" id="daftar-pass" placeholder="Minimal 6 karakter" autocomplete="new-password">
-            <div class="field-error">Kata sandi minimal 6 karakter.</div>
-          </div>
-          <div class="field" id="f-daftar-pass2">
-            <label for="daftar-pass2">Ulangi Kata Sandi</label>
-            <input type="password" id="daftar-pass2" placeholder="Ulangi kata sandi" autocomplete="new-password">
-            <div class="field-error">Kata sandi tidak sama.</div>
-          </div>
-          <button type="submit" class="btn-submit">Daftar</button>
-          <div class="status-box" id="status-daftar"></div>
+          <button type="submit" class="btn-submit">Masuk</button>
+          <div class="status-box" id="status-guru"></div>
         </form>
       </div>
 
       <div class="auth-footer">
-        <div id="foot-masuk">Belum punya akun? <button class="link" onclick="AuthUI.switchTab('daftar')">Klik tab Daftar di atas.</button></div>
-        <div id="foot-daftar" style="display:none;">Sudah punya akun? <button class="link" onclick="AuthUI.switchTab('masuk')">Klik tab Masuk di atas.</button></div>
-        <div>Guru atau admin? <a href="./admin/">Masuk ke Panel Guru ↗</a></div>
+        Lupa kata sandi? Hubungi wali kelas atau admin sekolah.
       </div>
 
     </div>
@@ -384,14 +368,103 @@
 </div>
 
 <script>
+  // ═══════ DATA AKUN (dipakai untuk mengisi dropdown) ═══════
+  // Catatan: email di sini adalah ID login internal, BUKAN alamat email sungguhan.
+  // Sumber kebenaran akun tetap Firebase Authentication — daftar ini hanya untuk
+  // menampilkan pilihan nama di dropdown sebelum memanggil Firebase Auth.
+  const SISWA = [
+    { nama: 'Abi Ibadurrohman', kelas: '6A', email: 'abi.ibadurrohman@sdm01tka2026.id' },
+    { nama: 'Al-Ghifari Azzam Khoirusshalih Mahika', kelas: '6A', email: 'alghifari.azzam.khoirusshalih.mahika@sdm01tka2026.id' },
+    { nama: 'Daenzel Zhafran', kelas: '6A', email: 'daenzel.zhafran@sdm01tka2026.id' },
+    { nama: 'Davindra Arfino Erwansyah', kelas: '6A', email: 'davindra.arfino.erwansyah@sdm01tka2026.id' },
+    { nama: 'Dzaky Abdul Rauf', kelas: '6A', email: 'dzaky.abdul.rauf@sdm01tka2026.id' },
+    { nama: 'Farannisa Humaira Mumtaz', kelas: '6A', email: 'farannisa.humaira.mumtaz@sdm01tka2026.id' },
+    { nama: 'Fayakuun Abdullah Wikrama', kelas: '6A', email: 'fayakuun.abdullah.wikrama@sdm01tka2026.id' },
+    { nama: 'Gibran Praja Al Fatih', kelas: '6A', email: 'gibran.praja.al.fatih@sdm01tka2026.id' },
+    { nama: 'Hafiz Ali Al Fatih', kelas: '6A', email: 'hafiz.ali.al.fatih@sdm01tka2026.id' },
+    { nama: 'Hafiza Khaira Lubna', kelas: '6A', email: 'hafiza.khaira.lubna@sdm01tka2026.id' },
+    { nama: 'Kanzaki Luvry Amirza', kelas: '6A', email: 'kanzaki.luvry.amirza@sdm01tka2026.id' },
+    { nama: 'Luqman Syafii', kelas: '6A', email: 'luqman.syafii@sdm01tka2026.id' },
+    { nama: 'Mirza Ukail Bunia', kelas: '6A', email: 'mirza.ukail.bunia@sdm01tka2026.id' },
+    { nama: 'Muhammad Abdus Salam Firanda', kelas: '6A', email: 'muhammad.abdus.salam.firanda@sdm01tka2026.id' },
+    { nama: 'Muhammad Arkan Alfarizi', kelas: '6A', email: 'muhammad.arkan.alfarizi@sdm01tka2026.id' },
+    { nama: 'Muhammad Danish Alfiero', kelas: '6A', email: 'muhammad.danish.alfiero@sdm01tka2026.id' },
+    { nama: 'Muhammad Wirabumi', kelas: '6A', email: 'muhammad.wirabumi@sdm01tka2026.id' },
+    { nama: 'Naila Azharina Zhafira', kelas: '6A', email: 'naila.azharina.zhafira@sdm01tka2026.id' },
+    { nama: 'Najla Fiesya Callista', kelas: '6A', email: 'najla.fiesya.callista@sdm01tka2026.id' },
+    { nama: 'Naufal Adrian Ramadhani', kelas: '6A', email: 'naufal.adrian.ramadhani@sdm01tka2026.id' },
+    { nama: 'Oryza Adilla Yasin', kelas: '6A', email: 'oryza.adilla.yasin@sdm01tka2026.id' },
+    { nama: 'Qisya Hamizan Chasril', kelas: '6A', email: 'qisya.hamizan.chasril@sdm01tka2026.id' },
+    { nama: 'Safiya Azzahra Elmeira Kandow', kelas: '6A', email: 'safiya.azzahra.elmeira.kandow@sdm01tka2026.id' },
+    { nama: 'Sinan Abhinaya Tsabit', kelas: '6A', email: 'sinan.abhinaya.tsabit@sdm01tka2026.id' },
+    { nama: 'Syabila Aisyatuz Zahra', kelas: '6A', email: 'syabila.aisyatuz.zahra@sdm01tka2026.id' },
+    { nama: 'Yasfa Qudsiyyah', kelas: '6A', email: 'yasfa.qudsiyyah@sdm01tka2026.id' },
+    { nama: 'Agisha Bellvania Raeka Hermansyah', kelas: '6B', email: 'agisha.bellvania.raeka.hermansyah@sdm01tka2026.id' },
+    { nama: 'Ahmad Rayhan Nurhadi', kelas: '6B', email: 'ahmad.rayhan.nurhadi@sdm01tka2026.id' },
+    { nama: 'Aisyah Ayudia Inara', kelas: '6B', email: 'aisyah.ayudia.inara@sdm01tka2026.id' },
+    { nama: 'Alendru Naizar', kelas: '6B', email: 'alendru.naizar@sdm01tka2026.id' },
+    { nama: 'Alisha Marwa Shofia', kelas: '6B', email: 'alisha.marwa.shofia@sdm01tka2026.id' },
+    { nama: 'Arkarilo Alkhawarizmi Laami', kelas: '6B', email: 'arkarilo.alkhawarizmi.laami@sdm01tka2026.id' },
+    { nama: 'Awlia Ramadhani Handoko', kelas: '6B', email: 'awlia.ramadhani.handoko@sdm01tka2026.id' },
+    { nama: 'Dhabita Arissa Mahera', kelas: '6B', email: 'dhabita.arissa.mahera@sdm01tka2026.id' },
+    { nama: 'Fathan Ghani Abidenur', kelas: '6B', email: 'fathan.ghani.abidenur@sdm01tka2026.id' },
+    { nama: 'Ibrahim Abbas Al Ukasyah Hasibuan', kelas: '6B', email: 'ibrahim.abbas.al.ukasyah.hasibuan@sdm01tka2026.id' },
+    { nama: 'La Ode Muhammad Fakhri Akbar', kelas: '6B', email: 'la.ode.muhammad.fakhri.akbar@sdm01tka2026.id' },
+    { nama: 'Maliq Rizky Javier', kelas: '6B', email: 'maliq.rizky.javier@sdm01tka2026.id' },
+    { nama: 'Mohammad Rayyan Bagjapura', kelas: '6B', email: 'mohammad.rayyan.bagjapura@sdm01tka2026.id' },
+    { nama: 'Muhammad Abdullah Azzam', kelas: '6B', email: 'muhammad.abdullah.azzam@sdm01tka2026.id' },
+    { nama: 'Muhammad Abidzar Al Ghifari', kelas: '6B', email: 'muhammad.abidzar.al.ghifari@sdm01tka2026.id' },
+    { nama: 'Muhammad Alzam Hanif', kelas: '6B', email: 'muhammad.alzam.hanif@sdm01tka2026.id' },
+    { nama: 'Muhammad Kafiluddin Jundori', kelas: '6B', email: 'muhammad.kafiluddin.jundori@sdm01tka2026.id' },
+    { nama: 'Naufal Ibrohim', kelas: '6B', email: 'naufal.ibrohim@sdm01tka2026.id' },
+    { nama: 'Raziq Hanan Achmad', kelas: '6B', email: 'raziq.hanan.achmad@sdm01tka2026.id' },
+    { nama: 'Sabiq Alkhairy Rahman', kelas: '6B', email: 'sabiq.alkhairy.rahman@sdm01tka2026.id' },
+    { nama: 'Syafira Putri Kartadisastra', kelas: '6B', email: 'syafira.putri.kartadisastra@sdm01tka2026.id' },
+    { nama: 'Syifa Aulia Azkiya', kelas: '6B', email: 'syifa.aulia.azkiya@sdm01tka2026.id' },
+    { nama: 'Tangguh Hafiz Pratama', kelas: '6B', email: 'tangguh.hafiz.pratama@sdm01tka2026.id' },
+    { nama: 'Uwais Al Fatih', kelas: '6B', email: 'uwais.al.fatih@sdm01tka2026.id' },
+    { nama: 'Vania Amira Zhafirah', kelas: '6B', email: 'vania.amira.zhafirah@sdm01tka2026.id' },
+    { nama: 'Zakiyah Fathinah Fauziyah', kelas: '6B', email: 'zakiyah.fathinah.fauziyah@sdm01tka2026.id' },
+  ];
+
+  const GURU = [
+    { nama: 'Arif Azwar Anas', peran: 'admin', email: 'arif@admintka2026.id' },
+    { nama: 'Ratih Yuniati', peran: 'guru', email: 'ratih@gurutka2026.id' },
+    { nama: 'Asuroh Susanti', peran: 'guru', email: 'santi@gurutka2026.id' },
+  ];
+
   const AuthUI = {
+    init() {
+      // isi dropdown siswa, dikelompokkan per kelas
+      const kelasList = [...new Set(SISWA.map(s => s.kelas))].sort();
+      const selSiswa = document.getElementById('siswa-nama');
+      kelasList.forEach(kelas => {
+        const group = document.createElement('optgroup');
+        group.label = 'Kelas ' + kelas;
+        SISWA.filter(s => s.kelas === kelas).forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.email;
+          opt.textContent = s.nama;
+          group.appendChild(opt);
+        });
+        selSiswa.appendChild(group);
+      });
+
+      // isi dropdown guru & admin
+      const selGuru = document.getElementById('guru-nama');
+      GURU.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.email;
+        opt.textContent = g.nama;
+        selGuru.appendChild(opt);
+      });
+    },
+
     switchTab(name) {
-      document.getElementById('tab-masuk').classList.toggle('active', name === 'masuk');
-      document.getElementById('tab-daftar').classList.toggle('active', name === 'daftar');
-      document.getElementById('panel-masuk').classList.toggle('active', name === 'masuk');
-      document.getElementById('panel-daftar').classList.toggle('active', name === 'daftar');
-      document.getElementById('foot-masuk').style.display = name === 'masuk' ? 'block' : 'none';
-      document.getElementById('foot-daftar').style.display = name === 'daftar' ? 'block' : 'none';
+      document.getElementById('tab-siswa').classList.toggle('active', name === 'siswa');
+      document.getElementById('tab-guru').classList.toggle('active', name === 'guru');
+      document.getElementById('panel-siswa').classList.toggle('active', name === 'siswa');
+      document.getElementById('panel-guru').classList.toggle('active', name === 'guru');
     },
 
     setError(fieldId, hasError) {
@@ -404,61 +477,101 @@
       box.classList.add('show');
     },
 
-    submitMasuk(e) {
+    submitLogin(e, tipe) {
       e.preventDefault();
-      const email = document.getElementById('masuk-email').value.trim();
-      const pass = document.getElementById('masuk-pass').value;
+      const namaSel = document.getElementById(tipe + '-nama');
+      const passInput = document.getElementById(tipe + '-pass');
+      const email = namaSel.value;
+      const pass = passInput.value;
       let ok = true;
 
-      const validEmail = /\S+@\S+\.\S+/.test(email);
-      this.setError('f-masuk-email', !validEmail);
-      if (!validEmail) ok = false;
+      this.setError('f-' + tipe + '-nama', email === '');
+      if (email === '') ok = false;
 
-      this.setError('f-masuk-pass', pass.length === 0);
+      this.setError('f-' + tipe + '-pass', pass.length === 0);
       if (pass.length === 0) ok = false;
 
       if (!ok) return false;
 
       // TODO(Fase 1 — Firebase Auth): ganti blok ini dengan
-      // signInWithEmailAndPassword(auth, email, pass) lalu redirect ke /app/
-      this.showStatus('status-masuk', '🚧 Fitur masuk akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
-      return false;
-    },
-
-    submitDaftar(e) {
-      e.preventDefault();
-      const nama = document.getElementById('daftar-nama').value.trim();
-      const kelas = document.getElementById('daftar-kelas').value;
-      const email = document.getElementById('daftar-email').value.trim();
-      const pass = document.getElementById('daftar-pass').value;
-      const pass2 = document.getElementById('daftar-pass2').value;
-      let ok = true;
-
-      this.setError('f-daftar-nama', nama.length === 0);
-      if (nama.length === 0) ok = false;
-
-      this.setError('f-daftar-kelas', kelas.length === 0);
-      if (kelas.length === 0) ok = false;
-
-      const validEmail = /\S+@\S+\.\S+/.test(email);
-      this.setError('f-daftar-email', !validEmail);
-      if (!validEmail) ok = false;
-
-      this.setError('f-daftar-pass', pass.length < 6);
-      if (pass.length < 6) ok = false;
-
-      this.setError('f-daftar-pass2', pass2 !== pass || pass2.length === 0);
-      if (pass2 !== pass || pass2.length === 0) ok = false;
-
-      if (!ok) return false;
-
-      // TODO(Fase 1 — Firebase Auth): ganti blok ini dengan
-      // createUserWithEmailAndPassword(auth, email, pass), lalu simpan
-      // { nama, kelas } ke koleksi Firestore `students` dengan uid sebagai id.
-      this.showStatus('status-daftar', '🚧 Fitur pendaftaran akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
+      // signInWithEmailAndPassword(auth, email, pass)
+      //   .then(cred => { /* arahkan sesuai peran: siswa -> app/, guru/admin -> guru/ */ })
+      //   .catch(err => AuthUI.showStatus('status-' + tipe, 'Nama atau kata sandi salah.'));
+      this.showStatus('status-' + tipe, '🚧 Fitur masuk akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
       return false;
     }
   };
+
+  AuthUI.init();
+</script>
+
+<!-- ═══════ WIRING FIREBASE AUTH SUNGGUHAN ═══════ -->
+<script type="module">
+  import {
+    isConfigured,
+    auth,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    resolveHomeByRole,
+  } from './assets/firebase-init.js';
+
+  const devPill = document.querySelector('.dev-pill');
+
+  if (!isConfigured) {
+    // firebase-config.js belum diisi nilai asli — biarkan halaman tetap
+    // jadi pratinjau UI seperti sebelumnya (AuthUI.submitLogin bawaan
+    // yang hanya menampilkan pesan status, tidak diganti).
+    devPill.innerHTML = '<span class="dot"></span>Firebase belum dikonfigurasi — isi firebase-config.js';
+  } else {
+    devPill.style.display = 'none';
+
+    // Kalau sudah pernah login sebelumnya (sesi tersimpan), langsung
+    // arahkan ke halaman yang sesuai tanpa perlu login ulang.
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      const tujuan = await resolveHomeByRole(user.uid);
+      if (tujuan) window.location.href = tujuan;
+    });
+
+    // Ganti handler submit dengan logika Firebase Auth sungguhan.
+    AuthUI.submitLogin = async function (e, tipe) {
+      e.preventDefault();
+      const namaSel = document.getElementById(tipe + '-nama');
+      const passInput = document.getElementById(tipe + '-pass');
+      const email = namaSel.value;
+      const pass = passInput.value;
+      let ok = true;
+
+      AuthUI.setError('f-' + tipe + '-nama', email === '');
+      if (email === '') ok = false;
+
+      AuthUI.setError('f-' + tipe + '-pass', pass.length === 0);
+      if (pass.length === 0) ok = false;
+
+      if (!ok) return false;
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Memeriksa...';
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        // Redirect ditangani oleh onAuthStateChanged di atas.
+      } catch (err) {
+        let msg = 'Nama atau kata sandi salah.';
+        if (err.code === 'auth/too-many-requests') {
+          msg = 'Terlalu banyak percobaan gagal. Coba lagi beberapa saat lagi.';
+        } else if (err.code === 'auth/network-request-failed') {
+          msg = 'Koneksi internet bermasalah. Coba lagi.';
+        }
+        AuthUI.showStatus('status-' + tipe, msg);
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+      return false;
+    };
+  }
 </script>
 
 </body>

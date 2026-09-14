@@ -13,15 +13,82 @@ Setiap entri baru **wajib** menyebutkan: tanggal, apa yang berubah, kenapa berub
 Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ### Direncanakan
-- Integrasi Firebase Authentication sungguhan ke `index.html` (saat ini form Masuk/Daftar baru UI + validasi client-side, belum memanggil `signInWithEmailAndPassword`/`createUserWithEmailAndPassword`).
-- Halaman `admin/` (Panel Guru) — saat ini baru berupa tautan placeholder di `index.html`.
+- Integrasi Firebase Authentication sungguhan ke `index.html` (saat ini form login baru UI + validasi client-side, belum memanggil `signInWithEmailAndPassword`).
+- Halaman `app/` (menu utama siswa setelah login) dan `guru/` (dashboard guru & admin setelah login).
 - Setup Firebase project (Auth, Firestore, Hosting, Functions).
+- Alat impor otomatis 52 akun siswa + 3 akun guru/admin ke Firebase Authentication & Firestore.
 - Desain & penerapan skema Firestore (`subjects`, `questionPool`, `packages`, `attempts`, `students`).
 - Panel admin: manajemen bank soal + import dari Google Spreadsheet.
 - Aplikasi kuis siswa versi baru (mengambil soal dari Firestore, penilaian server-side).
 - Dashboard rekap nilai real-time untuk guru.
 - Integrasi Google Apps Script: import soal massal & backup hasil ujian + email laporan ke orang tua.
 - Firestore Security Rules & pengujian keamanan (kunci jawaban tidak boleh terkirim ke client).
+
+---
+
+## [0.4.0] — 2026-09-13
+
+### Added
+- **`firestore.rules`** — aturan keamanan Firestore lengkap: siswa hanya baca data sendiri, staff (admin/guru) ditentukan lewat dokumen `staff/{uid}` (bukan custom claims), kunci jawaban bank soal (`questionPool`) tidak bisa dibaca client biasa, hasil ujian (`attempts`) tidak bisa diubah/dihapus setelah dibuat.
+- **`firebase-config.js`** — placeholder konfigurasi Firebase (nilai `GANTI_DENGAN_...`, aman untuk publik, tinggal diisi setelah project Firebase dibuat).
+- **`assets/firebase-init.js`** — modul terpusat: satu-satunya tempat `initializeApp()` dipanggil, dipakai semua halaman lain (lihat ANTIREGRESI.md §7).
+- **`app/index.html`** — halaman utama siswa setelah login: sapaan nama + kelas, kartu mata pelajaran (masih "Segera Hadir"), tombol Keluar. Redirect otomatis ke halaman masuk kalau belum login atau bukan akun siswa.
+- **`guru/index.html`** — dashboard guru/admin setelah login: sapaan nama + badge peran, placeholder "Dashboard Rekap Nilai — Dalam Pengembangan", tombol Keluar.
+- **`tools/import-siswa.html`** — alat sekali pakai untuk admin: login admin → pilih file JSON data siswa dari komputer lokal → buat otomatis akun Firebase Authentication + dokumen Firestore untuk setiap siswa (idempotent — aman dijalankan ulang, entri yang sudah ada otomatis dilewati).
+- `index.html`: tombol Masuk pada kedua tab sekarang benar-benar memanggil Firebase Authentication (`signInWithEmailAndPassword`), dengan redirect otomatis sesuai peran setelah berhasil, dan pesan error yang manusiawi (nama/sandi salah, koneksi bermasalah, dll).
+
+### Changed
+- README.md: struktur repo diperbarui sesuai kondisi sebenarnya (bukan lagi "rencana"), ditambah bagian Setup Firebase langkah-demi-langkah dan skema akun/login.
+- README.md: catatan penting — ES Modules butuh dibuka lewat server HTTP lokal (`python3 -m http.server`), tidak bisa dobel klik langsung (`file://`).
+
+### Verifikasi
+- Semua file `.js`/`<script type="module">` divalidasi sintaksnya lewat `node --check` — tidak ada error.
+- Semua halaman diuji lewat server HTTP lokal dengan Playwright: path impor modul relatif (`../assets/firebase-init.js`, `../firebase-config.js`) sudah benar dari kedalaman folder mana pun.
+- Alur "Firebase belum dikonfigurasi" (placeholder `firebase-config.js`) menampilkan fallback yang wajar di `index.html` (tidak ada elemen rusak/hilang).
+- Pemanggilan Firebase Authentication sungguhan **belum bisa diuji end-to-end** di lingkungan kerja ini (belum ada project Firebase asli) — perlu diuji ulang oleh pemilik proyek setelah `firebase-config.js` diisi nilai sungguhan.
+
+### Tidak Berubah
+- Belum ada Cloud Functions / penilaian server-side — itu untuk fase aplikasi kuis (belum dikerjakan).
+- `ANTIREGRESI.md` ditambah §7 (catatan arsitektur login & database) — bagian lain tidak diubah.
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: selesaikan setup Firebase Console (lihat README §Setup Firebase), isi `firebase-config.js`, deploy `firestore.rules`, buat 3 akun staff + dokumen `staff/{uid}` manual, jalankan `tools/import-siswa.html`.
+- Setelah itu: uji ulang alur login end-to-end (siswa & guru) dengan project Firebase asli.
+- Bangun halaman kuis sungguhan (Matematika & Bahasa Indonesia) + Cloud Functions penilaian server-side.
+
+---
+
+## [0.3.0] — 2026-09-13
+
+### Changed
+- **`index.html` dirombak ulang** dari model Masuk/Daftar (email+password ketik manual) menjadi **dua tab berbasis dropdown nama**: tab **Siswa** dan tab **Guru & Admin**. Tab **Daftar dihapus** — akun tidak lagi didaftarkan mandiri oleh pengguna, melainkan diprovisi lebih dulu oleh admin (lihat data siswa & guru di bawah).
+- Tautan "Panel Guru" ke halaman terpisah (`./admin/`) **dihapus** — login guru/admin sekarang menyatu di halaman yang sama, dibedakan lewat tab, bukan halaman terpisah.
+- Nama siswa dari data mentah (beberapa ditulis SEMUA HURUF KAPITAL atau huruf kecil semua) dinormalisasi ke Proper Case (mis. `ABI IBADURROHMAN` → `Abi Ibadurrohman`) agar konsisten dan rapi di seluruh dropdown maupun dokumen turunannya.
+
+### Added
+- Dropdown **Nama Siswa** (52 nama, dikelompokkan per kelas via `<optgroup>`: Kelas 6A & 6B, urut abjad) + field Kata Sandi.
+- Dropdown **Nama Guru & Admin** (Arif Azwar Anas, Ratih Yuniati, Asuroh Susanti) + field Kata Sandi.
+- Data akun (nama → ID login internal) disisipkan langsung di `index.html` sebagai array JS (`SISWA`, `GURU`) untuk mengisi dropdown — **bukan** kredensial asli, hanya pemetaan nama ke email internal; kata sandi tetap divalidasi lewat Firebase Authentication di fase berikutnya.
+- File data siswa (Nama, Kelas, NISN, Email Login) dan file Excel **`Daftar-Login-Siswa-TKA2026.xlsx`** (2 sheet: Login Siswa & Login Guru+Admin) disiapkan sebagai bahan kerja untuk alat impor akun ke Firebase. **Keduanya sengaja TIDAK disertakan di repo ini** (lihat peringatan privasi di bawah) — disimpan lokal di komputer admin saja.
+
+### Skema Akun (ditetapkan pemilik proyek)
+- **Siswa**: email login `nama.siswa@sdm01tka2026.id` (domain internal, bukan email sungguhan), kata sandi = **NISN** siswa.
+- **Guru/Admin**: `arif@admintka2026.id` (admin), `ratih@gurutka2026.id` (guru), `santi@gurutka2026.id` (guru — akun atas nama Asuroh Susanti), kata sandi ditetapkan manual oleh pemilik proyek.
+
+### ⚠️ Catatan Privasi (PENTING — baca sebelum upload ke GitHub)
+- Repo `nitoe/tka2026` bersifat **publik**. Dari data lengkap ala Dapodik yang diberikan (~30 kolom termasuk alamat rumah, data orang tua, nomor HP), **hanya Nama, Kelas, dan NISN** yang dipakai untuk aplikasi ini — kolom lain tidak diproses maupun disimpan di mana pun.
+- Nama lengkap 52 siswa tampil di *client-side* `index.html` (bisa dilihat lewat "View Source" oleh siapa pun yang membuka halaman login, karena repo publik). Ini trade-off yang disengaja demi UX dropdown nama — **tidak ada kata sandi yang ikut ter-expose lewat `index.html`**, jadi risikonya setara daftar nama kelas yang memang lazim terlihat publik (mis. di mading/rapor).
+- **JANGAN UPLOAD** file `siswa-kelas6-2026-2027.json` atau `Daftar-Login-Siswa-TKA2026.xlsx` ke GitHub — dua file itu memuat NISN yang sekaligus menjadi **kata sandi** setiap siswa. Simpan hanya di komputer lokal admin (atau Google Drive privat sekolah), tidak pernah di repo publik. Alat impor akun ke Firebase (fase berikutnya) akan dirancang membaca file ini lewat pemilih file lokal di browser, bukan mengambil dari repo.
+
+### Tidak Berubah
+- Belum ada koneksi backend apa pun — submit form masih menampilkan pesan status placeholder, sama seperti versi sebelumnya, sampai Firebase Authentication benar-benar diintegrasikan.
+- `README.md` dan `ANTIREGRESI.md` belum diperbarui pada entri ini.
+
+### Pekerjaan Berikutnya
+- Setup Firebase project (dipandu langkah demi langkah).
+- Firestore Security Rules untuk koleksi `students`, `guru`, dll.
+- Alat impor otomatis akun ke Firebase Authentication + Firestore dari `data/siswa-kelas6-2026-2027.json`.
+- Sambungkan `submitLogin()` ke `signInWithEmailAndPassword` sungguhan + redirect sesuai peran (siswa → `app/`, guru/admin → `guru/`).
 
 ---
 

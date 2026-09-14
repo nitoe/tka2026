@@ -1,0 +1,94 @@
+rules_version = '2';
+
+// ══════════════════════════════════════════════════════════════
+// Firestore Security Rules — Portal Latihan TKA 2026
+// SD Muhammadiyah 01 Kukusan
+//
+// Prinsip:
+// - Siswa hanya bisa baca datanya sendiri, tidak bisa menulis apa pun
+//   ke koleksi students/staff (pencegahan siswa mengubah data sendiri).
+// - Staff (admin & guru) ditandai lewat dokumen di koleksi `staff`,
+//   BUKAN custom claims — supaya tidak perlu Cloud Functions/Admin SDK
+//   hanya untuk mengatur peran (custom claims butuh Admin SDK).
+// - Kunci jawaban soal (field `kunciJawaban` di `questionPool`) TIDAK
+//   pernah boleh dibaca langsung oleh siswa — baca soal untuk siswa
+//   wajib lewat Cloud Function di fase berikutnya, bukan dari rules ini.
+// ══════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isStaff() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function staffData() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isStaff() && staffData().peran == 'admin';
+    }
+
+    // ── STAFF (guru & admin) ──
+    // Hanya staff yang bisa membaca daftar staff (untuk kebutuhan dashboard).
+    // Hanya admin yang bisa menulis/mengubah data staff.
+    match /staff/{uid} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ── SISWA ──
+    // Siswa hanya bisa baca dokumennya sendiri. Staff bisa baca semua
+    // (untuk dashboard rekap). Hanya admin yang bisa menulis (dipakai
+    // oleh alat impor akun di tools/import-siswa.html).
+    match /students/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ── MATA PELAJARAN ──
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── BANK SOAL ──
+    // PENTING: dokumen di koleksi ini akan menyimpan field kunciJawaban.
+    // Rules ini SENGAJA hanya mengizinkan staff yang membaca langsung dari
+    // client. Siswa TIDAK diberi akses baca ke koleksi ini sama sekali —
+    // soal untuk siswa harus diambil lewat Cloud Function yang menyaring
+    // field kunciJawaban sebelum dikirim ke client (lihat ANTIREGRESI.md §2).
+    match /questionPool/{questionId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ── PAKET SOAL ──
+    match /packages/{packageId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── HASIL PENGERJAAN ──
+    // Siswa hanya bisa membuat attempt miliknya sendiri, tidak bisa
+    // mengubah/menghapus setelah dibuat (integritas nilai). Staff bisa
+    // baca semua untuk dashboard rekap.
+    match /attempts/{attemptId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.studentId == request.auth.uid;
+      allow read: if isStaff() ||
+        (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow update, delete: if false;
+    }
+  }
+}
