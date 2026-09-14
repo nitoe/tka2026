@@ -47,6 +47,16 @@
   .card h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .card.disabled { opacity: 0.5; pointer-events: none; }
 
+  .import-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .import-tab-btn {
+    background: none; border: none; padding: 8px 4px 10px; margin-right: 16px;
+    font-family: 'Nunito', sans-serif; font-size: 0.84rem; font-weight: 800;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .import-tab-btn.active { color: var(--primary); border-color: var(--primary); }
+  .import-panel { display: none; }
+  .import-panel.active { display: block; }
+
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .stat-box { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; text-align: center; }
   .stat-box .num { font-family: 'Baloo 2', cursive; font-size: 1.5rem; color: var(--primary); font-weight: 800; }
@@ -130,13 +140,37 @@
 
     <!-- IMPORT (khusus admin) -->
     <div class="card" id="card-import" style="display:none;">
-      <h2>⬆️ Import Soal dari Excel</h2>
-      <div class="warn-box">
-        Gunakan template resmi (sheet <b>"Template Soal"</b>). Satu baris = satu soal.
-        Baris yang formatnya tidak sesuai akan ditandai merah dan TIDAK ikut diimpor.
+      <h2>⬆️ Import Soal</h2>
+      <div class="import-tabs">
+        <button class="import-tab-btn active" id="tab-import-excel" type="button">Dari Excel</button>
+        <button class="import-tab-btn" id="tab-import-json" type="button">Dari JSON Pool</button>
       </div>
-      <input type="file" id="file-input" accept=".xlsx,.xls">
-      <div id="preview-area" style="margin-top:14px;"></div>
+
+      <div id="import-panel-excel" class="import-panel active">
+        <div class="warn-box">
+          Gunakan template resmi (sheet <b>"Template Soal"</b>). Satu baris = satu soal.
+          Baris yang formatnya tidak sesuai akan ditandai merah dan TIDAK ikut diimpor.
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls">
+        <div id="preview-area" style="margin-top:14px;"></div>
+      </div>
+
+      <div id="import-panel-json" class="import-panel">
+        <div class="warn-box">
+          Untuk file hasil olahan pool soal (format JSON dengan ilustrasi base64).
+          Mendukung dua bentuk file:<br>
+          • <b>Soal lengkap</b> (mis. Bahasa Indonesia) — punya field <code>pertanyaan</code>/<code>opsi</code>/<code>jawaban</code> → langsung masuk Bank Soal.<br>
+          • <b>Ilustrasi saja</b> (mis. Matematika) — hanya <code>id</code>+gambar, belum ada teks soal → disimpan ke Pustaka Ilustrasi, menunggu teks soalnya di-import menyusul.
+        </div>
+        <input type="file" id="file-input-json" accept=".json">
+        <div id="preview-area-json" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <!-- PUSTAKA ILUSTRASI (menunggu teks soal) -->
+    <div class="card" id="card-ilustrasi" style="display:none;">
+      <h2>🖼️ Pustaka Ilustrasi Menunggu Teks Soal</h2>
+      <div class="warn-box" id="ilustrasi-note">—</div>
     </div>
 
     <!-- DAFTAR SOAL -->
@@ -154,6 +188,7 @@
         </table>
       </div>
       <div class="empty-state" id="empty-state" style="display:none;">Belum ada soal tersimpan. Import lewat form di atas.</div>
+
     </div>
   </main>
 </div>
@@ -207,6 +242,22 @@
       renderStats();
       populateFilters();
       renderTable();
+      if (currentStaff && currentStaff.peran === 'admin') await loadIlustrasiPending();
+    }
+
+    // ══════════════ PUSTAKA ILUSTRASI (menunggu teks soal) ══════════════
+    async function loadIlustrasiPending() {
+      const snap = await getDocs(collection(db, 'ilustrasiSoal'));
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const box = document.getElementById('card-ilustrasi');
+      const note = document.getElementById('ilustrasi-note');
+      if (items.length === 0) { box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      const perMapel = {};
+      items.forEach(it => { perMapel[it.subjectId] = (perMapel[it.subjectId] || 0) + 1; });
+      const ringkasan = Object.entries(perMapel).map(([k, v]) => `${v} untuk ${k}`).join(', ');
+      note.innerHTML = `Ada <b>${items.length}</b> ilustrasi (${ringkasan}) yang sudah tersimpan tapi belum punya teks soal. ` +
+        `Import file JSON berisi teks soal dengan <code>id</code> yang sama nanti akan otomatis dipasangkan (fitur penggabungan otomatis menyusul).`;
     }
 
     function renderStats() {
@@ -408,6 +459,243 @@
 
           btn.textContent = 'Selesai ✅';
           logBox.innerHTML += `<div class="log-row"><b>Import selesai. ${count} soal baru ditambahkan ke bank soal.</b></div>`;
+          await loadSoal();
+        });
+
+      } catch (err) {
+        previewArea.innerHTML = `<div class="warn-box">❌ Gagal membaca file: ${err.message}</div>`;
+      }
+    });
+
+    // ══════════════ TAB SWITCH: Excel vs JSON Pool ══════════════
+    document.getElementById('tab-import-excel').addEventListener('click', () => {
+      document.getElementById('tab-import-excel').classList.add('active');
+      document.getElementById('tab-import-json').classList.remove('active');
+      document.getElementById('import-panel-excel').classList.add('active');
+      document.getElementById('import-panel-json').classList.remove('active');
+    });
+    document.getElementById('tab-import-json').addEventListener('click', () => {
+      document.getElementById('tab-import-json').classList.add('active');
+      document.getElementById('tab-import-excel').classList.remove('active');
+      document.getElementById('import-panel-json').classList.add('active');
+      document.getElementById('import-panel-excel').classList.remove('active');
+    });
+
+    // ══════════════ IMPORT JSON POOL (khusus admin) ══════════════
+    // Menerima dua bentuk file:
+    // A) "Soal lengkap" — punya bacaan_dengan_ilustrasi_base64 + soal dengan field
+    //    pertanyaan/opsi/jawaban (mis. pool_bahasa_indonesia.json) -> langsung
+    //    jadi dokumen questionPool + bacaanPool.
+    // B) "Ilustrasi saja" — item hanya {id, kategori_ilustrasi, ilustrasi_base64},
+    //    TANPA teks soal (mis. pool_matematika.json) -> disimpan ke koleksi
+    //    ilustrasiSoal, menunggu file teks soal yang match id-nya menyusul.
+
+    const LINGKUP_KE_KOMPLEKSITAS = {
+      'Pemahaman Tekstual': 'L1-Pemahaman',
+      'Pemahaman Inferensial': 'L2-Aplikasi',
+      'Evaluasi dan Apresiasi': 'L3-Penalaran',
+    };
+
+    function detectJsonShape(data) {
+      if (!data || typeof data !== 'object') return 'unknown';
+      const hasBacaan = Array.isArray(data.bacaan_dengan_ilustrasi_base64);
+      const soalList = data.soal_dengan_ilustrasi_base64;
+      if (!Array.isArray(soalList) || soalList.length === 0) {
+        return hasBacaan ? 'soal-lengkap' : 'unknown';
+      }
+      const contoh = soalList[0];
+      const adaTeksSoal = 'pertanyaan' in contoh;
+      return adaTeksSoal ? 'soal-lengkap' : 'ilustrasi-saja';
+    }
+
+    function mapSoalLengkap(item, subjectId, bacaanMap) {
+      const errors = [];
+      const tipe = item.bentuk_soal;
+      if (!['pg', 'pgk', 'pgk-cat'].includes(tipe)) errors.push(`bentuk_soal tidak dikenal: ${tipe}`);
+      if (!item.pertanyaan) errors.push('pertanyaan kosong');
+      if (!item.skor) errors.push('skor kosong');
+
+      const bacaan = item.bacaan_id ? bacaanMap[item.bacaan_id] : null;
+      const kompleksitas = LINGKUP_KE_KOMPLEKSITAS[item.lingkup_materi] || null;
+      if (!kompleksitas) errors.push(`lingkup_materi tidak dikenali: "${item.lingkup_materi}" (tidak ada pemetaan ke kompleksitas)`);
+
+      const data = {
+        subjectId,
+        tipeMateri: bacaan ? bacaan.jenis : (item.lingkup_materi || '-'),
+        kompleksitas,
+        tipe,
+        stimulusPreview: bacaan ? `${bacaan.jenis}: ${bacaan.judul}` : '',
+        bacaanId: item.bacaan_id || null,
+        pertanyaan: item.pertanyaan,
+        opsi: (tipe === 'pgk-cat') ? [] : (item.opsi || []),
+        kunciJawaban: (tipe === 'pgk-cat') ? (item.jawaban || []) : item.jawaban,
+        rows: (tipe === 'pgk-cat') ? (item.pernyataan || []) : [],
+        cols: (tipe === 'pgk-cat') ? (item.kolom || []) : [],
+        skor: item.skor || 0,
+        sourceImportId: item.id,
+        sourcePaketAsli: item.sumber_paket_asli ?? null,
+      };
+
+      if (tipe === 'pgk-cat' && data.rows.length !== data.kunciJawaban.length) {
+        errors.push('jumlah pernyataan dan jawaban tidak sama panjang');
+      }
+      return { id: item.id, valid: errors.length === 0, errors, data };
+    }
+
+    document.getElementById('file-input-json').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const previewArea = document.getElementById('preview-area-json');
+      previewArea.innerHTML = 'Membaca file...';
+
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        const shape = detectJsonShape(json);
+        const subjectId = (json.mata_pelajaran || '').toLowerCase().includes('matemat')
+          ? 'matematika'
+          : (json.mata_pelajaran || '').toLowerCase().includes('indonesia')
+            ? 'bahasa-indonesia'
+            : null;
+
+        if (shape === 'unknown' || !subjectId) {
+          previewArea.innerHTML = `<div class="warn-box">❌ Format file tidak dikenali. Pastikan ini file pool soal hasil olahan (punya field mata_pelajaran & soal_dengan_ilustrasi_base64).</div>`;
+          return;
+        }
+
+        if (shape === 'ilustrasi-saja') {
+          // ── Bentuk B: hanya ilustrasi, belum ada teks soal ──
+          const items = json.soal_dengan_ilustrasi_base64;
+          previewArea.innerHTML = `
+            <div class="summary-line">📦 Terbaca ${items.length} entri ilustrasi (${subjectId}) — file ini TIDAK berisi teks soal.</div>
+            <div class="warn-box">Entri-entri ini akan disimpan ke <b>Pustaka Ilustrasi</b> (koleksi <code>ilustrasiSoal</code>), menunggu file teks soal yang ber-<code>id</code> sama diimpor menyusul.</div>
+            <button class="btn btn-primary" id="btn-do-import-json">Simpan ${items.length} Ilustrasi ke Pustaka</button>
+            <div class="log-box" id="import-log-json" style="display:none;"></div>
+          `;
+          document.getElementById('btn-do-import-json').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-do-import-json');
+            btn.disabled = true;
+            btn.textContent = 'Menyimpan...';
+            const logBox = document.getElementById('import-log-json');
+            logBox.style.display = 'block';
+
+            const chunks = [];
+            for (let i = 0; i < items.length; i += 50) chunks.push(items.slice(i, i + 50));
+            let count = 0;
+            for (const chunk of chunks) {
+              const batch = writeBatch(db);
+              for (const it of chunk) {
+                const ref = doc(db, 'ilustrasiSoal', it.id);
+                batch.set(ref, {
+                  subjectId,
+                  kategoriIlustrasi: it.kategori_ilustrasi || '',
+                  gambarBase64: it.ilustrasi_base64,
+                  status: 'menunggu_teks_soal',
+                  sourceFile: file.name,
+                  createdAt: serverTimestamp(),
+                });
+                count++;
+              }
+              await batch.commit();
+              logBox.innerHTML += `<div class="log-row">✅ ${count}/${items.length} ilustrasi tersimpan...</div>`;
+              logBox.scrollTop = logBox.scrollHeight;
+            }
+            btn.textContent = 'Selesai ✅';
+            logBox.innerHTML += `<div class="log-row"><b>Selesai. ${count} ilustrasi tersimpan di Pustaka Ilustrasi.</b></div>`;
+            await loadSoal();
+          });
+          return;
+        }
+
+        // ── Bentuk A: soal lengkap (+ opsional bacaan) ──
+        const bacaanList = json.bacaan_dengan_ilustrasi_base64 || [];
+        const bacaanMap = {};
+        bacaanList.forEach(b => { bacaanMap[b.bacaan_id] = b; });
+
+        const soalList = json.soal_dengan_ilustrasi_base64 || [];
+        const results = soalList.map(item => mapSoalLengkap(item, subjectId, bacaanMap));
+        const validRows = results.filter(r => r.valid);
+        const invalidRows = results.filter(r => !r.valid);
+
+        let html = `<div class="summary-line">
+          📖 ${bacaanList.length} bacaan &nbsp;|&nbsp;
+          ✅ ${validRows.length} soal valid siap diimpor
+          ${invalidRows.length ? `&nbsp;|&nbsp; ❌ ${invalidRows.length} soal bermasalah` : ''}
+        </div>`;
+
+        if (results.length) {
+          html += '<div class="preview-wrap"><table><thead><tr><th>ID</th><th>Status</th><th>Pertanyaan</th><th>Keterangan</th></tr></thead><tbody>';
+          for (const r of results) {
+            html += `<tr class="${r.valid ? '' : 'invalid'}">
+              <td>${r.id}</td>
+              <td><span class="tag ${r.valid ? 'ok' : 'err'}">${r.valid ? 'Valid' : 'Bermasalah'}</span></td>
+              <td>${(r.data.pertanyaan || '').slice(0, 60)}</td>
+              <td>${r.errors.join('; ')}</td>
+            </tr>`;
+          }
+          html += '</tbody></table></div>';
+        }
+
+        html += `<button class="btn btn-primary" id="btn-do-import-json2" style="margin-top:12px;" ${validRows.length === 0 ? 'disabled' : ''}>
+          Import ${bacaanList.length} Bacaan + ${validRows.length} Soal Valid
+        </button>
+        <div class="log-box" id="import-log-json2" style="display:none;"></div>`;
+
+        previewArea.innerHTML = html;
+
+        document.getElementById('btn-do-import-json2').addEventListener('click', async () => {
+          const btn = document.getElementById('btn-do-import-json2');
+          btn.disabled = true;
+          btn.textContent = 'Mengimpor...';
+          const logBox = document.getElementById('import-log-json2');
+          logBox.style.display = 'block';
+
+          // 1) Import bacaan dulu (dokumen id = bacaan_id, idempotent kalau diimpor ulang)
+          const bacaanChunks = [];
+          for (let i = 0; i < bacaanList.length; i += 50) bacaanChunks.push(bacaanList.slice(i, i + 50));
+          let bacaanCount = 0;
+          for (const chunk of bacaanChunks) {
+            const batch = writeBatch(db);
+            for (const b of chunk) {
+              const ref = doc(db, 'bacaanPool', b.bacaan_id);
+              batch.set(ref, {
+                subjectId,
+                jenis: b.jenis || '',
+                judul: b.judul || '',
+                deskripsiVisual: b.deskripsi_visual || '',
+                gambarBase64: b.gambar_base64 || null,
+                soalIds: b.soal_ids || [],
+                sourceFile: file.name,
+                createdAt: serverTimestamp(),
+              });
+              bacaanCount++;
+            }
+            await batch.commit();
+          }
+          logBox.innerHTML += `<div class="log-row">✅ ${bacaanCount} bacaan tersimpan.</div>`;
+
+          // 2) Import soal (dokumen id = id asli, mis. "BI-193" — idempotent)
+          const soalChunks = [];
+          for (let i = 0; i < validRows.length; i += 300) soalChunks.push(validRows.slice(i, i + 300));
+          let soalCount = 0;
+          for (const chunk of soalChunks) {
+            const batch = writeBatch(db);
+            for (const r of chunk) {
+              const ref = doc(db, 'questionPool', r.id);
+              batch.set(ref, {
+                ...r.data,
+                sourceFile: file.name,
+                createdAt: serverTimestamp(),
+              });
+              soalCount++;
+            }
+            await batch.commit();
+            logBox.innerHTML += `<div class="log-row">✅ ${soalCount}/${validRows.length} soal tersimpan...</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+          }
+
+          btn.textContent = 'Selesai ✅';
+          logBox.innerHTML += `<div class="log-row"><b>Import selesai. ${bacaanCount} bacaan + ${soalCount} soal ditambahkan.</b></div>`;
           await loadSoal();
         });
 
