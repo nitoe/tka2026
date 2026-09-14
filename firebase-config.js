@@ -13,10 +13,10 @@
 // ══════════════════════════════════════════════════════════════
 
 export const firebaseConfig = {
-  apiKey: "GANTI_DENGAN_API_KEY",
-  authDomain: "GANTI_DENGAN_PROJECT_ID.firebaseapp.com",
-  projectId: "GANTI_DENGAN_PROJECT_ID",
-  storageBucket: "GANTI_DENGAN_PROJECT_ID.appspot.com",
-  messagingSenderId: "GANTI_DENGAN_SENDER_ID",
-  appId: "GANTI_DENGAN_APP_ID"
+  apiKey: "AIzaSyDdCo9sABwP29JTOxRGAnQ61EPv1U42XSo",
+  authDomain: "tka2026-sdm01.firebaseapp.com",
+  projectId: "tka2026-sdm01",
+  storageBucket: "tka2026-sdm01.firebasestorage.app",
+  messagingSenderId: "67210197874",
+  appId: "1:67210197874:web:64aa11b24001f72f76fbeb"
 };
