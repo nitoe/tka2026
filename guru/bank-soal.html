@@ -273,10 +273,26 @@
     }
 
     function populateFilters() {
+      const mapelSet = [...new Set(allSoal.map(s => s.subjectId).filter(Boolean))].sort();
+      const selMapel = document.getElementById('filter-mapel');
+      const currentMapel = selMapel.value;
+      selMapel.innerHTML = '<option value="">Semua Mapel</option>' +
+        mapelSet.map(m => `<option value="${m}">${m}</option>`).join('');
+      selMapel.value = currentMapel;
+
       const materiSet = [...new Set(allSoal.map(s => s.tipeMateri).filter(Boolean))].sort();
       const selMateri = document.getElementById('filter-materi');
+      const currentMateri = selMateri.value;
       selMateri.innerHTML = '<option value="">Semua Tipe Materi</option>' +
         materiSet.map(m => `<option value="${m}">${m}</option>`).join('');
+      selMateri.value = currentMateri;
+
+      const kompleksitasSet = [...new Set(allSoal.map(s => s.kompleksitas).filter(Boolean))].sort();
+      const selKompleksitas = document.getElementById('filter-kompleksitas');
+      const currentKompleksitas = selKompleksitas.value;
+      selKompleksitas.innerHTML = '<option value="">Semua Kompleksitas</option>' +
+        kompleksitasSet.map(k => `<option value="${k}">${k}</option>`).join('');
+      selKompleksitas.value = currentKompleksitas;
     }
 
     function renderTable() {
