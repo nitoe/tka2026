@@ -26,6 +26,30 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ---
 
+## [0.8.0] — 2026-09-14
+
+### Added
+- **Jalur import JSON ketiga di `guru/bank-soal.html`: "Array datar hasil migrasi"** — `detectJsonShape()` sekarang mengenali file berupa array JSON langsung (bukan object dengan field `mata_pelajaran`), setiap item divalidasi ringan (`validateMigrasiItem()`) lalu ditulis ke `questionPool` dengan document ID dari `sourceImportId` (idempotent).
+- Data migrasi lengkap dari portal TKA lama: **300 soal Matematika** dan **270 soal Bahasa Indonesia baru** (270, bukan 300, karena 30 soal yang sudah masuk lewat `pool_bahasa_indonesia.json` dideteksi otomatis sebagai duplikat berdasarkan kecocokan teks pertanyaan, dan dilewati). Diekstrak langsung dari kode JS `matematika/paket-1..10` dan `bahasa-indonesia/paket-1..10` di `sdm01-main.zip` (bukan input manual), termasuk field `stim`/`rows`/`cols`/`ans` asli seperti stimulus HTML (untuk Matematika, termasuk gambar base64 di dalamnya) dan struktur `pgk-cat`.
+- Field baru pada skema `kompleksitas`: nilai sentinel **`"Belum Dikategorikan"`** untuk soal yang levelnya belum diklasifikasi (khusus 300 soal Matematika migrasi, karena portal lama tidak melacak level kognitif).
+
+### Verifikasi
+- Ekstraksi diuji dengan menjalankan skrip Node terhadap seluruh 20 file paket asli (10 Matematika + 10 Bahasa Indonesia) — total 300+300=600 soal berhasil diekstrak tanpa error.
+- Fungsi `validateMigrasiItem()` diuji terhadap seluruh 570 soal hasil migrasi (setelah dedup): **100% valid** (0 bermasalah), dan seluruh `sourceImportId` dipastikan unik (tidak ada tabrakan document ID).
+- Ukuran dokumen terbesar dicek (~95KB untuk soal Matematika dengan gambar stimulus) — aman di bawah batas 1MiB/dokumen Firestore; total ukuran per mapel (~1.4MB Matematika, ~0.6MB B.Indo) juga aman di bawah batas ukuran satu batch write Firestore (~10MB).
+- **Belum diuji end-to-end** (import sungguhan ke Firestore asli) — perlu dicoba langsung oleh pemilik proyek.
+
+### Tidak Berubah
+- Dua jalur import JSON sebelumnya (soal-lengkap, ilustrasi-saja) tidak diubah.
+- Belum ada mekanisme untuk mengisi `kompleksitas` (Matematika) atau `tipeMateri` (B.Indo migrasi) yang masih "Belum Dikategorikan" — perlu proses klasifikasi lanjutan (manual atau lewat bantuan lain) di kemudian hari.
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: import `matematika-migrasi-lama.json` dan `bahasa-indonesia-migrasi-lama.json` lewat `guru/bank-soal.html` (file dibagikan terpisah, tidak ada di repo — lihat ANTIREGRESI.md §11), kabari kalau ada hasil tak terduga.
+- Klasifikasi kompleksitas untuk 300 soal Matematika migrasi, dan tipeMateri untuk 270 soal B.Indo migrasi (masih "Belum Dikategorikan").
+- Gabungkan Pustaka Ilustrasi Matematika (116 gambar, sudah masuk sejak v0.6.0) dengan 300 soal Matematika migrasi ini berdasarkan kecocokan `id` (mis. "MTK-006") — belum ada mekanisme otomatis untuk ini.
+
+---
+
 ## [0.7.0] — 2026-09-14
 
 ### Added

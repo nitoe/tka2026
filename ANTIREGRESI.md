@@ -107,7 +107,18 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 11. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 11. Catatan Migrasi Data Portal Lama (mulai v0.7.0 lanjutan)
+
+- **Sumber data**: 300 soal Matematika + 300 soal Bahasa Indonesia asli dari portal TKA lama (`sdm01-main.zip`, folder `matematika/paket-1..10` dan `bahasa-indonesia/paket-1..10`) diekstrak langsung dari kode JS-nya (bukan diketik ulang manual), supaya tidak ada risiko salah salin.
+- **Dedup otomatis terhadap 30 soal Bahasa Indonesia yang sudah masuk** (dari `pool_bahasa_indonesia.json`, lihat CHANGELOG v0.6.0): soal lama yang teksnya persis sama dengan salah satu dari 30 itu **dilewati**, karena versi yang sudah ada punya ilustrasi & metadata genre yang lebih baik. Hasil akhir: 300 Matematika baru + 270 Bahasa Indonesia baru (bukan 300, karena 30 sudah ada).
+- **`kompleksitas` untuk 300 soal Matematika migrasi diberi nilai sentinel `"Belum Dikategorikan"`** — portal lama tidak pernah melacak level kognitif, jadi tidak ada data asli untuk dipetakan. Field `kompleksitas` kita perluas dari 3 nilai (L1/L2/L3) menjadi 4 (+ sentinel ini). **Kalau menambah filter/dropdown kompleksitas di halaman lain (mis. `susun-paket.html`), pastikan sentinel ini ikut ditangani** — jangan biarkan soal "Belum Dikategorikan" jadi tidak muncul di filter manapun.
+- **`tipeMateri` untuk 270 soal Bahasa Indonesia migrasi juga diberi sentinel `"Belum Dikategorikan"`** (portal lama tidak melacak genre teks) — sementara `kompleksitas`-nya justru terisi penuh (dipetakan dari `cat` lama: Pemahaman Tekstual/Inferensial/Evaluasi dan Apresiasi → L1/L2/L3). Jadi soal Matematika migrasi "kaya" di `tipeMateri` tapi "kosong" di `kompleksitas`, sedangkan soal B.Indo migrasi kebalikannya — ini bukan bug, tapi konsekuensi dari data asli yang memang berbeda struktur.
+- **`sourceImportId` dipakai sebagai document ID** (pola sama seperti jalur JSON pool lainnya, lihat §8) — format `MTK-OLD-P{nomor paket}-{id asli}` dan `BI-OLD-P{nomor paket}-{id asli}`, supaya re-import aman (idempotent) dan tertelusuri asalnya dari paket mana.
+- **File hasil migrasi (`matematika-migrasi-lama.json`, `bahasa-indonesia-migrasi-lama.json`) sengaja TIDAK disertakan di repo** — dibagikan langsung sebagai file kerja, karena ukurannya cukup besar (soal Matematika membawa gambar stimulus base64 hingga ~2MB total) dan sifatnya "sekali pakai untuk migrasi", bukan sesuatu yang perlu dilacak versinya di git.
+
+---
+
+## 12. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 

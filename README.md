@@ -125,6 +125,7 @@ Soal diimpor lewat **`guru/bank-soal.html`** (khusus admin) lewat dua jalur:
 2. **JSON Pool** — untuk file hasil olahan pool soal (format JSON + ilustrasi base64). Mendukung dua bentuk:
    - *Soal lengkap* (field `pertanyaan`/`opsi`/`jawaban` sudah ada) → langsung masuk `questionPool` + `bacaanPool` (untuk soal yang berbasis teks bacaan bersama).
    - *Ilustrasi saja* (baru ada `id` + gambar, belum ada teks soal) → disimpan ke koleksi `ilustrasiSoal` sebagai "menunggu teks soal", untuk digabung menyusul.
+   - *Array datar hasil migrasi* (dari konversi langsung portal TKA lama, field sudah sesuai skema `questionPool`) → langsung masuk `questionPool`, document ID = `sourceImportId` (idempotent).
 
 Guru (non-admin) bisa melihat & memfilter bank soal di halaman yang sama untuk menyusun paket, tapi tidak bisa mengimpor/mengubah bank soal mentahnya.
 
