@@ -497,6 +497,7 @@
     };
 
     function detectJsonShape(data) {
+      if (Array.isArray(data)) return 'migrasi-lama';
       if (!data || typeof data !== 'object') return 'unknown';
       const hasBacaan = Array.isArray(data.bacaan_dengan_ilustrasi_base64);
       const soalList = data.soal_dengan_ilustrasi_base64;
@@ -506,6 +507,33 @@
       const contoh = soalList[0];
       const adaTeksSoal = 'pertanyaan' in contoh;
       return adaTeksSoal ? 'soal-lengkap' : 'ilustrasi-saja';
+    }
+
+    const TIPE_SOAL_VALID_JSON = ['pg', 'pgk', 'pgk-cat'];
+
+    // Bentuk C: array datar hasil migrasi dari portal lama — setiap item
+    // sudah punya field sesuai skema questionPool secara langsung (dari
+    // proses konversi paket-1..10 lama), tinggal divalidasi ringan.
+    function validateMigrasiItem(item, idx) {
+      const errors = [];
+      if (!['matematika', 'bahasa-indonesia'].includes(item.subjectId)) {
+        errors.push(`subjectId tidak dikenal: ${item.subjectId}`);
+      }
+      if (!TIPE_SOAL_VALID_JSON.includes(item.tipe)) {
+        errors.push(`tipe tidak dikenal: ${item.tipe}`);
+      }
+      if (!item.pertanyaan) errors.push('pertanyaan kosong');
+      if (!item.skor || item.skor <= 0) errors.push('skor harus > 0');
+      if (item.tipe === 'pgk-cat') {
+        if (!Array.isArray(item.rows) || item.rows.length === 0) errors.push('rows kosong untuk pgk-cat');
+        if (!Array.isArray(item.kunciJawaban) || item.kunciJawaban.length !== (item.rows || []).length) {
+          errors.push('jumlah kunciJawaban tidak sama dengan jumlah rows');
+        }
+      } else {
+        if (!Array.isArray(item.opsi) || item.opsi.length < 2) errors.push('opsi minimal 2');
+      }
+      if (!item.sourceImportId) errors.push('sourceImportId kosong (dibutuhkan sebagai document ID)');
+      return { id: item.sourceImportId || `row-${idx}`, valid: errors.length === 0, errors, data: item };
     }
 
     function mapSoalLengkap(item, subjectId, bacaanMap) {
@@ -552,6 +580,62 @@
         const text = await file.text();
         const json = JSON.parse(text);
         const shape = detectJsonShape(json);
+
+        // ── Bentuk C: array datar hasil migrasi portal lama ──
+        if (shape === 'migrasi-lama') {
+          const results = json.map((item, idx) => validateMigrasiItem(item, idx));
+          const validRows = results.filter(r => r.valid);
+          const invalidRows = results.filter(r => !r.valid);
+
+          let html = `<div class="summary-line">
+            ✅ ${validRows.length} soal valid siap diimpor
+            ${invalidRows.length ? `&nbsp;|&nbsp; ❌ ${invalidRows.length} soal bermasalah` : ''}
+          </div>`;
+          if (invalidRows.length) {
+            html += '<div class="preview-wrap"><table><thead><tr><th>ID</th><th>Status</th><th>Pertanyaan</th><th>Keterangan</th></tr></thead><tbody>';
+            for (const r of invalidRows) {
+              html += `<tr class="invalid">
+                <td>${r.id}</td><td><span class="tag err">Bermasalah</span></td>
+                <td>${(r.data.pertanyaan || '').slice(0, 60)}</td>
+                <td>${r.errors.join('; ')}</td>
+              </tr>`;
+            }
+            html += '</tbody></table></div>';
+          }
+          html += `<button class="btn btn-primary" id="btn-do-import-migrasi" style="margin-top:12px;" ${validRows.length === 0 ? 'disabled' : ''}>
+            Import ${validRows.length} Soal Valid
+          </button>
+          <div class="log-box" id="import-log-migrasi" style="display:none;"></div>`;
+          previewArea.innerHTML = html;
+
+          document.getElementById('btn-do-import-migrasi').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-do-import-migrasi');
+            btn.disabled = true;
+            btn.textContent = 'Mengimpor...';
+            const logBox = document.getElementById('import-log-migrasi');
+            logBox.style.display = 'block';
+
+            const chunks = [];
+            for (let i = 0; i < validRows.length; i += 300) chunks.push(validRows.slice(i, i + 300));
+            let count = 0;
+            for (const chunk of chunks) {
+              const batch = writeBatch(db);
+              for (const r of chunk) {
+                const ref = doc(db, 'questionPool', r.id);
+                batch.set(ref, { ...r.data, sourceFile: file.name, createdAt: serverTimestamp() });
+                count++;
+              }
+              await batch.commit();
+              logBox.innerHTML += `<div class="log-row">✅ ${count}/${validRows.length} soal tersimpan...</div>`;
+              logBox.scrollTop = logBox.scrollHeight;
+            }
+            btn.textContent = 'Selesai ✅';
+            logBox.innerHTML += `<div class="log-row"><b>Import selesai. ${count} soal ditambahkan/diperbarui.</b></div>`;
+            await loadSoal();
+          });
+          return;
+        }
+
         const subjectId = (json.mata_pelajaran || '').toLowerCase().includes('matemat')
           ? 'matematika'
           : (json.mata_pelajaran || '').toLowerCase().includes('indonesia')
@@ -559,7 +643,7 @@
             : null;
 
         if (shape === 'unknown' || !subjectId) {
-          previewArea.innerHTML = `<div class="warn-box">❌ Format file tidak dikenali. Pastikan ini file pool soal hasil olahan (punya field mata_pelajaran & soal_dengan_ilustrasi_base64).</div>`;
+          previewArea.innerHTML = `<div class="warn-box">❌ Format file tidak dikenali. Pastikan ini file pool soal hasil olahan (punya field mata_pelajaran & soal_dengan_ilustrasi_base64), atau array hasil migrasi.</div>`;
           return;
         }
 
