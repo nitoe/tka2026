@@ -12,6 +12,10 @@ Setiap entri baru **wajib** menyebutkan: tanggal, apa yang berubah, kenapa berub
 
 Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
+### Fixed
+- **Bug filter di `guru/bank-soal.html`**: dropdown "Semua Mapel" dan "Semua Kompleksitas" tidak pernah diisi otomatis (`populateFilters()` cuma mengisi dropdown Tipe Materi, dua lainnya lupa disertakan) — soal-soal tersimpan lengkap dengan datanya, tapi tidak bisa difilter lewat dua dropdown itu karena opsinya kosong. Sekarang ketiga dropdown (Mapel, Tipe Materi, Kompleksitas) diisi otomatis dari data yang benar-benar ada, termasuk nilai sentinel "Belum Dikategorikan".
+- `guru/susun-paket.html`: tambah opsi "Belum Dikategorikan" di dropdown filter Kompleksitas (sebelumnya cuma L1/L2/L3, sehingga soal migrasi Matematika tidak bisa dipilih lewat filter spesifik ini, meski tetap muncul di "Semua Kompleksitas").
+
 ### Direncanakan
 - Integrasi Firebase Authentication sungguhan ke `index.html` (saat ini form login baru UI + validasi client-side, belum memanggil `signInWithEmailAndPassword`).
 - Halaman `app/` (menu utama siswa setelah login) dan `guru/` (dashboard guru & admin setelah login).
