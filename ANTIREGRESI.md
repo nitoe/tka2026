@@ -99,7 +99,7 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 10. Catatan Susun Paket (mulai v0.7.0)
+## 9. Catatan Susun Paket (mulai v0.7.0)
 
 - **`packages` menyimpan referensi ID soal, bukan salinan isinya.** Kalau nanti ada fitur edit/hapus soal di bank soal, pertimbangkan dampaknya ke paket yang sudah dibuat — idealnya cek dulu apakah soal itu dipakai di paket manapun sebelum mengizinkan hapus, atau minimal beri peringatan. Belum ada validasi ini sama sekali saat ini.
 - **Tidak ada pengecekan nama paket duplikat** — guru bisa menyimpan beberapa paket dengan nama sama persis. Kalau ini jadi masalah nyata di pemakaian, tambahkan validasi nama unik per mapel.
@@ -107,7 +107,7 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 11. Catatan Migrasi Data Portal Lama (mulai v0.7.0 lanjutan)
+## 10. Catatan Migrasi Data Portal Lama (mulai v0.7.0 lanjutan)
 
 - **Sumber data**: 300 soal Matematika + 300 soal Bahasa Indonesia asli dari portal TKA lama (`sdm01-main.zip`, folder `matematika/paket-1..10` dan `bahasa-indonesia/paket-1..10`) diekstrak langsung dari kode JS-nya (bukan diketik ulang manual), supaya tidak ada risiko salah salin.
 - **Dedup otomatis terhadap 30 soal Bahasa Indonesia yang sudah masuk** (dari `pool_bahasa_indonesia.json`, lihat CHANGELOG v0.6.0): soal lama yang teksnya persis sama dengan salah satu dari 30 itu **dilewati**, karena versi yang sudah ada punya ilustrasi & metadata genre yang lebih baik. Hasil akhir: 300 Matematika baru + 270 Bahasa Indonesia baru (bukan 300, karena 30 sudah ada).
@@ -115,6 +115,16 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 - **`tipeMateri` untuk 270 soal Bahasa Indonesia migrasi juga diberi sentinel `"Belum Dikategorikan"`** (portal lama tidak melacak genre teks) — sementara `kompleksitas`-nya justru terisi penuh (dipetakan dari `cat` lama: Pemahaman Tekstual/Inferensial/Evaluasi dan Apresiasi → L1/L2/L3). Jadi soal Matematika migrasi "kaya" di `tipeMateri` tapi "kosong" di `kompleksitas`, sedangkan soal B.Indo migrasi kebalikannya — ini bukan bug, tapi konsekuensi dari data asli yang memang berbeda struktur.
 - **`sourceImportId` dipakai sebagai document ID** (pola sama seperti jalur JSON pool lainnya, lihat §8) — format `MTK-OLD-P{nomor paket}-{id asli}` dan `BI-OLD-P{nomor paket}-{id asli}`, supaya re-import aman (idempotent) dan tertelusuri asalnya dari paket mana.
 - **File hasil migrasi (`matematika-migrasi-lama.json`, `bahasa-indonesia-migrasi-lama.json`) sengaja TIDAK disertakan di repo** — dibagikan langsung sebagai file kerja, karena ukurannya cukup besar (soal Matematika membawa gambar stimulus base64 hingga ~2MB total) dan sifatnya "sekali pakai untuk migrasi", bukan sesuatu yang perlu dilacak versinya di git.
+
+---
+
+## 11. Catatan Aplikasi Kuis & Penilaian Hash (mulai v0.9.0)
+
+- **`assets/scoring.js` adalah satu-satunya tempat logika hashing/normalisasi jawaban.** Dipakai di DUA titik yang WAJIB konsisten: `guru/bank-soal.html` (hitung `kunciHash` saat import) dan `app/kuis.html` (hitung hash jawaban siswa saat submit). Kalau mengubah cara normalisasi di sini, soal yang SUDAH diimpor tidak otomatis ikut berubah — jalankan ulang tombol "Perbarui Soal Publik" di `guru/bank-soal.html`.
+- **Keamanan kunci jawaban memakai hash SHA-256, BUKAN Cloud Function.** Ini kompromi sengaja (lihat README §Aplikasi Kuis Siswa dan komentar di `assets/scoring.js`). Kalau nanti proyek butuh keamanan lebih tinggi (ujian resmi berbobot nilai rapor), ini titik yang perlu dirombak ke Cloud Function callable — jangan asumsikan hash ini "cukup aman selamanya".
+- **Bug nyata yang ditemukan & diperbaiki lewat pengujian otomatis (bukan cuma dibaca kodenya):** handler klik pada `<label>` yang membungkus `<input type="checkbox">` sempat melakukan toggle MANUAL (`input.checked = !input.checked`) di atas toggle NATIVE yang sudah dilakukan browser saat label diklik — akibatnya checkbox batal tercentang setiap kali diklik (double-toggle saling membatalkan). Radio button tidak kena efek ini (native behavior radio selalu set ke `true`, jadi toggle manual yang idempotent tidak masalah), makanya bug ini hanya muncul di soal tipe `pgk`, tidak di `pg`. **Pelajaran:** kalau elemen `<label>` membungkus `<input>`, JANGAN tambahkan logic toggle manual di event `click` pada label — cukup dengarkan event `change` pada input itu sendiri, biarkan browser yang menangani native toggle-nya.
+- **Query `packages` di `app/pilih-paket.html`** (`where('subjectId','==',...).where('aktif','==',...)`) memakai DUA filter equality tanpa `orderBy` — ini TIDAK butuh composite index (Firestore bisa gabungkan index single-field secara otomatis untuk kombinasi filter equality-only). Kalau nanti menambah `orderBy` ke query ini, cek dulu apakah perlu bikin composite index manual di Firebase Console sebelum deploy, atau siswa akan melihat error "query requires an index".
+- **`app/kuis.html` mengambil tiap soal lewat `getDoc` satu-satu** (`Promise.all(questionIds.map(id => getDoc(...)))`), bukan query `where(documentId, 'in', ...)`. Aman untuk paket berukuran wajar (puluhan soal), tapi kalau paket bisa berisi ratusan soal, pertimbangkan batching lewat `in` query (maks 30 ID per query) untuk mengurangi jumlah request.
 
 ---
 

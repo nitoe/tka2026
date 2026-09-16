@@ -12,21 +12,46 @@ Setiap entri baru **wajib** menyebutkan: tanggal, apa yang berubah, kenapa berub
 
 Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
+### Direncanakan
+- Dashboard rekap nilai real-time untuk guru (sekarang sudah ada data `attempts` sungguhan untuk direkap, lihat v0.9.0).
+- Klasifikasi kompleksitas untuk 300 soal Matematika migrasi, dan tipeMateri untuk 270 soal B.Indo migrasi (masih "Belum Dikategorikan").
+- Timer pengerjaan, penyesuaian ukuran font, dan navigasi drawer soal di `app/kuis.html` (fitur dari portal lama yang belum diport — kuis saat ini masih single-page-scroll sederhana).
+- Fitur edit soal individual & edit paket tersimpan (sekarang baru bisa buat baru/hapus).
+- Migrasi ke Cloud Function server-side scoring kalau suatu saat dibutuhkan keamanan lebih tinggi (lihat ANTIREGRESI.md §11).
+
+---
+
+## [0.9.0] — 2026-09-15
+
 ### Fixed
 - **Bug filter di `guru/bank-soal.html`**: dropdown "Semua Mapel" dan "Semua Kompleksitas" tidak pernah diisi otomatis (`populateFilters()` cuma mengisi dropdown Tipe Materi, dua lainnya lupa disertakan) — soal-soal tersimpan lengkap dengan datanya, tapi tidak bisa difilter lewat dua dropdown itu karena opsinya kosong. Sekarang ketiga dropdown (Mapel, Tipe Materi, Kompleksitas) diisi otomatis dari data yang benar-benar ada, termasuk nilai sentinel "Belum Dikategorikan".
-- `guru/susun-paket.html`: tambah opsi "Belum Dikategorikan" di dropdown filter Kompleksitas (sebelumnya cuma L1/L2/L3, sehingga soal migrasi Matematika tidak bisa dipilih lewat filter spesifik ini, meski tetap muncul di "Semua Kompleksitas").
+- `guru/susun-paket.html`: tambah opsi "Belum Dikategorikan" di dropdown filter Kompleksitas.
+- **Bug double-toggle checkbox di `app/kuis.html`** (ditemukan lewat pengujian otomatis sebelum dirilis, bukan setelah dipakai siswa): klik pada opsi soal tipe `pgk` sempat batal tercentang sendiri karena toggle manual bentrok dengan toggle native browser. Lihat ANTIREGRESI.md §11 untuk detail & pelajarannya.
+- Alert error di `app/kuis.html` yang sempat menampilkan `\nCoba kumpulkan ulang.` secara literal (backslash dobel tidak sengaja) alih-alih baris baru — kosmetik, sudah dirapikan.
 
-### Direncanakan
-- Integrasi Firebase Authentication sungguhan ke `index.html` (saat ini form login baru UI + validasi client-side, belum memanggil `signInWithEmailAndPassword`).
-- Halaman `app/` (menu utama siswa setelah login) dan `guru/` (dashboard guru & admin setelah login).
-- Setup Firebase project (Auth, Firestore, Hosting, Functions).
-- Alat impor otomatis 52 akun siswa + 3 akun guru/admin ke Firebase Authentication & Firestore.
-- Desain & penerapan skema Firestore (`subjects`, `questionPool`, `packages`, `attempts`, `students`).
-- Panel admin: manajemen bank soal + import dari Google Spreadsheet.
-- Aplikasi kuis siswa versi baru (mengambil soal dari Firestore, penilaian server-side).
-- Dashboard rekap nilai real-time untuk guru.
-- Integrasi Google Apps Script: import soal massal & backup hasil ujian + email laporan ke orang tua.
-- Firestore Security Rules & pengujian keamanan (kunci jawaban tidak boleh terkirim ke client).
+### Added
+- **`assets/scoring.js`** — modul hashing jawaban bersama (SHA-256 via Web Crypto API), satu-satunya sumber logika normalisasi/penilaian, dipakai baik saat import soal maupun saat siswa mengerjakan kuis.
+- **Koleksi Firestore baru: `soalPublik`** — salinan soal yang aman dibaca siswa (kunci jawaban asli diganti `kunciHash`). Dibuat otomatis di ketiga jalur import `guru/bank-soal.html` (Excel, JSON soal-lengkap, JSON migrasi-lama).
+- **Tombol "Perbarui Soal Publik Sekarang"** di `guru/bank-soal.html` — backfill `soalPublik` untuk soal yang sudah ada sebelum fitur ini dibuat (570 soal migrasi + 30 soal ilustrasi B.Indo).
+- **`app/pilih-paket.html`** — daftar paket aktif per mata pelajaran (query `packages` where `subjectId` & `aktif`).
+- **`app/kuis.html`** — halaman mengerjakan soal sungguhan: render 3 tipe soal (pg/pgk/pgk-cat) termasuk stimulus HTML/gambar, tracking progres, submit dengan penilaian hash di client, halaman hasil dengan rincian skor per tipe materi & per kompleksitas, simpan ke koleksi `attempts`.
+- `app/index.html`: kartu Matematika & Bahasa Indonesia sekarang jadi tautan aktif ke `pilih-paket.html` (bukan lagi "Segera Hadir").
+- `firestore.rules`: aturan untuk `soalPublik` (baca: siapa pun yang login; tulis: admin saja).
+
+### Verifikasi
+- `assets/scoring.js` diuji lewat Node dengan 9 skenario (pg benar/salah, pgk urutan berbeda tapi tetap match, pgk kurang/beda jawaban tidak match, pgk-cat urutan match vs tertukar) — semua lulus.
+- Alur kuis lengkap diuji end-to-end lewat Playwright dengan data tiruan (3 soal, satu per tipe): render semua tipe soal benar, progress tracking benar, submit dengan jawaban benar → skor 5/5, submit dengan jawaban sengaja salah semua → skor 0/5, breakdown per tipe materi & kompleksitas akurat.
+- Bug double-toggle checkbox ditemukan justru LEWAT pengujian ini (progress sempat nyangkut di "2/3" padahal 3 soal dijawab) — diperbaiki lalu diuji ulang sampai lulus, termasuk uji klik checkbox 2x berturut-turut harus kembali ke status tidak tercentang.
+- Query `packages` (dua filter equality tanpa orderBy) dikonfirmasi tidak butuh composite index Firestore.
+- **Belum diuji end-to-end dengan Firestore/Auth asli** (baru diuji dengan data tiruan di lingkungan kerja ini) — perlu dicoba langsung oleh pemilik proyek: import soal → backfill soal publik → susun paket → siswa login → kerjakan kuis → cek dokumen `attempts` tersimpan benar.
+
+### Tidak Berubah
+- Dashboard rekap nilai guru masih placeholder — sekarang datanya (`attempts`) sudah mulai ada, tinggal dibangun tampilannya.
+- Belum ada timer/pengaturan waktu pengerjaan, penyesuaian ukuran font, atau navigasi drawer soal (fitur dari portal lama) — kuis saat ini single-page-scroll sederhana.
+
+### Pekerjaan Berikutnya
+- Pemilik proyek: jalankan backfill Soal Publik, susun 1 paket, coba kerjakan sebagai siswa sungguhan, kabari hasilnya.
+- Bangun dashboard rekap nilai guru (lihat CHANGELOG v0.5.0 "Pekerjaan Berikutnya" — sekarang datanya sudah tersedia).
 
 ---
 

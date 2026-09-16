@@ -74,9 +74,12 @@ Konfigurasi Firebase project (`firebaseConfig`) akan ditambahkan di `firebase-co
 ├── firebase-config.js       # Konfigurasi Firebase (isi setelah project dibuat)
 ├── firestore.rules          # Security Rules Firestore
 ├── assets/
-│   └── firebase-init.js     # Satu-satunya tempat initializeApp() dipanggil
+│   ├── firebase-init.js     # Satu-satunya tempat initializeApp() dipanggil
+│   └── scoring.js           # Modul hashing jawaban bersama (import & kuis pakai ini)
 ├── app/
-│   └── index.html            # Halaman utama siswa (setelah login)
+│   ├── index.html             # Halaman utama siswa (setelah login)
+│   ├── pilih-paket.html       # Daftar paket aktif per mata pelajaran
+│   └── kuis.html              # Halaman mengerjakan soal
 ├── guru/
 │   ├── index.html             # Dashboard guru & admin (setelah login)
 │   ├── bank-soal.html         # Kelola & impor bank soal (khusus admin untuk impor, guru bisa lihat)
@@ -156,6 +159,25 @@ Halaman **`guru/susun-paket.html`** (bisa diakses admin & guru) untuk merakit pa
 Dokumen `packages/{autoId}`: `{ nama, subjectId, questionIds: [...], totalSkor, aktif, createdBy, createdAt }`. Paket yang tersimpan tampil di kartu "Paket Tersimpan" di halaman yang sama, bisa dihapus.
 
 > Catatan: paket hanya menyimpan **daftar ID soal**, bukan salinan isi soalnya — kalau soal aslinya di `questionPool` diubah/dihapus setelah masuk paket, paket akan ikut berubah/rusak. Belum ada validasi untuk mencegah ini (lihat ANTIREGRESI.md §10).
+
+---
+
+## 🎮 Aplikasi Kuis Siswa
+
+Alur lengkap siswa mengerjakan latihan:
+
+1. `app/index.html` → pilih mata pelajaran (Matematika / Bahasa Indonesia)
+2. `app/pilih-paket.html?mapel=...` → daftar paket aktif untuk mapel itu (dari koleksi `packages`)
+3. `app/kuis.html?paketId=...` → mengerjakan soal (satu halaman scroll, mendukung ketiga tipe soal: pg/pgk/pgk-cat), submit, lihat hasil skor + rincian per tipe materi & kompleksitas
+4. Hasil tersimpan ke koleksi `attempts`
+
+### ⚠️ Skema Keamanan: Hash, bukan Cloud Function
+
+Siswa **tidak pernah membaca `questionPool` langsung** (tetap staff-only, lihat `firestore.rules`). Sebagai gantinya, siswa membaca koleksi **`soalPublik`** — salinan tiap soal TANPA `kunciJawaban`, digantikan `kunciHash` (SHA-256). Saat siswa submit, jawabannya di-hash dengan cara yang sama (`assets/scoring.js`) lalu dibandingkan ke `kunciHash` — semua terjadi di browser siswa, skor langsung dihitung tanpa perlu server.
+
+**Ini bukan pengganti sungguhan untuk Cloud Function server-side scoring** — ini kompromi sengaja supaya proyek tidak perlu mengaktifkan Firebase Blaze plan dulu. Hash mencegah siswa membaca kunci jawaban lewat DevTools/Firestore console (casual peeking), tapi tidak mencegah siswa yang menulis skrip sendiri untuk brute-force mencocokkan hash. Untuk latihan sekolah dasar ini risiko yang wajar; kalau nanti dipakai untuk ujian resmi berbobot nilai, migrasi ke Cloud Function callable untuk scoring sungguhan. Baca komentar lengkap di `assets/scoring.js`.
+
+`soalPublik` dibuat/diperbarui otomatis setiap kali admin mengimpor soal baru (lewat `guru/bank-soal.html`, ketiga jalur import). Untuk soal yang sudah ada SEBELUM fitur ini dibuat, ada tombol **"Perbarui Soal Publik Sekarang"** di halaman yang sama untuk backfill.
 
 ---
 

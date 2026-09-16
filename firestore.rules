@@ -10,9 +10,15 @@ rules_version = '2';
 // - Staff (admin & guru) ditandai lewat dokumen di koleksi `staff`,
 //   BUKAN custom claims — supaya tidak perlu Cloud Functions/Admin SDK
 //   hanya untuk mengatur peran (custom claims butuh Admin SDK).
-// - Kunci jawaban soal (field `kunciJawaban` di `questionPool`) TIDAK
-//   pernah boleh dibaca langsung oleh siswa — baca soal untuk siswa
-//   wajib lewat Cloud Function di fase berikutnya, bukan dari rules ini.
+// - Kunci jawaban asli (field `kunciJawaban` di `questionPool`) TIDAK
+//   PERNAH boleh dibaca siswa — koleksi ini staff-only selamanya.
+//   Siswa mengerjakan soal lewat koleksi `soalPublik` (lihat di bawah),
+//   yang berisi `kunciHash` (SHA-256), bukan jawaban asli. Penilaian
+//   dihitung di client dengan membandingkan hash (lihat
+//   assets/scoring.js) — INI BUKAN pengganti Cloud Function server-side
+//   scoring, melainkan kompromi sengaja supaya proyek tidak perlu
+//   Firebase Blaze plan dulu. Lihat catatan keamanan lengkap di
+//   assets/scoring.js dan ANTIREGRESI.md §12.
 // ══════════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -62,14 +68,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // ── BANK SOAL ──
-    // PENTING: dokumen di koleksi ini akan menyimpan field kunciJawaban.
-    // Rules ini SENGAJA hanya mengizinkan staff yang membaca langsung dari
-    // client. Siswa TIDAK diberi akses baca ke koleksi ini sama sekali —
-    // soal untuk siswa harus diambil lewat Cloud Function yang menyaring
-    // field kunciJawaban sebelum dikirim ke client (lihat ANTIREGRESI.md §2).
+    // ── BANK SOAL (MENTAH, dengan kunciJawaban asli) ──
+    // Staff-only selamanya. Siswa TIDAK PERNAH diberi akses baca ke
+    // koleksi ini. Lihat `soalPublik` di bawah untuk versi yang aman
+    // dibaca siswa.
     match /questionPool/{questionId} {
       allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ── BANK SOAL (VERSI PUBLIK, untuk dikerjakan siswa) ──
+    // Berisi field yang sama seperti questionPool KECUALI kunciJawaban,
+    // digantikan `kunciHash` (SHA-256, lihat assets/scoring.js). Dibuat
+    // otomatis oleh guru/bank-soal.html setiap kali soal diimpor/diperbarui.
+    // Siapa pun yang sudah login (siswa maupun staff) boleh membacanya —
+    // hash tidak bisa dibalik jadi jawaban asli tanpa kerja brute-force.
+    match /soalPublik/{questionId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
