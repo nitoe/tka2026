@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f; --primary-light: #ebf5ff;
     --green: #057a55; --green-light: #def7ec; --green-dark: #046c4e;
     --amber: #d97706; --amber-light: #fef3c7;
     --slate: #64748b; --slate-light: #f1f5f9;
@@ -67,12 +67,14 @@
     border: 2px solid transparent; padding: 20px 16px;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     box-shadow: var(--shadow); text-align: center; position: relative; overflow: hidden;
-    opacity: 0.8;
+    text-decoration: none; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--slate), #94a3b8); }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.12); }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--primary-dark), var(--primary)); }
   .card-icon { font-size: 1.8rem; }
-  .card-name { font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; color: var(--slate); }
-  .card-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: var(--slate-light); color: var(--slate); }
+  .card-name { font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; color: var(--primary-dark); }
+  .card-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: var(--primary-light); color: var(--primary-dark); }
 
   .empty-state {
     text-align: center; padding: 40px 20px; color: var(--text-muted);
@@ -110,16 +112,16 @@
 
     <div class="section-title">📝 Pilih Mata Pelajaran</div>
     <div class="cards-grid">
-      <div class="card">
+      <a class="card" href="./pilih-paket.html?mapel=matematika">
         <div class="card-icon">📐</div>
         <div class="card-name">Matematika</div>
-        <div class="card-tag">Segera Hadir</div>
-      </div>
-      <div class="card">
+        <div class="card-tag">Mulai Latihan →</div>
+      </a>
+      <a class="card" href="./pilih-paket.html?mapel=bahasa-indonesia">
         <div class="card-icon">📝</div>
         <div class="card-name">Bahasa Indonesia</div>
-        <div class="card-tag">Segera Hadir</div>
-      </div>
+        <div class="card-tag">Mulai Latihan →</div>
+      </a>
     </div>
   </main>
 </div>
