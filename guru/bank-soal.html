@@ -158,13 +158,26 @@
       <div id="import-panel-json" class="import-panel">
         <div class="warn-box">
           Untuk file hasil olahan pool soal (format JSON dengan ilustrasi base64).
-          Mendukung dua bentuk file:<br>
+          Mendukung tiga bentuk file:<br>
           • <b>Soal lengkap</b> (mis. Bahasa Indonesia) — punya field <code>pertanyaan</code>/<code>opsi</code>/<code>jawaban</code> → langsung masuk Bank Soal.<br>
-          • <b>Ilustrasi saja</b> (mis. Matematika) — hanya <code>id</code>+gambar, belum ada teks soal → disimpan ke Pustaka Ilustrasi, menunggu teks soalnya di-import menyusul.
+          • <b>Ilustrasi saja</b> (mis. Matematika) — hanya <code>id</code>+gambar, belum ada teks soal → disimpan ke Pustaka Ilustrasi, menunggu teks soalnya di-import menyusul.<br>
+          • <b>Array datar hasil migrasi</b> — setiap item sudah sesuai skema Bank Soal → langsung masuk.
         </div>
         <input type="file" id="file-input-json" accept=".json">
         <div id="preview-area-json" style="margin-top:14px;"></div>
       </div>
+    </div>
+
+    <!-- BACKFILL SOAL PUBLIK (khusus admin) -->
+    <div class="card" id="card-backfill" style="display:none;">
+      <h2>🔄 Perbarui Soal Publik (untuk Siswa)</h2>
+      <div class="warn-box">
+        Siswa mengerjakan soal lewat versi "publik" (tanpa kunci jawaban asli, diganti hash). Setiap import baru otomatis membuatnya.
+        Tombol ini untuk soal yang sudah lebih dulu ada di Bank Soal SEBELUM fitur ini dibuat, atau kalau logika hash pernah diperbarui.
+      </div>
+      <button class="btn btn-primary" id="btn-backfill">Perbarui Soal Publik Sekarang</button>
+      <div class="status-line" id="backfill-status"></div>
+      <div class="log-box" id="backfill-log" style="display:none;"></div>
     </div>
 
     <!-- PUSTAKA ILUSTRASI (menunggu teks soal) -->
@@ -207,6 +220,7 @@
   import {
     collection, getDocs, writeBatch, doc, serverTimestamp,
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { computeKunciHash } from '../assets/scoring.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -229,6 +243,7 @@
         (staff.peran === 'admin' ? 'Kamu bisa mengimpor soal baru.' : 'Guru dapat melihat & memakai bank soal untuk menyusun paket.');
       if (staff.peran === 'admin') {
         document.getElementById('card-import').style.display = 'block';
+        document.getElementById('card-backfill').style.display = 'block';
       }
       loading.style.display = 'none';
       page.style.display = 'block';
@@ -448,28 +463,37 @@
         document.getElementById('btn-do-import').addEventListener('click', async () => {
           const btn = document.getElementById('btn-do-import');
           btn.disabled = true;
-          btn.textContent = 'Mengimpor...';
+          btn.textContent = 'Menyiapkan hash jawaban...';
           const logBox = document.getElementById('import-log');
           logBox.style.display = 'block';
 
-          // Firestore batch limit 500 operasi — pecah per 400 agar aman.
+          // Hitung kunciHash dulu (async) sebelum menulis batch (Firestore batch harus sinkron).
+          const prepared = [];
+          for (const r of validRows) {
+            const kunciHash = await computeKunciHash(r.data.tipe, r.data.kunciJawaban);
+            prepared.push({ ...r, kunciHash });
+          }
+
+          btn.textContent = 'Mengimpor...';
+          // Setiap soal = 2 operasi tulis (questionPool + soalPublik).
+          // Batas batch Firestore 500 operasi -> pecah per 200 soal (=400 operasi) agar aman.
           const chunks = [];
-          for (let i = 0; i < validRows.length; i += 400) chunks.push(validRows.slice(i, i + 400));
+          for (let i = 0; i < prepared.length; i += 200) chunks.push(prepared.slice(i, i + 200));
 
           let count = 0;
           for (const chunk of chunks) {
             const batch = writeBatch(db);
             for (const r of chunk) {
               const ref = doc(collection(db, 'questionPool'));
-              batch.set(ref, {
-                ...r.data,
-                sourceFile: file.name,
-                createdAt: serverTimestamp(),
+              const { kunciJawaban, ...tanpaKunci } = r.data;
+              batch.set(ref, { ...r.data, sourceFile: file.name, createdAt: serverTimestamp() });
+              batch.set(doc(db, 'soalPublik', ref.id), {
+                ...tanpaKunci, kunciHash: r.kunciHash, sourceFile: file.name, createdAt: serverTimestamp(),
               });
               count++;
             }
             await batch.commit();
-            logBox.innerHTML += `<div class="log-row">✅ ${count}/${validRows.length} soal tersimpan...</div>`;
+            logBox.innerHTML += `<div class="log-row">✅ ${count}/${prepared.length} soal tersimpan (+ versi publik)...</div>`;
             logBox.scrollTop = logBox.scrollHeight;
           }
 
@@ -627,22 +651,33 @@
           document.getElementById('btn-do-import-migrasi').addEventListener('click', async () => {
             const btn = document.getElementById('btn-do-import-migrasi');
             btn.disabled = true;
-            btn.textContent = 'Mengimpor...';
+            btn.textContent = 'Menyiapkan hash jawaban...';
             const logBox = document.getElementById('import-log-migrasi');
             logBox.style.display = 'block';
 
+            const prepared = [];
+            for (const r of validRows) {
+              const kunciHash = await computeKunciHash(r.data.tipe, r.data.kunciJawaban);
+              prepared.push({ ...r, kunciHash });
+            }
+
+            btn.textContent = 'Mengimpor...';
+            // 2 operasi tulis per soal -> pecah per 200 soal (=400 operasi).
             const chunks = [];
-            for (let i = 0; i < validRows.length; i += 300) chunks.push(validRows.slice(i, i + 300));
+            for (let i = 0; i < prepared.length; i += 200) chunks.push(prepared.slice(i, i + 200));
             let count = 0;
             for (const chunk of chunks) {
               const batch = writeBatch(db);
               for (const r of chunk) {
-                const ref = doc(db, 'questionPool', r.id);
-                batch.set(ref, { ...r.data, sourceFile: file.name, createdAt: serverTimestamp() });
+                const { kunciJawaban, ...tanpaKunci } = r.data;
+                batch.set(doc(db, 'questionPool', r.id), { ...r.data, sourceFile: file.name, createdAt: serverTimestamp() });
+                batch.set(doc(db, 'soalPublik', r.id), {
+                  ...tanpaKunci, kunciHash: r.kunciHash, sourceFile: file.name, createdAt: serverTimestamp(),
+                });
                 count++;
               }
               await batch.commit();
-              logBox.innerHTML += `<div class="log-row">✅ ${count}/${validRows.length} soal tersimpan...</div>`;
+              logBox.innerHTML += `<div class="log-row">✅ ${count}/${prepared.length} soal tersimpan (+ versi publik)...</div>`;
               logBox.scrollTop = logBox.scrollHeight;
             }
             btn.textContent = 'Selesai ✅';
@@ -746,7 +781,7 @@
         document.getElementById('btn-do-import-json2').addEventListener('click', async () => {
           const btn = document.getElementById('btn-do-import-json2');
           btn.disabled = true;
-          btn.textContent = 'Mengimpor...';
+          btn.textContent = 'Mengimpor bacaan...';
           const logBox = document.getElementById('import-log-json2');
           logBox.style.display = 'block';
 
@@ -774,23 +809,31 @@
           }
           logBox.innerHTML += `<div class="log-row">✅ ${bacaanCount} bacaan tersimpan.</div>`;
 
-          // 2) Import soal (dokumen id = id asli, mis. "BI-193" — idempotent)
+          // 2) Hitung kunciHash dulu (async), baru tulis soal (dokumen id = id asli, mis. "BI-193")
+          btn.textContent = 'Menyiapkan hash jawaban...';
+          const prepared = [];
+          for (const r of validRows) {
+            const kunciHash = await computeKunciHash(r.data.tipe, r.data.kunciJawaban);
+            prepared.push({ ...r, kunciHash });
+          }
+
+          btn.textContent = 'Mengimpor soal...';
+          // 2 operasi tulis per soal -> pecah per 200 soal (=400 operasi).
           const soalChunks = [];
-          for (let i = 0; i < validRows.length; i += 300) soalChunks.push(validRows.slice(i, i + 300));
+          for (let i = 0; i < prepared.length; i += 200) soalChunks.push(prepared.slice(i, i + 200));
           let soalCount = 0;
           for (const chunk of soalChunks) {
             const batch = writeBatch(db);
             for (const r of chunk) {
-              const ref = doc(db, 'questionPool', r.id);
-              batch.set(ref, {
-                ...r.data,
-                sourceFile: file.name,
-                createdAt: serverTimestamp(),
+              const { kunciJawaban, ...tanpaKunci } = r.data;
+              batch.set(doc(db, 'questionPool', r.id), { ...r.data, sourceFile: file.name, createdAt: serverTimestamp() });
+              batch.set(doc(db, 'soalPublik', r.id), {
+                ...tanpaKunci, kunciHash: r.kunciHash, sourceFile: file.name, createdAt: serverTimestamp(),
               });
               soalCount++;
             }
             await batch.commit();
-            logBox.innerHTML += `<div class="log-row">✅ ${soalCount}/${validRows.length} soal tersimpan...</div>`;
+            logBox.innerHTML += `<div class="log-row">✅ ${soalCount}/${prepared.length} soal tersimpan (+ versi publik)...</div>`;
             logBox.scrollTop = logBox.scrollHeight;
           }
 
@@ -802,6 +845,58 @@
       } catch (err) {
         previewArea.innerHTML = `<div class="warn-box">❌ Gagal membaca file: ${err.message}</div>`;
       }
+    });
+
+    // ══════════════ BACKFILL SOAL PUBLIK ══════════════
+    // Untuk soal yang sudah ada di questionPool SEBELUM fitur soalPublik
+    // dibuat, atau kalau logika hash di assets/scoring.js pernah diperbarui.
+    document.getElementById('btn-backfill').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-backfill');
+      const statusEl = document.getElementById('backfill-status');
+      const logBox = document.getElementById('backfill-log');
+      btn.disabled = true;
+      btn.textContent = 'Membaca bank soal...';
+      logBox.style.display = 'block';
+      logBox.innerHTML = '';
+
+      try {
+        const snap = await getDocs(collection(db, 'questionPool'));
+        const semuaSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        statusEl.textContent = '';
+        logBox.innerHTML += `<div class="log-row">Ditemukan ${semuaSoal.length} soal di Bank Soal. Menghitung hash...</div>`;
+
+        btn.textContent = 'Menghitung hash...';
+        const prepared = [];
+        for (const s of semuaSoal) {
+          const kunciHash = await computeKunciHash(s.tipe, s.kunciJawaban);
+          const { kunciJawaban, id, ...tanpaKunci } = s;
+          prepared.push({ id, data: { ...tanpaKunci, kunciHash } });
+        }
+
+        btn.textContent = 'Menyimpan soalPublik...';
+        const chunks = [];
+        for (let i = 0; i < prepared.length; i += 400) chunks.push(prepared.slice(i, i + 400));
+        let count = 0;
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          for (const p of chunk) {
+            batch.set(doc(db, 'soalPublik', p.id), p.data);
+            count++;
+          }
+          await batch.commit();
+          logBox.innerHTML += `<div class="log-row">✅ ${count}/${prepared.length} soalPublik diperbarui...</div>`;
+          logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        btn.textContent = 'Selesai ✅';
+        statusEl.textContent = `✅ ${count} dokumen soalPublik berhasil diperbarui.`;
+        statusEl.className = 'status-line ok';
+      } catch (err) {
+        statusEl.textContent = '❌ Gagal: ' + err.message;
+        statusEl.className = 'status-line err';
+        btn.textContent = 'Perbarui Soal Publik Sekarang';
+      }
+      btn.disabled = false;
     });
   }
 </script>
