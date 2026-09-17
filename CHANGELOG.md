@@ -21,6 +21,19 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 
 ---
 
+## [0.9.1] — 2026-09-15
+
+### Fixed
+- **Bug filter Kompleksitas di `guru/susun-paket.html`**: dropdown-nya masih berisi daftar tebakan statis (`L1-Pemahaman`, `L2-Aplikasi`, `L3-Penalaran`, `Belum Dikategorikan`), bukan diambil dari data asli — kalau nilai sebenarnya di database berbeda sedikit saja, memilih kompleksitas tertentu menghasilkan daftar kosong meski soalnya ada. Ini persis pola bug yang sama dengan yang diperbaiki di `guru/bank-soal.html` pada v0.9.0 (Unreleased sebelumnya), cuma belum ikut diterapkan di halaman ini. Sekarang dropdown Kompleksitas di `susun-paket.html` diisi dinamis dari `allSoalMapel` yang benar-benar dimuat, sama seperti dropdown Tipe Materi.
+
+### Verifikasi
+- Diuji lewat Playwright dengan data tiruan yang sengaja memakai nilai kompleksitas: dropdown sekarang menampilkan persis nilai yang ada di data (bukan daftar tebakan), memfilter dengan benar.
+
+### Tidak Berubah
+- Tidak ada perubahan skema data — ini murni perbaikan UI filter, tidak menyentuh dokumen di Firestore.
+
+---
+
 ## [0.9.0] — 2026-09-15
 
 ### Fixed
