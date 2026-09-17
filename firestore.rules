@@ -46,10 +46,15 @@ service cloud.firestore {
     }
 
     // ── STAFF (guru & admin) ──
-    // Hanya staff yang bisa membaca daftar staff (untuk kebutuhan dashboard).
-    // Hanya admin yang bisa menulis/mengubah data staff.
+    // Siapa pun boleh baca DOKUMEN MILIKNYA SENDIRI di sini — ini yang
+    // dipakai resolveHomeByRole() untuk mengecek "apakah saya staff?" saat
+    // login. Tanpa isOwner(uid), siswa (bukan staff) akan DITOLAK membaca
+    // dokumennya sendiri yang memang tidak ada, menyebabkan error
+    // "Missing or insufficient permissions" tepat setelah login berhasil
+    // (ditemukan & diperbaiki v0.9.3 — lihat ANTIREGRESI.md §14).
+    // Staff tetap boleh baca staff/{uid} siapa pun (untuk kebutuhan dashboard).
     match /staff/{uid} {
-      allow read: if isStaff();
+      allow read: if isOwner(uid) || isStaff();
       allow write: if isAdmin();
     }
 
