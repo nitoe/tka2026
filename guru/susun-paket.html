@@ -134,13 +134,7 @@
               <option value="bahasa-indonesia">Bahasa Indonesia</option>
             </select>
             <select id="filter-materi"><option value="">Semua Tipe Materi</option></select>
-            <select id="filter-kompleksitas">
-              <option value="">Semua Kompleksitas</option>
-              <option value="L1-Pemahaman">L1-Pemahaman</option>
-              <option value="L2-Aplikasi">L2-Aplikasi</option>
-              <option value="L3-Penalaran">L3-Penalaran</option>
-              <option value="Belum Dikategorikan">Belum Dikategorikan</option>
-            </select>
+            <select id="filter-kompleksitas"><option value="">Semua Kompleksitas</option></select>
           </div>
           <div class="soal-list" id="soal-list">
             <div class="empty-state">Pilih mata pelajaran dulu untuk menampilkan soal.</div>
@@ -241,6 +235,10 @@
       const materiSet = [...new Set(allSoalMapel.map(s => s.tipeMateri).filter(Boolean))].sort();
       selMateri.innerHTML = '<option value="">Semua Tipe Materi</option>' +
         materiSet.map(m => `<option value="${m}">${m}</option>`).join('');
+
+      const kompleksitasSet = [...new Set(allSoalMapel.map(s => s.kompleksitas).filter(Boolean))].sort();
+      selKompleksitas.innerHTML = '<option value="">Semua Kompleksitas</option>' +
+        kompleksitasSet.map(k => `<option value="${k}">${k}</option>`).join('');
 
       renderSoalList();
     }
