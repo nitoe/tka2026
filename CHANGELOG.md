@@ -6,35 +6,36 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.13.0] — 2026-09-25
+
+### Added
+- **Laporan PDF hasil try out / latihan** (`assets/laporan-pdf.js` + tombol **PDF** di `guru/rekap-tryout.html`).
+  - Identitas siswa, skor %, ketuntasan (KKM 70%).
+  - Tabel + diagram batang: per kompleksitas (L1/L2/L3) dan per tipe materi / capaian.
+  - Kesimpulan tuntas / remedial.
+- Breakdown attempt diperkaya: `poinBenar`, `poinMaks`, `noSoal` per kategori (attempt baru setelah v0.13).
+
+### Catatan
+- Attempt sebelum v0.13 tetap bisa di-PDF (benar/total & %; poin/no. soal bisa "—").
+- Format lebih rapi dibanding laporan tahun lalu (header sekolah, diagram, layout A4).
+
+### Tidak Berubah
+- Logika penilaian hash & gate try out.
+
+---
+
 ## [0.12.0] — 2026-09-25
 
 ### Added
-- **`guru/rekap-tryout.html`** — rekap hasil try out & latihan: filter jenis/mapel/kelas/paket/nama, ringkasan jumlah attempt & rata-rata skor, tabel detail.
-- **Reset ikut try out** (modal konfirmasi): menghapus dokumen `attempts` agar siswa bisa mengerjakan ulang (kasus kirim terlalu cepat / error).
-
-### Changed
-- `firestore.rules`: staff boleh **delete** `attempts`; **update** tetap ditolak.
-- Dashboard guru: kartu rekap mengarah ke halaman baru.
-
-### Tidak Berubah
-- Siswa tetap tidak bisa menghapus/mengubah attempt sendiri.
-
-### Penting
-Setelah pull, **deploy firestore.rules** ke Firebase (`firebase deploy --only firestore:rules`) agar tombol Reset berfungsi.
+- Rekap try out/latihan + reset attempt berkonfirmasi.
+- Staff boleh delete `attempts` di firestore.rules.
 
 ---
 
 ## [0.11.0] — 2026-09-25
 
 ### Added
-- Layout LMS penuh, token & jendela waktu try out, form token/jadwal di Susun Paket.
-
----
-
-## [0.10.0] — 2026-09-25
-
-### Added
-- Mekanisme Try Out: jenis, durasi, maks percobaan, hasil ditahan, timer.
+- Layout LMS, token & jendela waktu try out.
 
 ---
 
