@@ -6,6 +6,17 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.16.0] — 2026-09-25
+
+### Changed
+- **Redesign UI guru**: `guru/bank-soal.html`, `guru/susun-paket.html`, `guru/rekap-tryout.html` memakai `assets/theme.css` + header gelap profesional (`--brand-ink`).
+- Konsisten dengan dashboard & halaman kuis yang sudah lebih rapi.
+
+### Tidak Berubah
+- Logika filter cascading, import, backfill BI, edit paket, PDF, reset attempt.
+
+---
+
 ## [0.15.0] — 2026-09-25
 
 ### Added
