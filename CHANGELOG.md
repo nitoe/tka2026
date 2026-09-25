@@ -6,6 +6,23 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.1] — 2026-09-25
+
+### Changed
+- **Query Firestore rekap** lebih selektif: kombinasi `jenisPaket` + `subjectId` (bukan hanya satu filter), soft limit 1000 dokumen, fallback otomatis jika index komposit belum siap.
+- Sort waktu tetap di klien (tanpa `orderBy` di server).
+
+### Added
+- `firestore.indexes.json` — index komposit `attempts`: `jenisPaket`+`subjectId`, dan `packageId`+`studentId` (untuk cek attempt siswa di kuis).
+
+### Fixed
+- `escapeAttr` / `escapeHtml` di rekap (entitas HTML sempat rusak saat push v0.18.0).
+
+### Tidak Berubah
+- Grafik Chart.js, tab bandingkan, PDF, reset attempt, shell guru.
+
+---
+
 ## [0.18.0] — 2026-09-25
 
 ### Added
