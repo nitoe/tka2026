@@ -10,50 +10,35 @@
 <div id="loading" class="loading-screen"><div class="spinner"></div><div>Memeriksa sesi…</div></div>
 
 <div id="page" style="display:none;">
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-mark">TKA</div>
-      <div class="brand-text">
-        <div class="brand-name">Portal Latihan TKA</div>
-        <div class="brand-sub">Area guru & admin</div>
-      </div>
+  <section class="hero">
+    <div class="hi">Dashboard staf</div>
+    <h1 id="nama-guru">Guru</h1>
+    <div class="meta">
+      <span class="pill" id="peran-guru">—</span>
     </div>
-    <div class="header-actions">
-      <button type="button" class="btn-ghost" id="btn-logout">Keluar</button>
-    </div>
-  </header>
+  </section>
 
-  <main class="container">
-    <section class="hero">
-      <div class="hi">Dashboard staf</div>
-      <h1 id="nama-guru">Guru</h1>
-      <div class="meta">
-        <span class="pill" id="peran-guru">—</span>
-      </div>
-    </section>
-
-    <div class="section-label">Menu utama</div>
-    <div class="tile-grid">
-      <a class="tile" href="./rekap-tryout.html">
-        <div class="tile-icon amber">📊</div>
-        <div class="tile-title">Rekap try out & latihan</div>
-        <div class="tile-desc">Hasil siswa, skor per kategori, reset attempt, dan cetak laporan PDF.</div>
-        <div class="tile-cta">Buka rekap →</div>
-      </a>
-      <a class="tile" href="./bank-soal.html">
-        <div class="tile-icon">🗂️</div>
-        <div class="tile-title">Bank soal</div>
-        <div class="tile-desc">Telusuri dan kelola soal TKA. Admin dapat mengimpor soal baru.</div>
-        <div class="tile-cta">Buka bank soal →</div>
-      </a>
-      <a class="tile" href="./susun-paket.html">
-        <div class="tile-icon teal">🧩</div>
-        <div class="tile-title">Susun paket</div>
-        <div class="tile-desc">Susun atau edit paket latihan/try out: soal, token, waktu, dan acak.</div>
-        <div class="tile-cta">Susun paket →</div>
-      </a>
-    </div>
-  </main>
+  <div class="section-label">Menu utama</div>
+  <div class="tile-grid">
+    <a class="tile" href="./rekap-tryout.html">
+      <div class="tile-icon amber">📊</div>
+      <div class="tile-title">Rekap try out & latihan</div>
+      <div class="tile-desc">Hasil siswa, skor per kategori, reset attempt, dan cetak laporan PDF.</div>
+      <div class="tile-cta">Buka rekap →</div>
+    </a>
+    <a class="tile" href="./bank-soal.html">
+      <div class="tile-icon">🗂️</div>
+      <div class="tile-title">Bank soal</div>
+      <div class="tile-desc">Telusuri dan kelola soal TKA. Admin dapat mengimpor soal baru.</div>
+      <div class="tile-cta">Buka bank soal →</div>
+    </a>
+    <a class="tile" href="./susun-paket.html">
+      <div class="tile-icon teal">🧩</div>
+      <div class="tile-title">Susun paket</div>
+      <div class="tile-desc">Susun atau edit paket latihan/try out: soal, token, waktu, dan acak.</div>
+      <div class="tile-cta">Susun paket →</div>
+    </a>
+  </div>
 </div>
 
 <div id="not-configured" class="loading-screen" style="display:none;">
@@ -63,6 +48,7 @@
 
 <script type="module">
   import { isConfigured, auth, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { mountGuruShell } from '../assets/guru-shell.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -76,14 +62,13 @@
       if (!user) { location.href = '../index.html'; return; }
       const staff = await getStaffDoc(user.uid);
       if (!staff) { await signOut(auth); location.href = '../index.html'; return; }
+
       document.getElementById('nama-guru').textContent = staff.nama || 'Staf';
       document.getElementById('peran-guru').textContent = staff.peran || 'guru';
+
       loading.style.display = 'none';
       page.style.display = 'block';
-    });
-    document.getElementById('btn-logout').addEventListener('click', async () => {
-      await signOut(auth);
-      location.href = '../index.html';
+      mountGuruShell({ active: 'dashboard', staff });
     });
   }
 </script>
