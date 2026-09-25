@@ -170,6 +170,30 @@
     if (!d) return '—';
     return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   }
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  /** Opsi array -> A,B,C,D + value=teks; object -> letter dari key / A,B,C,... + value=key */
+  function opsiEntries(opsi) {
+    if (Array.isArray(opsi)) {
+      return opsi.map((text, i) => ({
+        letter: String.fromCharCode(65 + i),
+        value: String(text),
+        label: String(text),
+      }));
+    }
+    const obj = opsi || {};
+    const keys = Object.keys(obj).sort((a, b) => {
+      const ra = /^[A-Da-d]$/.test(a) ? a.toUpperCase().charCodeAt(0) : 1000 + Number(a);
+      const rb = /^[A-Da-d]$/.test(b) ? b.toUpperCase().charCodeAt(0) : 1000 + Number(b);
+      if (!Number.isNaN(ra) && !Number.isNaN(rb)) return ra - rb;
+      return String(a).localeCompare(String(b), 'id');
+    });
+    return keys.map((k, i) => {
+      const letter = /^[A-Da-d]$/.test(k) ? k.toUpperCase() : String.fromCharCode(65 + i);
+      return { letter, value: String(k), label: String(obj[k]) };
+    });
+  }
 
   let soalList = [], jawaban = {}, currentIndex = 0, paket = null, uid = null, siswa = null;
   let waktuMulai = 0, timerInterval = null, submitted = false;
@@ -285,15 +309,15 @@
     body += `<div class="soal-pertanyaan">${s.pertanyaan || s.teks || ''}</div>`;
     const qid = s.id;
     if (s.tipe === 'pg') {
-      const opsi = s.opsi || {};
-      Object.keys(opsi).sort().forEach(k => {
-        body += `<label class="opsi-row"><input type="radio" name="q_${qid}" value="${k}" ${jawaban[qid] === k ? 'checked' : ''}><span class="opsi-text"><strong>${k}.</strong> ${opsi[k]}</span></label>`;
+      opsiEntries(s.opsi).forEach(e => {
+        const checked = (jawaban[qid] === e.value || jawaban[qid] === e.label) ? 'checked' : '';
+        body += `<label class="opsi-row"><input type="radio" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
       });
     } else if (s.tipe === 'pgk') {
-      const opsi = s.opsi || {};
       const selected = Array.isArray(jawaban[qid]) ? jawaban[qid] : [];
-      Object.keys(opsi).sort().forEach(k => {
-        body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${k}" ${selected.includes(k) ? 'checked' : ''}><span class="opsi-text"><strong>${k}.</strong> ${opsi[k]}</span></label>`;
+      opsiEntries(s.opsi).forEach(e => {
+        const checked = (selected.includes(e.value) || selected.includes(e.label)) ? 'checked' : '';
+        body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
       });
     } else if (s.tipe === 'pgk-cat') {
       const rows = s.rows || [], cols = s.cols || s.opsiKolom || ['Benar', 'Salah'];
@@ -303,7 +327,7 @@
         body += `<tr><td>${row}</td>`;
         cols.forEach(c => {
           const val = typeof c === 'string' ? c : (c.value || c.label);
-          body += `<td><input type="radio" name="q_${qid}_${ri}" value="${val}" ${current[ri] === val ? 'checked' : ''}></td>`;
+          body += `<td><input type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${current[ri] === val ? 'checked' : ''}></td>`;
         });
         body += `</tr>`;
       });
