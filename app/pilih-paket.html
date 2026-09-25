@@ -1,1 +1,183 @@
-see-local
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilih Paket Latihan – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f; --primary-light: #ebf5ff;
+    --green: #057a55; --green-light: #def7ec;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --slate: #64748b; --slate-light: #f1f5f9;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 3.5vw, 16px); }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 20px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(26,86,219,0.4);
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .logo { font-size: 1.5rem; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 800; line-height: 1.1; }
+  .sub-brand { font-size: 0.68rem; opacity: 0.8; font-weight: 600; }
+  .back-link {
+    color: white; text-decoration: none; font-size: 0.78rem; font-weight: 700;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 6px 14px;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  .page-title { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
+
+  .paket-card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 18px 20px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+  .paket-nama { font-family: 'Baloo 2', cursive; font-size: 1.02rem; color: var(--primary-dark); font-weight: 800; }
+  .paket-meta { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; }
+  .badge-tryout {
+    display: inline-block; background: var(--amber-light); color: #92400e;
+    font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px;
+  }
+  .btn-mulai {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; text-decoration: none;
+    padding: 10px 20px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; white-space: nowrap;
+  }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-weight: 600; font-size: 0.9rem; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
+
+<div id="page" style="display:none;">
+  <header class="header">
+    <div class="header-brand">
+      <span class="logo">📚</span>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+      </div>
+    </div>
+    <a href="./index.html" class="back-link">← Beranda</a>
+  </header>
+
+  <main class="container">
+    <div class="page-title" id="page-title">📐 Pilih Paket Latihan</div>
+    <div class="page-subtitle" id="page-subtitle">Pilih salah satu paket untuk mulai mengerjakan.</div>
+    <div id="paket-list"></div>
+    <div class="empty-state" id="empty-state" style="display:none;">Belum ada paket latihan untuk mata pelajaran ini. Coba lagi nanti ya.</div>
+  </main>
+</div>
+
+<div id="not-configured" class="loading-screen" style="display:none; flex-direction:column; gap:10px; text-align:center; padding:20px;">
+  <div style="font-size:1.4rem;">⚙️</div>
+  <div>Firebase belum dikonfigurasi.<br>Isi <code>firebase-config.js</code> terlebih dahulu.</div>
+  <a href="../index.html" style="color:#1a56db; font-weight:800;">← Kembali ke halaman masuk</a>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
+  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  const NAMA_MAPEL = { 'matematika': '📐 Matematika', 'bahasa-indonesia': '📝 Bahasa Indonesia' };
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    const params = new URLSearchParams(window.location.search);
+    const mapel = params.get('mapel');
+
+    if (!mapel || !NAMA_MAPEL[mapel]) {
+      window.location.href = './index.html';
+    } else {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) { window.location.href = '../index.html'; return; }
+        const siswa = await getStudentDoc(user.uid);
+        if (!siswa) { await signOut(auth); window.location.href = '../index.html'; return; }
+
+        document.getElementById('page-title').textContent = 'Pilih Paket ' + NAMA_MAPEL[mapel];
+        loading.style.display = 'none';
+        page.style.display = 'block';
+
+        const q = query(
+          collection(db, 'packages'),
+          where('subjectId', '==', mapel),
+          where('aktif', '==', true)
+        );
+        const snap = await getDocs(q);
+        const pakets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const listEl = document.getElementById('paket-list');
+        const emptyEl = document.getElementById('empty-state');
+
+        if (pakets.length === 0) {
+          emptyEl.style.display = 'block';
+          return;
+        }
+
+        const now = new Date();
+        function parseWaktu(val) {
+          if (!val) return null;
+          if (typeof val.toDate === 'function') return val.toDate();
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        listEl.innerHTML = pakets.map(p => {
+          const isTryout = p.jenis === 'tryout';
+          let metaExtra = '';
+          let disabled = false;
+          let btnLabel = isTryout ? 'Mulai Try Out →' : 'Mulai →';
+          if (isTryout) {
+            metaExtra = ` · ${p.durasiMenit || 60} menit · 1x saja`;
+            if (p.token) metaExtra += ' · butuh token';
+            const buka = parseWaktu(p.bukaPada);
+            const tutup = parseWaktu(p.tutupPada);
+            if (buka && now < buka) {
+              disabled = true;
+              btnLabel = 'Belum dibuka';
+              metaExtra += `<br><span style="color:#d97706;">Dibuka ${buka.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>`;
+            } else if (tutup && now > tutup) {
+              disabled = true;
+              btnLabel = 'Sudah ditutup';
+              metaExtra += `<br><span style="color:#dc2626;">Ditutup ${tutup.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>`;
+            }
+          }
+          const btn = disabled
+            ? `<span class="btn-mulai" style="opacity:0.5;cursor:not-allowed;pointer-events:none;">${btnLabel}</span>`
+            : `<a class="btn-mulai" href="./kuis.html?paketId=${p.id}">${btnLabel}</a>`;
+          return `
+          <div class="paket-card">
+            <div>
+              <div class="paket-nama">${p.nama}${isTryout ? ' <span class="badge-tryout">TRY OUT</span>' : ''}</div>
+              <div class="paket-meta">${(p.questionIds || []).length} soal · Total skor ${p.totalSkor ?? '-'}${metaExtra}</div>
+            </div>
+            ${btn}
+          </div>`;
+        }).join('');
+      });
+    }
+  }
+</script>
+
+</body>
+</html>
