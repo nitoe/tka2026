@@ -112,7 +112,7 @@
   </header>
   <main class="container">
     <div class="page-title">📦 Susun Paket Soal</div>
-    <div class="page-subtitle">Filter bank soal (mapel, tipe, materi, kompleksitas), susun paket latihan/try out, atau <strong>edit</strong> paket yang sudah ada.</div>
+    <div class="page-subtitle">Filter bank soal (mapel → materi/kompleksitas), susun paket latihan/try out, atau <strong>edit</strong> paket yang sudah ada.</div>
     <div class="layout">
       <div>
         <div class="card">
@@ -266,9 +266,13 @@
   }
 
   function populateFilters() {
-    const tipeSet = [...new Set(allSoal.map(s => s.tipe).filter(Boolean))].sort();
-    const materiSet = [...new Set(allSoal.map(s => s.tipeMateri).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
-    const kompSet = [...new Set(allSoal.map(s => s.kompleksitas).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
+    const mapel = document.getElementById('filter-mapel').value;
+    const pool = mapel
+      ? allSoal.filter(s => s.subjectId === mapel || s.mapel === mapel)
+      : allSoal;
+    const tipeSet = [...new Set(pool.map(s => s.tipe).filter(Boolean))].sort();
+    const materiSet = [...new Set(pool.map(s => s.tipeMateri).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
+    const kompSet = [...new Set(pool.map(s => s.kompleksitas).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
     const fill = (id, placeholder, values) => {
       const el = document.getElementById(id);
       const cur = el.value;
@@ -315,7 +319,11 @@
     });
   }
 
-  ['filter-mapel', 'filter-tipe', 'filter-materi', 'filter-kompleksitas'].forEach(id => {
+  document.getElementById('filter-mapel').addEventListener('change', () => {
+    populateFilters();
+    renderSoalList();
+  });
+  ['filter-tipe', 'filter-materi', 'filter-kompleksitas'].forEach(id => {
     document.getElementById(id).addEventListener('change', renderSoalList);
   });
 
