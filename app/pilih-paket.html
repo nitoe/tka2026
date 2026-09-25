@@ -47,6 +47,10 @@
   }
   .paket-nama { font-family: 'Baloo 2', cursive; font-size: 1.02rem; color: var(--primary-dark); font-weight: 800; }
   .paket-meta { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; }
+  .badge-tryout {
+    display: inline-block; background: var(--amber-light); color: #92400e;
+    font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px;
+  }
   .btn-mulai {
     background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; text-decoration: none;
     padding: 10px 20px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; white-space: nowrap;
@@ -131,15 +135,20 @@
           return;
         }
 
-        listEl.innerHTML = pakets.map(p => `
+        listEl.innerHTML = pakets.map(p => {
+          const isTryout = p.jenis === 'tryout';
+          const metaExtra = isTryout
+            ? ` · <span class="badge-tryout">TRY OUT</span> ${p.durasiMenit || 60} menit · 1x saja`
+            : '';
+          return `
           <div class="paket-card">
             <div>
-              <div class="paket-nama">${p.nama}</div>
-              <div class="paket-meta">${(p.questionIds || []).length} soal · Total skor ${p.totalSkor ?? '-'}</div>
+              <div class="paket-nama">${p.nama}${isTryout ? ' <span class="badge-tryout">TRY OUT</span>' : ''}</div>
+              <div class="paket-meta">${(p.questionIds || []).length} soal · Total skor ${p.totalSkor ?? '-'}${metaExtra}</div>
             </div>
-            <a class="btn-mulai" href="./kuis.html?paketId=${p.id}">Mulai →</a>
-          </div>
-        `).join('');
+            <a class="btn-mulai" href="./kuis.html?paketId=${p.id}">${isTryout ? 'Mulai Try Out →' : 'Mulai →'}</a>
+          </div>`;
+        }).join('');
       });
     }
   }
