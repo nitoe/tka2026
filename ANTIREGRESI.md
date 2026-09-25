@@ -1,34 +1,38 @@
 # 🛡️ Panduan Anti-Regresi
 
-Dokumen ini adalah **checklist wajib** sebelum dan sesudah membuat perubahan di repo ini.
-
-Untuk riwayat lengkap pelajaran dari v0.4–v0.10, lihat commit history. Ringkasan aktif di bawah.
+Checklist wajib sebelum/sesudah perubahan di repo ini.
 
 ---
 
-## Area sensitif (wajib uji ulang)
+## Area sensitif
 
-- Firestore rules, scoring hash (`assets/scoring.js`), skema `packages` / `attempts` / `soalPublik`
-- UI kuis LMS (navigasi nomor, timer, gate token/waktu)
-- Import bank soal & susun paket
+- Firestore rules, scoring hash, skema `packages` / `attempts` / `soalPublik`
+- UI kuis LMS (navigasi, timer, gate token/waktu)
+- Rekap & reset attempt (`guru/rekap-tryout.html`)
 
 ---
 
-## 12. Catatan Mekanisme Try Out (v0.10.0 + v0.11.0)
+## 12. Try Out (v0.10–v0.11)
 
-- Field `packages`: `jenis`, `durasiMenit`, `maksPercobaan`, `tampilkanHasil`, `token`, `bukaPada`, `tutupPada`.
-- Layout LMS: satu soal per layar; jawaban di objek memori; restore saat pindah soal.
-- Token dicek di client (string trim) — bukan proteksi kriptografis.
-- Jendela waktu memakai jam browser; simpan ISO string.
-- Timer client-side; auto-submit `waktu_habis`; hasil ditahan hanya di UI siswa.
-- Hindari ubah `questionIds` setelah try out dimulai.
-- Query batas percobaan dua equality tanpa orderBy — tidak butuh composite index.
+- Field: `jenis`, `durasiMenit`, `maksPercobaan`, `tampilkanHasil`, `token`, `bukaPada`, `tutupPada`.
+- Layout LMS satu soal per layar; token dicek client-side.
+- Timer client-side; hasil ditahan hanya di UI siswa.
+
+---
+
+## 14. Reset Attempt Try Out (v0.12.0)
+
+- Hanya **staff** boleh `delete` dokumen `attempts`. Siswa: update/delete ditolak.
+- Reset **menghapus** attempt (bukan ubah status) supaya batas `maksPercobaan` longgar otomatis.
+- UI wajib modal konfirmasi — jangan one-click.
+- Setelah ubah rules: **deploy** ke Firebase atau Reset gagal permission.
+- Jangan izinkan `update` attempt dari client (cegah manipulasi skor).
 
 ---
 
 ## Definition of Done
 
-- [ ] Berfungsi di skenario normal & edge case relevan
+- [ ] Skenario normal & edge case
 - [ ] Tidak merusak fitur existing
 - [ ] CHANGELOG diupdate
-- [ ] Catatan antiregresi ditambah jika pola baru
+- [ ] Catatan antiregresi jika pola baru
