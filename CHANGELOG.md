@@ -6,6 +6,21 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.0] — 2026-09-25
+
+### Added
+- **Grafik hasil** di `guru/rekap-tryout.html` (Chart.js): sebaran skor (0–50 / 51–70 / 71–85 / 86–100) dan rata-rata per paket.
+- **Tab Bandingkan Paket**: pilih dua paket → metrik side-by-side (rata-rata, jumlah attempt, % tuntas ≥70%) + delta, grafik batang, dan tabel perubahan per siswa (hanya yang ikut keduanya).
+- Stat box **Tuntas (≥70%)**.
+
+### Changed
+- **Optimasi query Firestore**: filter server-side prioritas `packageId` → `jenisPaket` → `subjectId`; fallback scan penuh hanya jika tidak ada filter. Sort waktu di klien (hindari composite index). Hint query ditampilkan di UI.
+
+### Tidak Berubah
+- PDF laporan, reset attempt (modal 2 langkah), filter kelas/nama (klien), shell guru, aturan skor.
+
+---
+
 ## [0.17.0] — 2026-09-25
 
 ### Added
