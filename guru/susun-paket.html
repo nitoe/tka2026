@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Susun Paket – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
+    --green: #057a55; --green-light: #def7ec;
+    --red: #dc2626; --red-light: #fee2e2;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --slate: #64748b; --slate-light: #f1f5f9;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 3.5vw, 16px); }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 20px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(26,86,219,0.4);
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .logo { font-size: 1.5rem; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 800; line-height: 1.1; }
+  .sub-brand { font-size: 0.68rem; opacity: 0.8; font-weight: 600; }
+  .back-link {
+    color: white; text-decoration: none; font-size: 0.78rem; font-weight: 700;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 6px 14px;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+  .page-title { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
+  .card h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters select {
+    font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 700;
+    padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+  }
+  .soal-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .soal-item {
+    display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; align-items: flex-start;
+  }
+  .soal-item:last-child { border-bottom: none; }
+  .soal-item:hover { background: #f8fafc; }
+  .soal-item.selected { background: var(--primary-light); }
+  .soal-item input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
+  .soal-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+  .soal-text { font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
+  .selected-panel { position: sticky; top: 72px; }
+  .selected-stats { display: flex; gap: 10px; margin-bottom: 12px; }
+  .selected-stats .num { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
+  .selected-stats .label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+  .selected-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; }
+  .selected-list .item { padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+    padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .btn { border: none; border-radius: 10px; padding: 12px 16px; font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 800; cursor: pointer; width: 100%; }
+  .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status-line { font-size: 0.8rem; font-weight: 700; margin-top: 10px; min-height: 1.2em; }
+  .empty-state { text-align: center; padding: 28px; color: var(--text-muted); font-weight: 600; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; }
+  .badge-tryout { display: inline-block; background: var(--amber-light); color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .paket-list .item { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .paket-list .item:last-child { border-bottom: none; }
+  .paket-list .nama { font-weight: 800; color: var(--primary-dark); }
+  .paket-list .meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
+<div id="page" style="display:none;">
+  <header class="header">
+    <div class="header-brand">
+      <span class="logo">📚</span>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+      </div>
+    </div>
+    <a href="./index.html" class="back-link">← Dashboard</a>
+  </header>
+  <main class="container">
+    <div class="page-title">📦 Susun Paket Soal</div>
+    <div class="page-subtitle">Pilih soal dari bank, atur jenis paket (latihan / try out), lalu simpan.</div>
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h2>Bank Soal</h2>
+          <div class="filters">
+            <select id="filter-mapel">
+              <option value="">Semua mapel</option>
+              <option value="matematika">Matematika</option>
+              <option value="bahasa-indonesia">Bahasa Indonesia</option>
+            </select>
+            <select id="filter-tipe"><option value="">Semua tipe</option></select>
+          </div>
+          <div class="soal-list" id="soal-list"><div class="empty-state">Memuat soal...</div></div>
+        </div>
+        <div class="card">
+          <h2>Paket Tersimpan</h2>
+          <div class="paket-list" id="paket-list"><div class="empty-state">Memuat...</div></div>
+        </div>
+      </div>
+      <div class="selected-panel">
+        <div class="card">
+          <h2>Paket Baru</h2>
+          <div class="selected-stats">
+            <div><div class="num" id="selected-count">0</div><div class="label">Soal Dipilih</div></div>
+            <div><div class="num" id="selected-skor">0</div><div class="label">Total Skor</div></div>
+          </div>
+          <div class="selected-list" id="selected-list">
+            <div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>
+          </div>
+          <div class="field">
+            <label>Nama Paket</label>
+            <input type="text" id="nama-paket" placeholder="mis. Try Out TKA Matematika #1">
+          </div>
+          <div class="field">
+            <label>Jenis Paket</label>
+            <select id="jenis-paket">
+              <option value="latihan">Latihan (bebas, hasil langsung terlihat)</option>
+              <option value="tryout">Try Out (terbatas waktu & 1x saja, hasil ditahan)</option>
+            </select>
+          </div>
+          <div id="tryout-options" style="display:none;">
+            <div class="field-row">
+              <div class="field">
+                <label>Durasi (menit)</label>
+                <input type="number" id="durasi-menit" min="1" max="180" value="60">
+              </div>
+              <div class="field">
+                <label>Maks. Percobaan</label>
+                <input type="number" id="maks-percobaan" min="1" max="10" value="1">
+              </div>
+            </div>
+            <div class="field">
+              <label>Token (opsional)</label>
+              <input type="text" id="token-paket" placeholder="mis. MTK-KAMIS-01" maxlength="32" autocomplete="off">
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="acak-soal" checked>
+              <label for="acak-soal" style="text-transform:none; font-size:0.84rem; margin:0;">Acak urutan soal antar siswa</label>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="acak-opsi" checked>
+              <label for="acak-opsi" style="text-transform:none; font-size:0.84rem; margin:0;">Acak urutan pilihan jawaban (A–D)</label>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Dibuka pada</label>
+                <input type="datetime-local" id="buka-pada">
+              </div>
+              <div class="field">
+                <label>Ditutup pada</label>
+                <input type="datetime-local" id="tutup-pada">
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="tampilkan-hasil">
+              <label for="tampilkan-hasil" style="text-transform:none; font-size:0.84rem; margin:0;">Tampilkan skor langsung ke siswa setelah selesai</label>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-simpan-paket" disabled>Simpan Paket</button>
+          <div class="status-line" id="simpan-status"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="not-configured" class="loading-screen" style="display:none; flex-direction:column; gap:10px; text-align:center; padding:20px;">
+  <div style="font-size:1.4rem;">⚙️</div>
+  <div>Firebase belum dikonfigurasi.<br>Isi <code>firebase-config.js</code> terlebih dahulu.</div>
+  <a href="../index.html" style="color:#1a56db; font-weight:800;">← Kembali ke halaman masuk</a>
+</div>
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  let allSoal = [], selected = {}, currentStaff = null;
+
+  function toIsoLocal(val) {
+    if (!val) return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.href = '../index.html'; return; }
+      currentStaff = await getStaffDoc(user.uid);
+      if (!currentStaff) { await signOut(auth); location.href = '../index.html'; return; }
+      loading.style.display = 'none';
+      page.style.display = 'block';
+      await loadSoal();
+      await loadPaket();
+    });
+  }
+
+  const selJenis = document.getElementById('jenis-paket');
+  const tryoutOptions = document.getElementById('tryout-options');
+  selJenis.addEventListener('change', () => {
+    tryoutOptions.style.display = selJenis.value === 'tryout' ? 'block' : 'none';
+  });
+
+  async function loadSoal() {
+    const list = document.getElementById('soal-list');
+    try {
+      const snap = await getDocs(collection(db, 'soalPublik'));
+      allSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const tipeSet = [...new Set(allSoal.map(s => s.tipe).filter(Boolean))].sort();
+      const selTipe = document.getElementById('filter-tipe');
+      selTipe.innerHTML = '<option value="">Semua tipe</option>' + tipeSet.map(t => `<option value="${t}">${t}</option>`).join('');
+      renderSoalList();
+    } catch (err) {
+      list.innerHTML = `<div class="empty-state">Gagal memuat: ${err.message}</div>`;
+    }
+  }
+
+  function renderSoalList() {
+    const mapel = document.getElementById('filter-mapel').value;
+    const tipe = document.getElementById('filter-tipe').value;
+    const list = document.getElementById('soal-list');
+    let filtered = allSoal;
+    if (mapel) filtered = filtered.filter(s => s.subjectId === mapel || s.mapel === mapel);
+    if (tipe) filtered = filtered.filter(s => s.tipe === tipe);
+    if (!filtered.length) {
+      list.innerHTML = '<div class="empty-state">Tidak ada soal.</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(s => {
+      const checked = selected[s.id] ? 'checked' : '';
+      const cls = selected[s.id] ? 'selected' : '';
+      const teks = (s.pertanyaan || s.teks || '').slice(0, 120);
+      return `<label class="soal-item ${cls}"><input type="checkbox" data-id="${s.id}" ${checked}>
+        <div><div class="soal-meta">${s.id} · ${s.tipe || '-'} · skor ${s.skor ?? '-'}</div>
+        <div class="soal-text">${teks}</div></div></label>`;
+    }).join('');
+    list.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.id;
+        if (cb.checked) selected[id] = allSoal.find(s => s.id === id);
+        else delete selected[id];
+        updateSelected();
+        renderSoalList();
+      });
+    });
+  }
+
+  document.getElementById('filter-mapel').addEventListener('change', renderSoalList);
+  document.getElementById('filter-tipe').addEventListener('change', renderSoalList);
+
+  function updateSelected() {
+    const ids = Object.keys(selected);
+    document.getElementById('selected-count').textContent = ids.length;
+    document.getElementById('selected-skor').textContent = ids.reduce((s, id) => s + (selected[id].skor || 0), 0);
+    const list = document.getElementById('selected-list');
+    if (!ids.length) {
+      list.innerHTML = '<div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>';
+    } else {
+      list.innerHTML = ids.map(id => `<div class="item">${id} · skor ${selected[id].skor ?? '-'}</div>`).join('');
+    }
+    document.getElementById('btn-simpan-paket').disabled = ids.length === 0;
+  }
+
+  document.getElementById('btn-simpan-paket').addEventListener('click', async () => {
+    const nama = document.getElementById('nama-paket').value.trim();
+    if (!nama) { alert('Isi nama paket.'); return; }
+    const questionIds = Object.keys(selected);
+    if (!questionIds.length) { alert('Pilih minimal 1 soal.'); return; }
+    const mapel = selected[questionIds[0]].subjectId || selected[questionIds[0]].mapel || 'matematika';
+    const jenis = document.getElementById('jenis-paket').value;
+    let durasiMenit = null, maksPercobaan = null, tampilkanHasil = true, token = null, bukaPada = null, tutupPada = null, acakSoal = false, acakOpsi = false;
+    if (jenis === 'tryout') {
+      durasiMenit = parseInt(document.getElementById('durasi-menit').value, 10) || 60;
+      maksPercobaan = parseInt(document.getElementById('maks-percobaan').value, 10) || 1;
+      tampilkanHasil = document.getElementById('tampilkan-hasil').checked;
+      const t = document.getElementById('token-paket').value.trim();
+      token = t || null;
+      bukaPada = toIsoLocal(document.getElementById('buka-pada').value);
+      tutupPada = toIsoLocal(document.getElementById('tutup-pada').value);
+      acakSoal = document.getElementById('acak-soal').checked;
+      acakOpsi = document.getElementById('acak-opsi').checked;
+    }
+    const btn = document.getElementById('btn-simpan-paket');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    const statusEl = document.getElementById('simpan-status');
+    try {
+      await addDoc(collection(db, 'packages'), {
+        nama, subjectId: mapel, questionIds,
+        totalSkor: questionIds.reduce((sum, id) => sum + (selected[id].skor || 0), 0),
+        aktif: true, jenis, durasiMenit, maksPercobaan, tampilkanHasil,
+        token, bukaPada, tutupPada, acakSoal, acakOpsi,
+        createdBy: currentStaff.nama, createdAt: serverTimestamp(),
+      });
+      statusEl.textContent = `✅ Paket "${nama}" (${jenis}) berhasil disimpan dengan ${questionIds.length} soal.`;
+      statusEl.style.color = '#057a55';
+      selected = {};
+      updateSelected();
+      document.getElementById('nama-paket').value = '';
+      document.getElementById('jenis-paket').value = 'latihan';
+      tryoutOptions.style.display = 'none';
+      document.getElementById('token-paket').value = '';
+      document.getElementById('acak-soal').checked = true;
+      document.getElementById('acak-opsi').checked = true;
+      document.getElementById('buka-pada').value = '';
+      document.getElementById('tutup-pada').value = '';
+      renderSoalList();
+      await loadPaket();
+    } catch (err) {
+      statusEl.textContent = 'Gagal: ' + err.message;
+      statusEl.style.color = '#dc2626';
+    }
+    btn.disabled = false; btn.textContent = 'Simpan Paket';
+  });
+
+  async function loadPaket() {
+    const el = document.getElementById('paket-list');
+    try {
+      const snap = await getDocs(collection(db, 'packages'));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => String(b.createdAt?.seconds || 0).localeCompare(String(a.createdAt?.seconds || 0)));
+      if (!list.length) { el.innerHTML = '<div class="empty-state">Belum ada paket.</div>'; return; }
+      el.innerHTML = list.map(p => {
+        let jenisLabel = 'Latihan';
+        if (p.jenis === 'tryout') {
+          jenisLabel = `<span class="badge-tryout">TRY OUT</span> · ${p.durasiMenit || 60} mnt · maks ${p.maksPercobaan || 1}x`;
+          if (p.token) jenisLabel += ` · token: ${p.token}`;
+        }
+        return `<div class="item"><div class="nama">${p.nama || p.id}</div>
+          <div class="meta">${p.subjectId} · ${(p.questionIds || []).length} soal · ${jenisLabel} · oleh ${p.createdBy || '-'}</div></div>`;
+      }).join('');
+    } catch (err) {
+      el.innerHTML = `<div class="empty-state">Gagal: ${err.message}</div>`;
+    }
+  }
+</script>
+</body>
+</html>
