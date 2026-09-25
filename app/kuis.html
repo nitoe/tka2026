@@ -23,14 +23,21 @@
   .header {
     position: sticky; top: 0; z-index: 100;
     background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-    color: white; padding: 0 20px; height: 56px;
-    display: flex; align-items: center; justify-content: space-between;
+    color: white; padding: 0 16px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
     box-shadow: 0 2px 10px rgba(26,86,219,0.4);
   }
-  .header-brand { display: flex; flex-direction: column; }
-  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.85rem, 3vw, 1rem); font-weight: 800; line-height: 1.2; }
+  .header-brand { display: flex; flex-direction: column; min-width: 0; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.8rem, 3vw, 1rem); font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub-brand { font-size: 0.66rem; opacity: 0.8; font-weight: 600; }
-  .progress-pill { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 0.76rem; font-weight: 800; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .progress-pill, .timer-pill {
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 5px 12px; font-size: 0.74rem; font-weight: 800; white-space: nowrap;
+  }
+  .timer-pill.warn { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.6); }
+  .timer-pill.danger { background: rgba(220,38,38,0.4); border-color: rgba(220,38,38,0.7); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
   .container { max-width: 720px; margin: 0 auto; padding: 20px 16px 20px; }
 
@@ -73,6 +80,8 @@
   .hasil-emoji { font-size: 3rem; margin-bottom: 8px; }
   .hasil-skor { font-family: 'Baloo 2', cursive; font-size: 2.4rem; color: var(--primary-dark); font-weight: 800; }
   .hasil-label { color: var(--text-muted); font-weight: 700; font-size: 0.85rem; margin-bottom: 20px; }
+  .hasil-ditahan { font-size: 1rem; font-weight: 700; color: var(--primary-dark); line-height: 1.6; margin: 16px 0 8px; }
+  .hasil-ditahan-sub { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
   .breakdown-title { font-weight: 800; font-size: 0.85rem; margin: 18px 0 10px; text-align: left; color: var(--primary-dark); }
   .breakdown-row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 8px 0; border-bottom: 1px solid var(--border); text-align: left; }
   .btn-kembali { display: inline-block; margin-top: 20px; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; }
@@ -90,7 +99,10 @@
       <div class="brand-name" id="paket-nama">—</div>
       <div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
     </div>
-    <div class="progress-pill" id="progress-pill">0/0 dijawab</div>
+    <div class="header-right">
+      <div class="timer-pill" id="timer-pill" style="display:none;">⏱ --:--</div>
+      <div class="progress-pill" id="progress-pill">0/0 dijawab</div>
+    </div>
   </header>
 
   <main class="container" id="soal-container"></main>
@@ -113,6 +125,10 @@
       <div class="hasil-skor" id="hasil-skor">0 / 0</div>
       <div class="hasil-label" id="hasil-label">Skor Kamu</div>
       <div id="breakdown-area"></div>
+      <div id="hasil-ditahan-area" style="display:none;">
+        <div class="hasil-ditahan">✅ Jawaban berhasil dikumpulkan.</div>
+        <div class="hasil-ditahan-sub">Hasil try out akan diumumkan oleh guru. Terima kasih sudah mengerjakan dengan sungguh-sungguh!</div>
+      </div>
       <a href="./index.html" class="btn-kembali">Kembali ke Beranda</a>
     </div>
   </main>
@@ -123,7 +139,7 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
   import { hashJawabanSiswa } from '../assets/scoring.js';
-  import { doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -152,9 +168,24 @@
         try {
           const paketSnap = await getDoc(doc(db, 'packages', paketId));
           if (!paketSnap.exists()) { showError('Paket tidak ditemukan.'); return; }
-          const paket = paketSnap.data();
+          const paket = { id: paketSnap.id, ...paketSnap.data() };
           const questionIds = paket.questionIds || [];
           if (questionIds.length === 0) { showError('Paket ini belum punya soal.'); return; }
+
+          // ── Cek batas percobaan (khusus try out / paket yang punya maksPercobaan) ──
+          const maks = paket.maksPercobaan;
+          if (maks != null && maks > 0) {
+            const qAttempts = query(
+              collection(db, 'attempts'),
+              where('studentId', '==', user.uid),
+              where('packageId', '==', paketId)
+            );
+            const attemptSnap = await getDocs(qAttempts);
+            if (attemptSnap.size >= maks) {
+              showError(`Anda sudah menyelesaikan paket ini (${attemptSnap.size}/${maks} kali). Tidak dapat mengerjakan ulang.`);
+              return;
+            }
+          }
 
           const soalDocs = await Promise.all(
             questionIds.map(id => getDoc(doc(db, 'soalPublik', id)))
@@ -174,12 +205,43 @@
   }
 
   function renderKuis(paket, soalList, uid, siswa) {
-    document.getElementById('paket-nama').textContent = paket.nama;
+    document.getElementById('paket-nama').textContent = paket.nama + (paket.jenis === 'tryout' ? ' (TRY OUT)' : '');
     loading.style.display = 'none';
     page.style.display = 'block';
 
-    const jawaban = {}; // { questionId: answer }
+    const jawaban = {};
     const waktuMulai = Date.now();
+    let submitted = false;
+    let timerInterval = null;
+
+    // ── Timer (jika ada durasiMenit) ──
+    const durasiMenit = paket.durasiMenit;
+    if (durasiMenit && durasiMenit > 0) {
+      const timerEl = document.getElementById('timer-pill');
+      timerEl.style.display = 'block';
+      let sisaDetik = durasiMenit * 60;
+
+      function updateTimer() {
+        if (submitted) return;
+        const m = Math.floor(sisaDetik / 60);
+        const s = sisaDetik % 60;
+        timerEl.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        if (sisaDetik <= 60) {
+          timerEl.classList.add('danger');
+          timerEl.classList.remove('warn');
+        } else if (sisaDetik <= 300) {
+          timerEl.classList.add('warn');
+        }
+        if (sisaDetik <= 0) {
+          clearInterval(timerInterval);
+          // Auto-submit saat waktu habis
+          doSubmit('waktu_habis');
+        }
+        sisaDetik--;
+      }
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
 
     const container = document.getElementById('soal-container');
     container.innerHTML = soalList.map((s, idx) => renderSoalCard(s, idx)).join('');
@@ -190,12 +252,6 @@
       document.getElementById('progress-pill').textContent = `${terjawab}/${total} dijawab`;
     }
 
-    // ── PG & PGK: dengarkan event 'change' pada input, bukan 'click' pada baris.
-    // (Sengaja BUKAN toggle manual — <label> yang membungkus <input> sudah otomatis
-    // meneruskan klik ke input-nya secara native oleh browser. Menambah toggle manual
-    // di atas itu menyebabkan double-toggle pada checkbox: browser men-toggle sekali,
-    // lalu kode kita men-toggle lagi, sehingga balik ke kondisi semula. Baru ditemukan
-    // & diperbaiki lewat pengujian otomatis — lihat ANTIREGRESI.md §13.)
     container.querySelectorAll('.opsi-row input').forEach(input => {
       input.addEventListener('change', () => {
         const qid = input.dataset.qid;
@@ -211,7 +267,6 @@
       });
     });
 
-    // ── PGK-CAT: radio per baris ──
     container.querySelectorAll('input[data-role="cat-radio"]').forEach(input => {
       input.addEventListener('change', () => {
         const qid = input.dataset.qid;
@@ -223,17 +278,25 @@
       });
     });
 
-    document.getElementById('btn-submit').addEventListener('click', async () => {
+    async function doSubmit(statusOverride) {
+      if (submitted) return;
+      submitted = true;
+      if (timerInterval) clearInterval(timerInterval);
+
       const btn = document.getElementById('btn-submit');
       const totalSoal = soalList.length;
       const terjawab = Object.keys(jawaban).length;
-      if (terjawab < totalSoal) {
+
+      if (!statusOverride && terjawab < totalSoal) {
         const lanjut = confirm(`Baru ${terjawab} dari ${totalSoal} soal dijawab. Soal yang belum dijawab akan dianggap salah. Yakin mau mengumpulkan sekarang?`);
-        if (!lanjut) return;
+        if (!lanjut) {
+          submitted = false;
+          return;
+        }
       }
 
       btn.disabled = true;
-      btn.textContent = 'Menghitung nilai...';
+      btn.textContent = statusOverride === 'waktu_habis' ? 'Waktu habis — menyimpan...' : 'Menghitung nilai...';
 
       let skorAkhir = 0;
       let skorMaksimal = 0;
@@ -264,15 +327,17 @@
 
       const waktuSelesai = Date.now();
       const durasiDetik = Math.round((waktuSelesai - waktuMulai) / 1000);
+      const status = statusOverride || 'selesai';
 
       try {
         await addDoc(collection(db, 'attempts'), {
           studentId: uid,
           namaSiswa: siswa.nama,
           kelasSiswa: siswa.kelas,
-          packageId: document.location.search.match(/paketId=([^&]+)/)[1],
+          packageId: paket.id,
           packageNama: paket.nama,
           subjectId: paket.subjectId,
+          jenisPaket: paket.jenis || 'latihan',
           jawaban,
           skorAkhir,
           skorMaksimal,
@@ -281,18 +346,21 @@
           waktuMulai: new Date(waktuMulai),
           waktuSelesai: new Date(waktuSelesai),
           durasiDetik,
-          status: 'selesai',
+          status,
           createdAt: serverTimestamp(),
         });
       } catch (err) {
         alert('Gagal menyimpan hasil: ' + err.message + '\nCoba kumpulkan ulang.');
+        submitted = false;
         btn.disabled = false;
         btn.textContent = '✅ Kumpulkan Jawaban';
         return;
       }
 
-      tampilkanHasil(skorAkhir, skorMaksimal, perTipeMateri, perKompleksitas);
-    });
+      tampilkanHasil(skorAkhir, skorMaksimal, perTipeMateri, perKompleksitas, paket);
+    }
+
+    document.getElementById('btn-submit').addEventListener('click', () => doSubmit(null));
 
     updateProgress();
   }
@@ -347,27 +415,38 @@
   }
 
   function escapeAttr(str) {
-    return String(str).replace(/"/g, '&quot;');
+    return String(str).replace(/"/g, '"');
   }
 
-  function tampilkanHasil(skorAkhir, skorMaksimal, perTipeMateri, perKompleksitas) {
+  function tampilkanHasil(skorAkhir, skorMaksimal, perTipeMateri, perKompleksitas, paket) {
     document.getElementById('page').style.display = 'none';
     document.getElementById('hasil-page').style.display = 'block';
 
-    const persen = skorMaksimal > 0 ? Math.round((skorAkhir / skorMaksimal) * 100) : 0;
-    document.getElementById('hasil-emoji').textContent = persen >= 70 ? '🎉' : '💪';
-    document.getElementById('hasil-skor').textContent = `${skorAkhir} / ${skorMaksimal}`;
-    document.getElementById('hasil-label').textContent = `Skor Kamu (${persen}%)`;
+    const tampilkan = paket.tampilkanHasil !== false; // default true untuk paket lama
 
-    let html = '<div class="breakdown-title">Rincian per Tipe Materi</div>';
-    for (const [k, v] of Object.entries(perTipeMateri)) {
-      html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
+    if (!tampilkan) {
+      // Mode try out: hasil ditahan
+      document.getElementById('hasil-emoji').textContent = '✅';
+      document.getElementById('hasil-skor').style.display = 'none';
+      document.getElementById('hasil-label').style.display = 'none';
+      document.getElementById('breakdown-area').style.display = 'none';
+      document.getElementById('hasil-ditahan-area').style.display = 'block';
+    } else {
+      const persen = skorMaksimal > 0 ? Math.round((skorAkhir / skorMaksimal) * 100) : 0;
+      document.getElementById('hasil-emoji').textContent = persen >= 70 ? '🎉' : '💪';
+      document.getElementById('hasil-skor').textContent = `${skorAkhir} / ${skorMaksimal}`;
+      document.getElementById('hasil-label').textContent = `Skor Kamu (${persen}%)`;
+
+      let html = '<div class="breakdown-title">Rincian per Tipe Materi</div>';
+      for (const [k, v] of Object.entries(perTipeMateri)) {
+        html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
+      }
+      html += '<div class="breakdown-title">Rincian per Kompleksitas</div>';
+      for (const [k, v] of Object.entries(perKompleksitas)) {
+        html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
+      }
+      document.getElementById('breakdown-area').innerHTML = html;
     }
-    html += '<div class="breakdown-title">Rincian per Kompleksitas</div>';
-    for (const [k, v] of Object.entries(perKompleksitas)) {
-      html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
-    }
-    document.getElementById('breakdown-area').innerHTML = html;
   }
 </script>
 
