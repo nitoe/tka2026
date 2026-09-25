@@ -8,6 +8,34 @@ Setiap entri baru **wajib** menyebutkan: tanggal, apa yang berubah, kenapa berub
 
 ---
 
+## [0.10.0] — 2026-09-25
+
+### Added
+- **Mekanisme Try Out** untuk mendukung pelaksanaan try out Kamis (Matematika) dan Jumat (Bahasa Indonesia):
+  - Field baru di dokumen `packages`: `jenis` (`"latihan"` | `"tryout"`), `durasiMenit`, `maksPercobaan`, `tampilkanHasil`.
+  - Form di `guru/susun-paket.html`: pilihan jenis paket + opsi durasi / maks percobaan / tampilkan hasil (muncul otomatis saat pilih Try Out; default 60 menit, 1x, hasil ditahan).
+  - Badge **TRY OUT** + info durasi & "1x saja" di `app/pilih-paket.html`.
+  - Di `app/kuis.html`:
+    - Cek jumlah attempt sebelumnya → blokir jika sudah mencapai `maksPercobaan`.
+    - Timer countdown di header (warna kuning ≤5 menit, merah + pulse ≤1 menit) → auto-submit dengan `status: "waktu_habis"` saat habis.
+    - Jika `tampilkanHasil === false` → setelah submit hanya tampil pesan konfirmasi (skor & breakdown disembunyikan dari siswa).
+    - Field `jenisPaket` ikut disimpan ke dokumen `attempts`.
+
+### Changed
+- Paket yang sudah ada (tanpa field baru) tetap berfungsi sebagai latihan biasa (default `tampilkanHasil = true`, tidak ada batas waktu/percobaan).
+
+### Tidak Berubah
+- Dashboard rekap nilai guru masih placeholder (data `attempts` sudah siap direkap, termasuk filter `jenisPaket === "tryout"`).
+- Belum ada fitur edit paket yang sudah tersimpan.
+- Belum ada tanda di bank soal apakah suatu soal sudah dipakai di paket mana pun.
+
+### Catatan untuk pelaksanaan Kamis
+1. Susun 1 paket Matematika bertipe **Try Out** (durasi 60, maks 1, tampilkan hasil = tidak).
+2. Pastikan soal-soal di paket sudah ada di `soalPublik` (jalankan backfill jika perlu).
+3. Siswa hanya bisa masuk 1 kali; setelah submit hasil hanya terlihat di koleksi `attempts` (bisa dilihat lewat Firebase Console sementara dashboard belum jadi).
+
+---
+
 ## [Unreleased]
 
 Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
@@ -15,7 +43,7 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 ### Direncanakan
 - Dashboard rekap nilai real-time untuk guru (sekarang sudah ada data `attempts` sungguhan untuk direkap, lihat v0.9.0).
 - Klasifikasi kompleksitas untuk 300 soal Matematika migrasi, dan tipeMateri untuk 270 soal B.Indo migrasi (masih "Belum Dikategorikan").
-- Timer pengerjaan, penyesuaian ukuran font, dan navigasi drawer soal di `app/kuis.html` (fitur dari portal lama yang belum diport — kuis saat ini masih single-page-scroll sederhana).
+- Penyesuaian ukuran font dan navigasi drawer soal di `app/kuis.html`.
 - Fitur edit soal individual & edit paket tersimpan (sekarang baru bisa buat baru/hapus).
 - Migrasi ke Cloud Function server-side scoring kalau suatu saat dibutuhkan keamanan lebih tinggi (lihat ANTIREGRESI.md §11).
 
@@ -199,114 +227,4 @@ Rencana kerja aktif — lihat papan proyek / roadmap internal untuk detail fase.
 ### Verifikasi
 - Semua file `.js`/`<script type="module">` divalidasi sintaksnya lewat `node --check` — tidak ada error.
 - Semua halaman diuji lewat server HTTP lokal dengan Playwright: path impor modul relatif (`../assets/firebase-init.js`, `../firebase-config.js`) sudah benar dari kedalaman folder mana pun.
-- Alur "Firebase belum dikonfigurasi" (placeholder `firebase-config.js`) menampilkan fallback yang wajar di `index.html` (tidak ada elemen rusak/hilang).
-- ✅ **[Update 2026-09-13] Diverifikasi end-to-end oleh pemilik proyek setelah `firebase-config.js` diisi nilai asli project `tka2026-sdm01`:** 3 akun staff + akun siswa berhasil dibuat lewat kombinasi Firebase Console (staff) dan `tools/import-siswa.html` (siswa), dan login sungguhan berhasil di kedua tab (Siswa, Guru & Admin) dengan redirect ke `app/` dan `guru/` sesuai peran.
-
-### Tidak Berubah
-- Belum ada Cloud Functions / penilaian server-side — itu untuk fase aplikasi kuis (belum dikerjakan).
-- `ANTIREGRESI.md` ditambah §7 (catatan arsitektur login & database) — bagian lain tidak diubah.
-
-### Pekerjaan Berikutnya
-- Pemilik proyek: selesaikan setup Firebase Console (lihat README §Setup Firebase), isi `firebase-config.js`, deploy `firestore.rules`, buat 3 akun staff + dokumen `staff/{uid}` manual, jalankan `tools/import-siswa.html`.
-- Setelah itu: uji ulang alur login end-to-end (siswa & guru) dengan project Firebase asli.
-- Bangun halaman kuis sungguhan (Matematika & Bahasa Indonesia) + Cloud Functions penilaian server-side.
-
----
-
-## [0.3.0] — 2026-09-13
-
-### Changed
-- **`index.html` dirombak ulang** dari model Masuk/Daftar (email+password ketik manual) menjadi **dua tab berbasis dropdown nama**: tab **Siswa** dan tab **Guru & Admin**. Tab **Daftar dihapus** — akun tidak lagi didaftarkan mandiri oleh pengguna, melainkan diprovisi lebih dulu oleh admin (lihat data siswa & guru di bawah).
-- Tautan "Panel Guru" ke halaman terpisah (`./admin/`) **dihapus** — login guru/admin sekarang menyatu di halaman yang sama, dibedakan lewat tab, bukan halaman terpisah.
-- Nama siswa dari data mentah (beberapa ditulis SEMUA HURUF KAPITAL atau huruf kecil semua) dinormalisasi ke Proper Case (mis. `ABI IBADURROHMAN` → `Abi Ibadurrohman`) agar konsisten dan rapi di seluruh dropdown maupun dokumen turunannya.
-
-### Added
-- Dropdown **Nama Siswa** (52 nama, dikelompokkan per kelas via `<optgroup>`: Kelas 6A & 6B, urut abjad) + field Kata Sandi.
-- Dropdown **Nama Guru & Admin** (Arif Azwar Anas, Ratih Yuniati, Asuroh Susanti) + field Kata Sandi.
-- Data akun (nama → ID login internal) disisipkan langsung di `index.html` sebagai array JS (`SISWA`, `GURU`) untuk mengisi dropdown — **bukan** kredensial asli, hanya pemetaan nama ke email internal; kata sandi tetap divalidasi lewat Firebase Authentication di fase berikutnya.
-- File data siswa (Nama, Kelas, NISN, Email Login) dan file Excel **`Daftar-Login-Siswa-TKA2026.xlsx`** (2 sheet: Login Siswa & Login Guru+Admin) disiapkan sebagai bahan kerja untuk alat impor akun ke Firebase. **Keduanya sengaja TIDAK disertakan di repo ini** (lihat peringatan privasi di bawah) — disimpan lokal di komputer admin saja.
-
-### Skema Akun (ditetapkan pemilik proyek)
-- **Siswa**: email login `nama.siswa@sdm01tka2026.id` (domain internal, bukan email sungguhan), kata sandi = **NISN** siswa.
-- **Guru/Admin**: `arif@admintka2026.id` (admin), `ratih@gurutka2026.id` (guru), `santi@gurutka2026.id` (guru — akun atas nama Asuroh Susanti), kata sandi ditetapkan manual oleh pemilik proyek.
-
-### ⚠️ Catatan Privasi (PENTING — baca sebelum upload ke GitHub)
-- Repo `nitoe/tka2026` bersifat **publik**. Dari data lengkap ala Dapodik yang diberikan (~30 kolom termasuk alamat rumah, data orang tua, nomor HP), **hanya Nama, Kelas, dan NISN** yang dipakai untuk aplikasi ini — kolom lain tidak diproses maupun disimpan di mana pun.
-- Nama lengkap 52 siswa tampil di *client-side* `index.html` (bisa dilihat lewat "View Source" oleh siapa pun yang membuka halaman login, karena repo publik). Ini trade-off yang disengaja demi UX dropdown nama — **tidak ada kata sandi yang ikut ter-expose lewat `index.html`**, jadi risikonya setara daftar nama kelas yang memang lazim terlihat publik (mis. di mading/rapor).
-- **JANGAN UPLOAD** file `siswa-kelas6-2026-2027.json` atau `Daftar-Login-Siswa-TKA2026.xlsx` ke GitHub — dua file itu memuat NISN yang sekaligus menjadi **kata sandi** setiap siswa. Simpan hanya di komputer lokal admin (atau Google Drive privat sekolah), tidak pernah di repo publik. Alat impor akun ke Firebase (fase berikutnya) akan dirancang membaca file ini lewat pemilih file lokal di browser, bukan mengambil dari repo.
-
-### Tidak Berubah
-- Belum ada koneksi backend apa pun — submit form masih menampilkan pesan status placeholder, sama seperti versi sebelumnya, sampai Firebase Authentication benar-benar diintegrasikan.
-- `README.md` dan `ANTIREGRESI.md` belum diperbarui pada entri ini.
-
-### Pekerjaan Berikutnya
-- Setup Firebase project (dipandu langkah demi langkah).
-- Firestore Security Rules untuk koleksi `students`, `guru`, dll.
-- Alat impor otomatis akun ke Firebase Authentication + Firestore dari `data/siswa-kelas6-2026-2027.json`.
-- Sambungkan `submitLogin()` ke `signInWithEmailAndPassword` sungguhan + redirect sesuai peran (siswa → `app/`, guru/admin → `guru/`).
-
----
-
-## [0.2.0] — 2026-09-13
-
-### Changed
-- **`index.html` didesain ulang total** dari landing page kartu paket menjadi **halaman gerbang masuk (login/daftar)**, mengikuti referensi desain split-screen (kiri: branding + fitur, kanan: kartu autentikasi dengan tab Masuk/Daftar) yang diberikan pemilik proyek.
-- Identitas visual (warna biru, font Nunito/Baloo 2) dari versi sebelumnya dipertahankan untuk kontinuitas brand — palet referensi (teal) tidak ditiru langsung, hanya struktur & fungsinya.
-
-### Added
-- Form **Masuk**: email + kata sandi, dengan validasi client-side (format email, kata sandi tidak boleh kosong) dan pesan error inline per field.
-- Form **Daftar**: nama lengkap, kelas (6A/6B/6C), email, kata sandi + konfirmasi, dengan validasi client-side (kata sandi minimal 6 karakter, konfirmasi harus sama).
-- Tab switching antara panel Masuk/Daftar (vanilla JS, objek `AuthUI`).
-- Tautan "Masuk ke Panel Guru ↗" mengarah ke `./admin/` (halaman belum dibuat — akan 404 sampai Fase panel admin dikerjakan).
-- Badge "Pratinjau UI — belum tersambung Firebase" dan pesan status setelah submit, agar jelas bagi siapa pun yang membuka bahwa autentikasi asli belum aktif.
-- Komentar `// TODO(Fase 1 — Firebase Auth)` di titik-titik yang perlu diganti dengan pemanggilan Firebase Authentication sungguhan.
-
-### Tidak Berubah
-- Belum ada koneksi backend apa pun (Firebase/Apps Script) — submit form hanya menampilkan pesan status, tidak mengirim data ke mana pun.
-- `README.md` dan `ANTIREGRESI.md` tidak diubah pada entri ini.
-
-### Pekerjaan Berikutnya
-- Sambungkan form ke Firebase Authentication (lihat penanda `TODO` di kode) begitu Fase 0 (setup project Firebase) selesai.
-- Buat halaman `admin/index.html` agar tautan Panel Guru tidak lagi mengarah ke halaman kosong.
-
----
-
-## [0.1.0] — 2026-09-13
-
-### Added
-- Scaffold awal repository: `index.html`, `README.md`, `CHANGELOG.md`, `ANTIREGRESI.md`.
-- `index.html`: landing page portal dengan status "segera hadir" untuk Matematika & Bahasa Indonesia, dan bagian "Direncanakan" untuk IPA & Bahasa Inggris. Belum terhubung ke Firebase — murni statis.
-- Dokumentasi arsitektur target (Firebase + Google Apps Script + Spreadsheet) di README.
-- Referensi Spreadsheet ID untuk bank soal & backup hasil ujian: `1JzjZZLQZfrc-6INdJT_ko-En7F3UVz4Fs9lgps0zESs` (dicatat di README, bukan kredensial rahasia).
-
-### Context
-- Proyek ini adalah penerus dari portal TKA lama (HTML statis per paket soal, tanpa database terpusat, penilaian di client-side, hasil hanya dikirim via email lewat Google Apps Script + Brevo).
-- Keputusan desain awal: fokus 2 mapel dulu (Matematika, Bahasa Indonesia), dashboard guru/admin real-time jadi prioritas utama, bank soal dikelola sebagai pool di Firestore dengan mekanisme import dari admin.
-
-### Tidak Berubah
-- Belum ada logika penilaian, autentikasi, atau koneksi database apa pun di tahap ini — repo masih tahap scaffold dokumentasi + landing page statis.
-
----
-
-## Template Entri Baru
-
-Salin blok ini setiap membuat rilis/perubahan baru:
-
-```
-## [x.y.z] — YYYY-MM-DD
-
-### Added
--
-
-### Changed
--
-
-### Fixed
--
-
-### Tidak Berubah
-- (area sensitif yang sengaja tidak disentuh, untuk mencegah regresi)
-
-### Pekerjaan Berikutnya
--
-```
+- Alur "Firebase belum dikonfigurasi" (placeholder `firebase-config.js`) menampilkan fallback yang wajar di `index.html`.
