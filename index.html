@@ -318,7 +318,7 @@
       <div class="auth-card">
         <div class="tabs">
           <button class="tab-btn active" id="tab-siswa" onclick="AuthUI.switchTab('siswa')">Siswa</button>
-          <button class="tab-btn" id="tab-guru" onclick="AuthUI.switchTab('guru')">Guru &amp; Admin</button>
+          <button class="tab-btn" id="tab-guru" onclick="AuthUI.switchTab('guru')">Guru & Admin</button>
         </div>
 
         <!-- PANEL SISWA -->
@@ -425,6 +425,9 @@
     { nama: 'Uwais Al Fatih', kelas: '6B', email: 'uwais.al.fatih@sdm01tka2026.id' },
     { nama: 'Vania Amira Zhafirah', kelas: '6B', email: 'vania.amira.zhafirah@sdm01tka2026.id' },
     { nama: 'Zakiyah Fathinah Fauziyah', kelas: '6B', email: 'zakiyah.fathinah.fauziyah@sdm01tka2026.id' },
+    // ── Akun dummy khusus uji coba sistem (bukan siswa sungguhan) ──
+    { nama: 'Dummy 1', kelas: 'Test Sistem', email: 'dummy1@sdm01tka2026.id' },
+    { nama: 'Dummy 2', kelas: 'Test Sistem', email: 'dummy2@sdm01tka2026.id' },
   ];
 
   const GURU = [
@@ -440,7 +443,7 @@
       const selSiswa = document.getElementById('siswa-nama');
       kelasList.forEach(kelas => {
         const group = document.createElement('optgroup');
-        group.label = 'Kelas ' + kelas;
+        group.label = (kelas === 'Test Sistem') ? 'Test Sistem' : ('Kelas ' + kelas);
         SISWA.filter(s => s.kelas === kelas).forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.email;
@@ -467,37 +470,30 @@
       document.getElementById('panel-guru').classList.toggle('active', name === 'guru');
     },
 
-    setError(fieldId, hasError) {
-      document.getElementById(fieldId).classList.toggle('has-error', hasError);
-    },
+    submitLogin(event, role) {
+      event.preventDefault();
+      const isSiswa = role === 'siswa';
+      const namaEl = document.getElementById(isSiswa ? 'siswa-nama' : 'guru-nama');
+      const passEl = document.getElementById(isSiswa ? 'siswa-pass' : 'guru-pass');
+      const fNama = document.getElementById(isSiswa ? 'f-siswa-nama' : 'f-guru-nama');
+      const fPass = document.getElementById(isSiswa ? 'f-siswa-pass' : 'f-guru-pass');
+      const statusBox = document.getElementById(isSiswa ? 'status-siswa' : 'status-guru');
 
-    showStatus(boxId, message) {
-      const box = document.getElementById(boxId);
-      box.textContent = message;
-      box.classList.add('show');
-    },
+      fNama.classList.remove('has-error');
+      fPass.classList.remove('has-error');
+      statusBox.classList.remove('show');
 
-    submitLogin(e, tipe) {
-      e.preventDefault();
-      const namaSel = document.getElementById(tipe + '-nama');
-      const passInput = document.getElementById(tipe + '-pass');
-      const email = namaSel.value;
-      const pass = passInput.value;
-      let ok = true;
+      let valid = true;
+      if (!namaEl.value) { fNama.classList.add('has-error'); valid = false; }
+      if (!passEl.value) { fPass.classList.add('has-error'); valid = false; }
+      if (!valid) return false;
 
-      this.setError('f-' + tipe + '-nama', email === '');
-      if (email === '') ok = false;
+      statusBox.textContent = 'Memeriksa...';
+      statusBox.classList.add('show');
 
-      this.setError('f-' + tipe + '-pass', pass.length === 0);
-      if (pass.length === 0) ok = false;
-
-      if (!ok) return false;
-
-      // TODO(Fase 1 — Firebase Auth): ganti blok ini dengan
-      // signInWithEmailAndPassword(auth, email, pass)
-      //   .then(cred => { /* arahkan sesuai peran: siswa -> app/, guru/admin -> guru/ */ })
-      //   .catch(err => AuthUI.showStatus('status-' + tipe, 'Nama atau kata sandi salah.'));
-      this.showStatus('status-' + tipe, '🚧 Fitur masuk akan aktif setelah integrasi Firebase Authentication (tahap pengembangan berikutnya).');
+      // Firebase login di-handle oleh modul terpisah di bawah (type=module)
+      window.__pendingLogin = { email: namaEl.value, password: passEl.value, role: role, statusBox: statusBox };
+      if (window.__doFirebaseLogin) window.__doFirebaseLogin();
       return false;
     }
   };
@@ -505,73 +501,49 @@
   AuthUI.init();
 </script>
 
-<!-- ═══════ WIRING FIREBASE AUTH SUNGGUHAN ═══════ -->
 <script type="module">
-  import {
-    isConfigured,
-    auth,
-    signInWithEmailAndPassword,
-    onAuthStateChanged,
-    resolveHomeByRole,
-  } from './assets/firebase-init.js';
+  import { isConfigured, auth, signInWithEmailAndPassword, resolveHomeByRole } from './assets/firebase-init.js';
 
-  const devPill = document.querySelector('.dev-pill');
-
-  if (!isConfigured) {
-    // firebase-config.js belum diisi nilai asli — biarkan halaman tetap
-    // jadi pratinjau UI seperti sebelumnya (AuthUI.submitLogin bawaan
-    // yang hanya menampilkan pesan status, tidak diganti).
-    devPill.innerHTML = '<span class="dot"></span>Firebase belum dikonfigurasi — isi firebase-config.js';
-  } else {
-    devPill.style.display = 'none';
-
-    // Kalau sudah pernah login sebelumnya (sesi tersimpan), langsung
-    // arahkan ke halaman yang sesuai tanpa perlu login ulang.
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
-      const tujuan = await resolveHomeByRole(user.uid);
-      if (tujuan) window.location.href = tujuan;
-    });
-
-    // Ganti handler submit dengan logika Firebase Auth sungguhan.
-    AuthUI.submitLogin = async function (e, tipe) {
-      e.preventDefault();
-      const namaSel = document.getElementById(tipe + '-nama');
-      const passInput = document.getElementById(tipe + '-pass');
-      const email = namaSel.value;
-      const pass = passInput.value;
-      let ok = true;
-
-      AuthUI.setError('f-' + tipe + '-nama', email === '');
-      if (email === '') ok = false;
-
-      AuthUI.setError('f-' + tipe + '-pass', pass.length === 0);
-      if (pass.length === 0) ok = false;
-
-      if (!ok) return false;
-
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Memeriksa...';
-
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        // Redirect ditangani oleh onAuthStateChanged di atas.
-      } catch (err) {
-        let msg = 'Nama atau kata sandi salah.';
-        if (err.code === 'auth/too-many-requests') {
-          msg = 'Terlalu banyak percobaan gagal. Coba lagi beberapa saat lagi.';
-        } else if (err.code === 'auth/network-request-failed') {
-          msg = 'Koneksi internet bermasalah. Coba lagi.';
-        }
-        AuthUI.showStatus('status-' + tipe, msg);
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-      return false;
-    };
+  // Update pill status
+  const pill = document.querySelector('.dev-pill');
+  if (isConfigured && pill) {
+    pill.innerHTML = '<span class="dot" style="background:#057a55"></span>Terhubung ke Firebase';
+    pill.style.background = '#def7ec';
+    pill.style.color = '#046c4e';
+    pill.style.borderColor = '#a7f3d0';
   }
+
+  window.__doFirebaseLogin = async function() {
+    const p = window.__pendingLogin;
+    if (!p) return;
+    const { email, password, statusBox } = p;
+
+    if (!isConfigured) {
+      statusBox.textContent = 'Firebase belum dikonfigurasi. Isi firebase-config.js terlebih dahulu.';
+      return;
+    }
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const home = await resolveHomeByRole(cred.user.uid);
+      if (!home) {
+        statusBox.textContent = 'Akun ini belum terdaftar sebagai siswa atau staf. Hubungi admin.';
+        return;
+      }
+      window.location.href = home;
+    } catch (err) {
+      const code = err.code || '';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/invalid-email') {
+        statusBox.textContent = 'Nama atau kata sandi salah. Coba lagi.';
+      } else if (code === 'auth/too-many-requests') {
+        statusBox.textContent = 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
+      } else if (code === 'auth/network-request-failed') {
+        statusBox.textContent = 'Koneksi bermasalah. Periksa internet lalu coba lagi.';
+      } else {
+        statusBox.textContent = 'Gagal masuk: ' + (err.message || code);
+      }
+    }
+  };
 </script>
 
 </body>
