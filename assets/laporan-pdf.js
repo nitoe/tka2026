@@ -11,6 +11,8 @@ const LABEL_KOMPLEKSITAS = {
 };
 
 const ORDER_KOMPLEKSITAS = ['L1-Pemahaman', 'L2-Aplikasi', 'L3-Penalaran'];
+const ORDER_CAPAIAN_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
+const ORDER_CAPAIAN_MTK = ['Bilangan', 'Aljabar', 'Pengukuran', 'Geometri', 'Analisis Data dan Probabilitas', 'Data dan Ketidakpastian'];
 
 const SUBJECT_LABEL = {
   'matematika': 'Matematika',
@@ -233,7 +235,10 @@ export function buatLaporanPdf(attempt, opts = {}) {
   if (y > 230) { doc.addPage(); y = 16; }
 
   const perTipe = normalizeBucket(attempt.skorPerTipeMateri);
-  const tipeRows = orderedEntries(perTipe, []);
+  const preferTipe = (attempt.subjectId === 'bahasa-indonesia')
+    ? ORDER_CAPAIAN_BI
+    : (attempt.subjectId === 'matematika' ? ORDER_CAPAIAN_MTK : []);
+  const tipeRows = orderedEntries(perTipe, preferTipe);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
