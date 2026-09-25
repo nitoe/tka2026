@@ -137,7 +137,7 @@
     </div>
     <div class="card" id="card-backfill" style="display:none;">
       <h2>🔄 Perbarui Soal Publik (untuk Siswa)</h2>
-      <div class="warn-box">Membuat versi publik (kunci di-hash) untuk siswa.</div>
+      <div class="warn-box">Membuat versi publik (kunci di-hash) untuk siswa. Juga bisa memperbaiki tipe materi Bahasa Indonesia (capaian).</div>
       <button class="btn btn-primary" id="btn-backfill">Perbarui Soal Publik Sekarang</button>
       <div id="backfill-status"></div>
       <div class="log-box" id="backfill-log" style="display:none;"></div>
@@ -234,17 +234,24 @@
 
     function populateFilters() {
       const mapelSet = [...new Set(allSoal.map(s => s.subjectId).filter(Boolean))].sort();
-      const materiSet = [...new Set(allSoal.map(s => s.tipeMateri).filter(Boolean))].sort();
-      const kompSet = [...new Set(allSoal.map(s => s.kompleksitas).filter(Boolean))].sort();
-      const fill = (id, ph, vals) => {
+      const selMapel = document.getElementById('filter-mapel');
+      const curMapel = selMapel.value;
+      selMapel.innerHTML = '<option value="">Semua Mapel</option>' +
+        mapelSet.map(m => `<option value="${m}">${m}</option>`).join('');
+      if (mapelSet.includes(curMapel)) selMapel.value = curMapel;
+
+      const mapel = selMapel.value;
+      const pool = mapel ? allSoal.filter(s => s.subjectId === mapel) : allSoal;
+      const materiSet = [...new Set(pool.map(s => s.tipeMateri).filter(Boolean))].sort((a,c) => a.localeCompare(c, 'id'));
+      const kompSet = [...new Set(pool.map(s => s.kompleksitas).filter(Boolean))].sort((a,c) => a.localeCompare(c, 'id'));
+      const fillDep = (id, ph, vals) => {
         const el = document.getElementById(id);
         const cur = el.value;
         el.innerHTML = `<option value="">${ph}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
         if (vals.includes(cur)) el.value = cur;
       };
-      fill('filter-mapel', 'Semua Mapel', mapelSet);
-      fill('filter-materi', 'Semua Tipe Materi', materiSet);
-      fill('filter-kompleksitas', 'Semua Kompleksitas', kompSet);
+      fillDep('filter-materi', 'Semua Tipe Materi', materiSet);
+      fillDep('filter-kompleksitas', 'Semua Kompleksitas', kompSet);
     }
 
     function renderTable() {
@@ -271,11 +278,14 @@
         </tr>`).join('');
     }
 
-    ['filter-mapel', 'filter-materi', 'filter-kompleksitas'].forEach(id => {
+    document.getElementById('filter-mapel').addEventListener('change', () => {
+      populateFilters();
+      renderTable();
+    });
+    ['filter-materi', 'filter-kompleksitas'].forEach(id => {
       document.getElementById(id).addEventListener('change', renderTable);
     });
 
-    // CRITICAL FIX: tipeMateri BI = lingkup_materi (capaian), bukan genre bacaan
     function mapSoalLengkap(item, subjectId, bacaanMap) {
       const errors = [];
       const tipe = item.bentuk_soal;
@@ -291,7 +301,7 @@
         tipeMateri,
         kompleksitas,
         tipe,
-        stimulusPreview: bacaan ? `${bacaan.jenis || ''}: ${bacaan.judul || ''}`.replace(/^:\\s*/, '') : '',
+        stimulusPreview: bacaan ? `${bacaan.jenis || ''}: ${bacaan.judul || ''}`.replace(/^:\s*/, '') : '',
         bacaanId: item.bacaan_id || null,
         pertanyaan: item.pertanyaan,
         opsi: (tipe === 'pgk-cat') ? [] : (item.opsi || []),
@@ -307,20 +317,8 @@
       }
       return { id: item.id, valid: errors.length === 0, errors, data };
     }
-
-    // Expose for JSON import path if present in full version — minimal page keeps list + fix note
     window.__mapSoalLengkap = mapSoalLengkap;
-    window.__CAPAIAN_BI = CAPAIAN_BI;
-    window.__KOMPLEKSITAS_KE_CAPAIAN_BI = KOMPLEKSITAS_KE_CAPAIAN_BI;
 
-    // Backfill BI tipe materi from kompleksitas
-    const bfBtn = document.getElementById('btn-backfill');
-    if (bfBtn) {
-      const orig = bfBtn.onclick;
-      // Add secondary action via note — full backfill on button long-press not needed
-    }
-
-    // Admin: backfill BI capaian
     async function backfillBiTipeMateri() {
       const snap = await getDocs(collection(db, 'questionPool'));
       let ok = 0, skip = 0;
@@ -340,7 +338,6 @@
     }
     window.backfillBiTipeMateri = backfillBiTipeMateri;
 
-    // Tab switching minimal
     document.getElementById('tab-import-excel')?.addEventListener('click', () => {
       document.getElementById('tab-import-excel').classList.add('active');
       document.getElementById('tab-import-json').classList.remove('active');
