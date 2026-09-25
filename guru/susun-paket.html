@@ -41,7 +41,7 @@
   .page-title { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 4px; }
   .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
 
-  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
   @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 
   .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
@@ -69,17 +69,23 @@
   .sticky-panel { position: sticky; top: 72px; }
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 6px; }
-  .field input[type="text"] {
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select {
     width: 100%; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700;
     padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
   }
-  .field input:focus { outline: none; border-color: var(--primary); background: var(--white); }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--primary); background: var(--white); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 0.84rem; font-weight: 700; }
+  .checkbox-row input { width: 18px; height: 18px; }
 
   .selected-summary { display: flex; justify-content: space-between; background: var(--primary-light, #ebf5ff); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
   .selected-summary .num { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
   .selected-summary .label { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; }
 
-  .selected-list { max-height: 260px; overflow-y: auto; margin-bottom: 14px; }
+  .selected-list { max-height: 200px; overflow-y: auto; margin-bottom: 14px; }
   .selected-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; font-size: 0.78rem; border-bottom: 1px solid var(--border); }
   .selected-row .txt { flex: 1; }
   .selected-row button { background: none; border: none; color: var(--red); font-weight: 800; cursor: pointer; font-size: 0.9rem; }
@@ -97,6 +103,7 @@
   .paket-row:last-child { border-bottom: none; }
   .paket-row .nama { font-weight: 800; }
   .paket-row .meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+  .badge-tryout { display: inline-block; background: var(--amber-light); color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
   .btn-del { background: var(--red-light); color: var(--red); border: none; border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 0.72rem; cursor: pointer; }
 
   .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; font-size: 0.9rem; }
@@ -164,10 +171,37 @@
           <div class="selected-list" id="selected-list">
             <div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>
           </div>
+
           <div class="field">
             <label>Nama Paket</label>
             <input type="text" id="nama-paket" placeholder="mis. Try Out TKA Matematika #1">
           </div>
+
+          <div class="field">
+            <label>Jenis Paket</label>
+            <select id="jenis-paket">
+              <option value="latihan">Latihan (bebas, hasil langsung terlihat)</option>
+              <option value="tryout">Try Out (terbatas waktu & 1x saja, hasil ditahan)</option>
+            </select>
+          </div>
+
+          <div id="tryout-options" style="display:none;">
+            <div class="field-row">
+              <div class="field">
+                <label>Durasi (menit)</label>
+                <input type="number" id="durasi-menit" min="1" max="180" value="60">
+              </div>
+              <div class="field">
+                <label>Maks. Percobaan</label>
+                <input type="number" id="maks-percobaan" min="1" max="10" value="1">
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="tampilkan-hasil">
+              <label for="tampilkan-hasil" style="text-transform:none; font-size:0.84rem; margin:0;">Tampilkan skor langsung ke siswa setelah selesai</label>
+            </div>
+          </div>
+
           <button class="btn btn-primary" id="btn-simpan-paket" disabled>Simpan Paket</button>
           <div class="status-line" id="simpan-status"></div>
         </div>
@@ -199,8 +233,8 @@
     notConfigured.style.display = 'flex';
   } else {
     let currentStaff = null;
-    let allSoalMapel = []; // soal untuk mapel yang sedang difilter
-    let selected = {};      // { questionId: {pertanyaan, skor, tipe} }
+    let allSoalMapel = [];
+    let selected = {};
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = '../index.html'; return; }
@@ -211,6 +245,18 @@
       loading.style.display = 'none';
       page.style.display = 'block';
       await loadPaketTersimpan();
+    });
+
+    // ── Toggle opsi try out ──
+    const selJenis = document.getElementById('jenis-paket');
+    const tryoutOptions = document.getElementById('tryout-options');
+    selJenis.addEventListener('change', () => {
+      tryoutOptions.style.display = selJenis.value === 'tryout' ? 'block' : 'none';
+      if (selJenis.value === 'tryout') {
+        document.getElementById('durasi-menit').value = 60;
+        document.getElementById('maks-percobaan').value = 1;
+        document.getElementById('tampilkan-hasil').checked = false;
+      }
     });
 
     // ══════════════ FILTER & DAFTAR SOAL ══════════════
@@ -309,7 +355,7 @@
           btn.addEventListener('click', () => {
             delete selected[btn.dataset.id];
             renderSelected();
-            renderSoalList(); // sinkronkan status checkbox
+            renderSoalList();
           });
         });
       }
@@ -327,6 +373,17 @@
       const mapel = selMapel.value;
       if (!nama || questionIds.length === 0) return;
 
+      const jenis = document.getElementById('jenis-paket').value;
+      let durasiMenit = null;
+      let maksPercobaan = null;
+      let tampilkanHasil = true;
+
+      if (jenis === 'tryout') {
+        durasiMenit = parseInt(document.getElementById('durasi-menit').value, 10) || 60;
+        maksPercobaan = parseInt(document.getElementById('maks-percobaan').value, 10) || 1;
+        tampilkanHasil = document.getElementById('tampilkan-hasil').checked;
+      }
+
       const btn = document.getElementById('btn-simpan-paket');
       btn.disabled = true;
       btn.textContent = 'Menyimpan...';
@@ -339,13 +396,19 @@
           questionIds,
           totalSkor: questionIds.reduce((sum, id) => sum + (selected[id].skor || 0), 0),
           aktif: true,
+          jenis,
+          durasiMenit,
+          maksPercobaan,
+          tampilkanHasil,
           createdBy: currentStaff.nama,
           createdAt: serverTimestamp(),
         });
-        statusEl.textContent = `✅ Paket "${nama}" berhasil disimpan dengan ${questionIds.length} soal.`;
+        statusEl.textContent = `✅ Paket "${nama}" (${jenis}) berhasil disimpan dengan ${questionIds.length} soal.`;
         statusEl.className = 'status-line ok';
         selected = {};
         document.getElementById('nama-paket').value = '';
+        document.getElementById('jenis-paket').value = 'latihan';
+        tryoutOptions.style.display = 'none';
         renderSelected();
         renderSoalList();
         await loadPaketTersimpan();
@@ -367,15 +430,19 @@
           box.innerHTML = '<div class="empty-state">Belum ada paket dibuat.</div>';
           return;
         }
-        box.innerHTML = pakets.map(p => `
+        box.innerHTML = pakets.map(p => {
+          const jenisLabel = p.jenis === 'tryout'
+            ? `<span class="badge-tryout">TRY OUT</span> · ${p.durasiMenit || 60} mnt · maks ${p.maksPercobaan || 1}x`
+            : 'Latihan';
+          return `
           <div class="paket-row">
             <div>
               <div class="nama">${p.nama}</div>
-              <div class="meta">${p.subjectId} · ${(p.questionIds || []).length} soal · dibuat oleh ${p.createdBy || '-'}</div>
+              <div class="meta">${p.subjectId} · ${(p.questionIds || []).length} soal · ${jenisLabel} · oleh ${p.createdBy || '-'}</div>
             </div>
             <button class="btn-del" data-id="${p.id}">Hapus</button>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
         box.querySelectorAll('.btn-del').forEach(btn => {
           btn.addEventListener('click', async () => {
             if (!confirm('Hapus paket ini?')) return;
