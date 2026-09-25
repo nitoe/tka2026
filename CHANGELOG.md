@@ -6,6 +6,14 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.13.2] — 2026-09-25
+
+### Fixed
+- CDN jsPDF di `guru/rekap-tryout.html`: URL cdnjs 2.5.2 mengembalikan **404** → diganti ke jsDelivr (`jspdf@2.5.2` + `jspdf-autotable@3.8.4`).
+- `escapeAttr` di rekap (pengganti karakter HTML yang tidak efektif).
+
+---
+
 ## [0.13.1] — 2026-09-25
 
 ### Fixed
