@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mengerjakan Kuis – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-light: #ebf5ff;
+    --green: #057a55; --green-light: #def7ec;
+    --red: #dc2626; --red-light: #fee2e2;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --slate: #64748b; --slate-light: #f1f5f9;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 3.5vw, 16px); }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 16px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    box-shadow: 0 2px 10px rgba(26,86,219,0.4);
+  }
+  .header-brand { display: flex; flex-direction: column; min-width: 0; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.8rem, 3vw, 1rem); font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub-brand { font-size: 0.66rem; opacity: 0.8; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .progress-pill, .timer-pill {
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 5px 12px; font-size: 0.74rem; font-weight: 800; white-space: nowrap;
+  }
+  .timer-pill.warn { background: rgba(217,119,6,0.35); border-color: rgba(217,119,6,0.6); }
+  .timer-pill.danger { background: rgba(220,38,38,0.4); border-color: rgba(220,38,38,0.7); }
+  .gate-wrap { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .gate-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 24px; max-width: 420px; width: 100%; text-align: center; }
+  .gate-card h2 { font-family: 'Baloo 2', cursive; color: var(--primary-dark); font-size: 1.25rem; margin-bottom: 8px; }
+  .gate-card .gate-meta { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 18px; line-height: 1.5; }
+  .gate-card .field { text-align: left; margin-bottom: 14px; }
+  .gate-card .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .gate-card input { width: 100%; font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 700; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: #f4f7fb; text-align: center; }
+  .gate-err { color: var(--red); font-size: 0.8rem; font-weight: 700; margin-top: 8px; display: none; }
+  .gate-err.show { display: block; }
+  .btn-gate { width: 100%; border: none; border-radius: 10px; padding: 13px; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; font-family: 'Nunito', sans-serif; font-size: 0.92rem; font-weight: 800; cursor: pointer; margin-top: 6px; }
+  .lms-shell { display: grid; grid-template-columns: 200px 1fr; max-width: 1100px; margin: 0 auto; min-height: calc(100vh - 56px); }
+  @media (max-width: 800px) { .lms-shell { grid-template-columns: 1fr; } .nav-panel { display: none; } .btn-nav-toggle { display: inline-block !important; } }
+  .nav-panel { background: var(--white); border-right: 1px solid var(--border); padding: 16px 12px 80px; overflow-y: auto; }
+  .nav-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+  .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .nav-btn { aspect-ratio: 1; border: 1.5px solid var(--border); border-radius: 8px; background: var(--slate-light); font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 800; color: var(--text); cursor: pointer; }
+  .nav-btn.current { background: var(--primary); color: white; border-color: var(--primary); }
+  .nav-btn.answered { background: var(--green-light); border-color: #6ee7b7; color: var(--green); }
+  .soal-area { padding: 20px 18px 100px; max-width: 720px; }
+  .soal-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 18px 22px; }
+  .soal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .soal-nomor { background: var(--primary-light); color: var(--primary-dark); font-weight: 800; font-size: 0.78rem; padding: 4px 12px; border-radius: 8px; }
+  .skor-tag { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+  .soal-stimulus { font-size: 0.88rem; line-height: 1.6; margin-bottom: 14px; padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid var(--border); }
+  .soal-pertanyaan { font-weight: 800; font-size: 0.98rem; margin-bottom: 16px; line-height: 1.5; }
+  .opsi-row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .opsi-row:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
+  .opsi-row input { margin-top: 3px; width: 17px; height: 17px; }
+  .opsi-text { font-size: 0.88rem; font-weight: 700; }
+  table.cat-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  table.cat-table th, table.cat-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+  table.cat-table th { background: var(--slate-light); font-weight: 800; font-size: 0.74rem; }
+  table.cat-table td:first-child { text-align: left; font-weight: 700; }
+  .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1px solid var(--border); padding: 10px 16px; z-index: 90; }
+  .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .footer-nav { display: flex; gap: 8px; }
+  .btn-nav { border: 1.5px solid var(--border); background: var(--white); color: var(--text); border-radius: 10px; padding: 10px 16px; font-family: 'Nunito', sans-serif; font-size: 0.84rem; font-weight: 800; cursor: pointer; }
+  .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-submit { border: none; border-radius: 10px; padding: 10px 18px; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; font-family: 'Nunito', sans-serif; font-size: 0.84rem; font-weight: 800; cursor: pointer; }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-nav-toggle { display: none; border: 1.5px solid var(--border); background: var(--slate-light); border-radius: 10px; padding: 10px 12px; font-weight: 800; font-size: 0.78rem; cursor: pointer; }
+  .container { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px; }
+  .hasil-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 22px; text-align: center; }
+  .hasil-emoji { font-size: 3rem; margin-bottom: 8px; }
+  .hasil-skor { font-family: 'Baloo 2', cursive; font-size: 2.4rem; color: var(--primary-dark); font-weight: 800; }
+  .hasil-label { color: var(--text-muted); font-weight: 700; font-size: 0.85rem; margin-bottom: 20px; }
+  .hasil-ditahan { font-size: 1rem; font-weight: 700; color: var(--primary-dark); line-height: 1.6; margin: 16px 0 8px; }
+  .hasil-ditahan-sub { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+  .breakdown-title { font-weight: 800; font-size: 0.85rem; margin: 18px 0 10px; text-align: left; color: var(--primary-dark); }
+  .breakdown-row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 8px 0; border-bottom: 1px solid var(--border); text-align: left; }
+  .btn-kembali { display: inline-block; margin-top: 20px; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; font-size: 0.9rem; text-align: center; padding: 20px; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen">Menyiapkan soal...</div>
+<div id="gate-page" style="display:none;">
+  <header class="header"><div class="header-brand"><div class="brand-name" id="gate-paket-nama">—</div><div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div></div></header>
+  <div class="gate-wrap"><div class="gate-card">
+    <h2 id="gate-title">Masukkan Token</h2>
+    <div class="gate-meta" id="gate-meta"></div>
+    <div id="gate-token-area">
+      <div class="field"><label for="token-input">Token Try Out</label><input type="text" id="token-input" placeholder="••••" autocomplete="off" maxlength="32"></div>
+      <div class="gate-err" id="gate-err">Token salah. Coba lagi.</div>
+      <button class="btn-gate" id="btn-gate">Mulai Mengerjakan</button>
+    </div>
+    <div id="gate-blocked" style="display:none;"><a href="./index.html" class="btn-kembali">Kembali ke Beranda</a></div>
+  </div></div>
+</div>
+<div id="page" style="display:none;">
+  <header class="header">
+    <div class="header-brand"><div class="brand-name" id="paket-nama">—</div><div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div></div>
+    <div class="header-right">
+      <div class="timer-pill" id="timer-pill" style="display:none;">⏱ --:--</div>
+      <div class="progress-pill" id="progress-pill">0/0 dijawab</div>
+    </div>
+  </header>
+  <div class="lms-shell">
+    <aside class="nav-panel" id="nav-panel">
+      <div class="nav-title">Navigasi Soal</div>
+      <div class="nav-grid" id="nav-grid"></div>
+    </aside>
+    <main class="soal-area"><div class="soal-card" id="soal-card"></div></main>
+  </div>
+  <div class="footer-bar"><div class="footer-inner">
+    <button class="btn-nav-toggle" id="btn-nav-toggle" type="button">☰ Soal</button>
+    <div class="footer-nav">
+      <button class="btn-nav" id="btn-prev" type="button">← Sebelumnya</button>
+      <button class="btn-nav" id="btn-next" type="button">Selanjutnya →</button>
+    </div>
+    <button class="btn-submit" id="btn-submit" type="button">✅ Kumpulkan</button>
+  </div></div>
+</div>
+<div id="hasil-page" style="display:none;">
+  <header class="header"><div class="header-brand"><div class="brand-name">Hasil Pengerjaan</div><div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div></div></header>
+  <main class="container"><div class="hasil-card">
+    <div class="hasil-emoji" id="hasil-emoji">🎉</div>
+    <div class="hasil-skor" id="hasil-skor">0 / 0</div>
+    <div class="hasil-label" id="hasil-label">Skor Kamu</div>
+    <div id="breakdown-area"></div>
+    <div id="hasil-ditahan-area" style="display:none;">
+      <div class="hasil-ditahan">✅ Jawaban berhasil dikumpulkan.</div>
+      <div class="hasil-ditahan-sub">Hasil try out akan diumumkan oleh guru.</div>
+    </div>
+    <a href="./index.html" class="btn-kembali">Kembali ke Beranda</a>
+  </div></main>
+</div>
+<div id="error-box" class="loading-screen" style="display:none;"></div>
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
+  import { hashJawabanSiswa } from '../assets/scoring.js';
+  import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const gatePage = document.getElementById('gate-page');
+  const hasilPage = document.getElementById('hasil-page');
+  const errorBox = document.getElementById('error-box');
+
+  function showError(msg) {
+    loading.style.display = 'none'; gatePage.style.display = 'none'; page.style.display = 'none';
+    errorBox.style.display = 'flex';
+    errorBox.innerHTML = `<div>⚠️ ${msg}</div><a href="./index.html" style="color:#1a56db;font-weight:800;">← Kembali</a>`;
+  }
+  function parseWaktu(val) {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function formatWaktu(d) {
+    if (!d) return '—';
+    return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function opsiEntries(opsi) {
+    if (Array.isArray(opsi)) {
+      return opsi.map((text, i) => ({
+        letter: String.fromCharCode(65 + i),
+        value: String(text),
+        label: String(text),
+      }));
+    }
+    const obj = opsi || {};
+    const keys = Object.keys(obj).sort((a, b) => {
+      const ra = /^[A-Da-d]$/.test(a) ? a.toUpperCase().charCodeAt(0) : 1000 + Number(a);
+      const rb = /^[A-Da-d]$/.test(b) ? b.toUpperCase().charCodeAt(0) : 1000 + Number(b);
+      if (!Number.isNaN(ra) && !Number.isNaN(rb)) return ra - rb;
+      return String(a).localeCompare(String(b), 'id');
+    });
+    return keys.map((k, i) => {
+      const letter = /^[A-Da-d]$/.test(k) ? k.toUpperCase() : String.fromCharCode(65 + i);
+      return { letter, value: String(k), label: String(obj[k]) };
+    });
+  }
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function shouldAcakSoal() {
+    if (paket && paket.acakSoal === true) return true;
+    if (paket && paket.acakSoal === false) return false;
+    return paket && paket.jenis === 'tryout';
+  }
+  function shouldAcakOpsi() {
+    if (paket && paket.acakOpsi === true) return true;
+    if (paket && paket.acakOpsi === false) return false;
+    return paket && paket.jenis === 'tryout';
+  }
+  const opsiOrderCache = {};
+  function getOpsiEntries(s) {
+    const qid = s.id;
+    if (opsiOrderCache[qid]) return opsiOrderCache[qid];
+    let entries = opsiEntries(s.opsi);
+    if (shouldAcakOpsi() && entries.length > 1) {
+      entries = shuffleInPlace(entries.slice());
+      entries = entries.map((e, i) => ({ ...e, letter: String.fromCharCode(65 + i) }));
+    }
+    opsiOrderCache[qid] = entries;
+    return entries;
+  }
+
+  let soalList = [], jawaban = {}, currentIndex = 0, paket = null, uid = null, siswa = null;
+  let waktuMulai = 0, timerInterval = null, submitted = false;
+
+  if (!isConfigured) { showError('Firebase belum dikonfigurasi.'); }
+  else {
+    const paketId = new URLSearchParams(location.search).get('paketId');
+    if (!paketId) location.href = './index.html';
+    else {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) { location.href = '../index.html'; return; }
+        siswa = await getStudentDoc(user.uid);
+        if (!siswa) { await signOut(auth); location.href = '../index.html'; return; }
+        uid = user.uid;
+        try {
+          const paketSnap = await getDoc(doc(db, 'packages', paketId));
+          if (!paketSnap.exists()) { showError('Paket tidak ditemukan.'); return; }
+          paket = { id: paketSnap.id, ...paketSnap.data() };
+          const questionIds = paket.questionIds || [];
+          if (!questionIds.length) { showError('Paket ini belum punya soal.'); return; }
+          const maks = paket.maksPercobaan;
+          if (maks != null && maks > 0) {
+            const q = query(collection(db, 'attempts'), where('studentId', '==', uid), where('packageId', '==', paketId));
+            const snap = await getDocs(q);
+            if (snap.size >= maks) { showError(`Sudah selesai (${snap.size}/${maks} kali).`); return; }
+          }
+          const now = new Date();
+          const buka = parseWaktu(paket.bukaPada), tutup = parseWaktu(paket.tutupPada);
+          if (buka && now < buka) { showGateBlocked(`Belum dibuka.<br>${formatWaktu(buka)}`); return; }
+          if (tutup && now > tutup) { showGateBlocked(`Sudah ditutup.<br>${formatWaktu(tutup)}`); return; }
+          const docs = await Promise.all(questionIds.map(id => getDoc(doc(db, 'soalPublik', id))));
+          soalList = docs.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() }));
+          if (!soalList.length) { showError('Soal tidak ditemukan (perlu backfill Soal Publik).'); return; }
+          const butuhToken = paket.jenis === 'tryout' && paket.token && String(paket.token).trim();
+          if (butuhToken) showTokenGate(buka, tutup); else startKuis();
+        } catch (err) { showError('Gagal memuat: ' + err.message); }
+      });
+    }
+  }
+
+  function showGateBlocked(msg) {
+    loading.style.display = 'none'; gatePage.style.display = 'block';
+    document.getElementById('gate-paket-nama').textContent = paket.nama + (paket.jenis === 'tryout' ? ' (TRY OUT)' : '');
+    document.getElementById('gate-title').textContent = 'Belum Dapat Dikerjakan';
+    document.getElementById('gate-meta').innerHTML = msg;
+    document.getElementById('gate-token-area').style.display = 'none';
+    document.getElementById('gate-blocked').style.display = 'block';
+  }
+  function showTokenGate(buka, tutup) {
+    loading.style.display = 'none'; gatePage.style.display = 'block';
+    document.getElementById('gate-paket-nama').textContent = paket.nama + ' (TRY OUT)';
+    let meta = `Durasi ${paket.durasiMenit || 60} menit`;
+    if (buka) meta += `<br>Dibuka: ${formatWaktu(buka)}`;
+    if (tutup) meta += `<br>Ditutup: ${formatWaktu(tutup)}`;
+    document.getElementById('gate-meta').innerHTML = meta;
+    document.getElementById('btn-gate').onclick = () => {
+      if (document.getElementById('token-input').value.trim() !== String(paket.token || '').trim()) {
+        document.getElementById('gate-err').classList.add('show'); return;
+      }
+      startKuis();
+    };
+  }
+  function startKuis() {
+    gatePage.style.display = 'none'; loading.style.display = 'none'; page.style.display = 'block';
+    document.getElementById('paket-nama').textContent = paket.nama + (paket.jenis === 'tryout' ? ' (TRY OUT)' : '');
+    waktuMulai = Date.now();
+    if (shouldAcakSoal() && soalList.length > 1) {
+      soalList = shuffleInPlace(soalList.slice());
+    }
+    if (paket.jenis === 'tryout' && paket.durasiMenit) startTimer(paket.durasiMenit * 60);
+    buildNav(); renderSoal(0);
+    document.getElementById('btn-prev').onclick = () => { if (currentIndex > 0) renderSoal(currentIndex - 1); };
+    document.getElementById('btn-next').onclick = () => { if (currentIndex < soalList.length - 1) renderSoal(currentIndex + 1); };
+    document.getElementById('btn-submit').onclick = () => submitKuis();
+    document.getElementById('btn-nav-toggle').onclick = () => document.getElementById('nav-panel').classList.toggle('open');
+  }
+  function startTimer(seconds) {
+    const pill = document.getElementById('timer-pill');
+    pill.style.display = 'block';
+    let left = seconds;
+    const tick = () => {
+      const m = Math.floor(left / 60), s = left % 60;
+      pill.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      if (left <= 0) { clearInterval(timerInterval); submitKuis('waktu_habis'); return; }
+      left--;
+    };
+    tick(); timerInterval = setInterval(tick, 1000);
+  }
+  function isAnswered(s) {
+    const j = jawaban[s.id];
+    if (j == null) return false;
+    if (Array.isArray(j)) return j.some(x => x != null && String(x).trim() !== '');
+    return String(j).trim() !== '';
+  }
+  function buildNav() {
+    const grid = document.getElementById('nav-grid');
+    grid.innerHTML = soalList.map((s, i) => `<button type="button" class="nav-btn" data-i="${i}">${i + 1}</button>`).join('');
+    grid.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => renderSoal(Number(btn.dataset.i)));
+  }
+  function updateNav() {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      const i = Number(btn.dataset.i);
+      btn.classList.toggle('current', i === currentIndex);
+      btn.classList.toggle('answered', isAnswered(soalList[i]));
+    });
+    document.getElementById('progress-pill').textContent = `${soalList.filter(isAnswered).length}/${soalList.length} dijawab`;
+    document.getElementById('btn-prev').disabled = currentIndex === 0;
+    document.getElementById('btn-next').disabled = currentIndex === soalList.length - 1;
+  }
+  function renderSoal(idx) {
+    currentIndex = idx;
+    const s = soalList[idx];
+    const card = document.getElementById('soal-card');
+    let body = `<div class="soal-head"><span class="soal-nomor">Soal ${idx + 1} / ${soalList.length}</span><span class="skor-tag">Skor: ${s.skor ?? '-'}</span></div>`;
+    if (s.stimulus || s.bacaan) body += `<div class="soal-stimulus">${s.stimulus || s.bacaan || ''}</div>`;
+    body += `<div class="soal-pertanyaan">${s.pertanyaan || s.teks || ''}</div>`;
+    const qid = s.id;
+    if (s.tipe === 'pg') {
+      getOpsiEntries(s).forEach(e => {
+        const checked = (jawaban[qid] === e.value || jawaban[qid] === e.label) ? 'checked' : '';
+        body += `<label class="opsi-row"><input type="radio" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
+      });
+    } else if (s.tipe === 'pgk') {
+      const selected = Array.isArray(jawaban[qid]) ? jawaban[qid] : [];
+      getOpsiEntries(s).forEach(e => {
+        const checked = (selected.includes(e.value) || selected.includes(e.label)) ? 'checked' : '';
+        body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
+      });
+    } else if (s.tipe === 'pgk-cat') {
+      const rows = s.rows || [], cols = s.cols || s.opsiKolom || ['Benar', 'Salah'];
+      const current = Array.isArray(jawaban[qid]) ? jawaban[qid] : new Array(rows.length).fill(null);
+      body += `<table class="cat-table"><thead><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+      rows.forEach((row, ri) => {
+        body += `<tr><td>${row}</td>`;
+        cols.forEach(c => {
+          const val = typeof c === 'string' ? c : (c.value || c.label);
+          body += `<td><input type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${current[ri] === val ? 'checked' : ''}></td>`;
+        });
+        body += `</tr>`;
+      });
+      body += `</tbody></table>`;
+    }
+    card.innerHTML = body;
+    card.querySelectorAll(`input[type=radio][name="q_${qid}"]`).forEach(input => {
+      input.onchange = () => { jawaban[qid] = input.value; updateNav(); };
+    });
+    card.querySelectorAll(`input[type=checkbox][name="q_${qid}"]`).forEach(input => {
+      input.onchange = () => {
+        const dipilih = [...card.querySelectorAll(`input[type=checkbox][name="q_${qid}"]:checked`)].map(x => x.value);
+        if (dipilih.length) jawaban[qid] = dipilih; else delete jawaban[qid];
+        updateNav();
+      };
+    });
+    if (s.tipe === 'pgk-cat') {
+      (s.rows || []).forEach((_, ri) => {
+        card.querySelectorAll(`input[name="q_${qid}_${ri}"]`).forEach(input => {
+          input.onchange = () => {
+            const current = jawaban[qid] || new Array((s.rows || []).length).fill(null);
+            current[ri] = input.value; jawaban[qid] = current; updateNav();
+          };
+        });
+      });
+    }
+    updateNav();
+  }
+
+  async function submitKuis(statusOverride) {
+    if (submitted) return;
+    submitted = true;
+    if (timerInterval) clearInterval(timerInterval);
+    const btn = document.getElementById('btn-submit');
+    const terjawab = soalList.filter(isAnswered).length;
+    if (!statusOverride && terjawab < soalList.length) {
+      if (!confirm(`Baru ${terjawab}/${soalList.length} dijawab. Yakin kumpulkan?`)) { submitted = false; return; }
+    }
+    btn.disabled = true;
+    btn.textContent = statusOverride === 'waktu_habis' ? 'Waktu habis...' : 'Menghitung nilai...';
+
+    let skorAkhir = 0, skorMaksimal = 0;
+    const perTipeMateri = {}, perKompleksitas = {};
+    for (let i = 0; i < soalList.length; i++) {
+      const s = soalList[i], noSoal = i + 1, skorSoal = s.skor || 0;
+      skorMaksimal += skorSoal;
+      let benar = false;
+      const jawabSiswa = jawaban[s.id];
+      if (jawabSiswa != null) {
+        const hashSiswa = await hashJawabanSiswa(s.tipe, jawabSiswa);
+        benar = hashSiswa === s.kunciHash;
+      }
+      if (benar) skorAkhir += skorSoal;
+      const tm = s.tipeMateri || 'Belum Dikategorikan';
+      const kp = s.kompleksitas || 'Belum Dikategorikan';
+      perTipeMateri[tm] = perTipeMateri[tm] || { benar: 0, total: 0, poinBenar: 0, poinMaks: 0, noSoal: [] };
+      perTipeMateri[tm].total++; perTipeMateri[tm].poinMaks += skorSoal; perTipeMateri[tm].noSoal.push(noSoal);
+      if (benar) { perTipeMateri[tm].benar++; perTipeMateri[tm].poinBenar += skorSoal; }
+      perKompleksitas[kp] = perKompleksitas[kp] || { benar: 0, total: 0, poinBenar: 0, poinMaks: 0, noSoal: [] };
+      perKompleksitas[kp].total++; perKompleksitas[kp].poinMaks += skorSoal; perKompleksitas[kp].noSoal.push(noSoal);
+      if (benar) { perKompleksitas[kp].benar++; perKompleksitas[kp].poinBenar += skorSoal; }
+    }
+
+    try {
+      await addDoc(collection(db, 'attempts'), {
+        studentId: uid, namaSiswa: siswa.nama, kelasSiswa: siswa.kelas,
+        packageId: paket.id, packageNama: paket.nama, subjectId: paket.subjectId,
+        jenisPaket: paket.jenis || 'latihan', jawaban, skorAkhir, skorMaksimal,
+        skorPerTipeMateri: perTipeMateri, skorPerKompleksitas: perKompleksitas,
+        waktuMulai: new Date(waktuMulai), waktuSelesai: new Date(),
+        durasiDetik: Math.round((Date.now() - waktuMulai) / 1000),
+        status: statusOverride || 'selesai', createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      alert('Gagal menyimpan: ' + err.message);
+      submitted = false; btn.disabled = false; btn.textContent = '✅ Kumpulkan';
+      return;
+    }
+
+    page.style.display = 'none'; hasilPage.style.display = 'block';
+    const tampilkan = paket.tampilkanHasil !== false && paket.jenis !== 'tryout';
+    if (!tampilkan) {
+      document.getElementById('hasil-emoji').textContent = '✅';
+      document.getElementById('hasil-skor').style.display = 'none';
+      document.getElementById('hasil-label').style.display = 'none';
+      document.getElementById('breakdown-area').style.display = 'none';
+      document.getElementById('hasil-ditahan-area').style.display = 'block';
+    } else {
+      const persen = skorMaksimal > 0 ? Math.round((skorAkhir / skorMaksimal) * 100) : 0;
+      document.getElementById('hasil-skor').textContent = `${skorAkhir} / ${skorMaksimal}`;
+      document.getElementById('hasil-label').textContent = `Skor Kamu (${persen}%)`;
+      let html = '<div class="breakdown-title">Rincian per Tipe Materi</div>';
+      for (const [k, v] of Object.entries(perTipeMateri)) html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
+      html += '<div class="breakdown-title">Rincian per Kompleksitas</div>';
+      for (const [k, v] of Object.entries(perKompleksitas)) html += `<div class="breakdown-row"><span>${k}</span><span>${v.benar}/${v.total} benar</span></div>`;
+      document.getElementById('breakdown-area').innerHTML = html;
+    }
+  }
+</script>
+</body>
+</html>
