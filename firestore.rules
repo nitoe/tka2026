@@ -1,25 +1,7 @@
 rules_version = '2';
 
-// ══════════════════════════════════════════════════════════════
 // Firestore Security Rules — Portal Latihan TKA 2026
 // SD Muhammadiyah 01 Kukusan
-//
-// Prinsip:
-// - Siswa hanya bisa baca datanya sendiri, tidak bisa menulis apa pun
-//   ke koleksi students/staff (pencegahan siswa mengubah data sendiri).
-// - Staff (admin & guru) ditandai lewat dokumen di koleksi `staff`,
-//   BUKAN custom claims — supaya tidak perlu Cloud Functions/Admin SDK
-//   hanya untuk mengatur peran (custom claims butuh Admin SDK).
-// - Kunci jawaban asli (field `kunciJawaban` di `questionPool`) TIDAK
-//   PERNAH boleh dibaca siswa — koleksi ini staff-only selamanya.
-//   Siswa mengerjakan soal lewat koleksi `soalPublik` (lihat di bawah),
-//   yang berisi `kunciHash` (SHA-256), bukan jawaban asli. Penilaian
-//   dihitung di client dengan membandingkan hash (lihat
-//   assets/scoring.js) — INI BUKAN pengganti Cloud Function server-side
-//   scoring, melainkan kompromi sengaja supaya proyek tidak perlu
-//   Firebase Blaze plan dulu. Lihat catatan keamanan lengkap di
-//   assets/scoring.js dan ANTIREGRESI.md §12.
-// ══════════════════════════════════════════════════════════════
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -45,85 +27,57 @@ service cloud.firestore {
       return isStaff() && staffData().peran == 'admin';
     }
 
-    // ── STAFF (guru & admin) ──
-    // Siapa pun boleh baca DOKUMEN MILIKNYA SENDIRI di sini — ini yang
-    // dipakai resolveHomeByRole() untuk mengecek "apakah saya staff?" saat
-    // login. Tanpa isOwner(uid), siswa (bukan staff) akan DITOLAK membaca
-    // dokumennya sendiri yang memang tidak ada, menyebabkan error
-    // "Missing or insufficient permissions" tepat setelah login berhasil
-    // (ditemukan & diperbaiki v0.9.3 — lihat ANTIREGRESI.md §14).
-    // Staff tetap boleh baca staff/{uid} siapa pun (untuk kebutuhan dashboard).
     match /staff/{uid} {
       allow read: if isOwner(uid) || isStaff();
       allow write: if isAdmin();
     }
 
-    // ── SISWA ──
-    // Siswa hanya bisa baca dokumennya sendiri. Staff bisa baca semua
-    // (untuk dashboard rekap). Hanya admin yang bisa menulis (dipakai
-    // oleh alat impor akun di tools/import-siswa.html).
     match /students/{uid} {
       allow read: if isOwner(uid) || isStaff();
       allow write: if isAdmin();
     }
 
-    // ── MATA PELAJARAN ──
     match /subjects/{subjectId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // ── BANK SOAL (MENTAH, dengan kunciJawaban asli) ──
-    // Staff-only selamanya. Siswa TIDAK PERNAH diberi akses baca ke
-    // koleksi ini. Lihat `soalPublik` di bawah untuk versi yang aman
-    // dibaca siswa.
     match /questionPool/{questionId} {
       allow read: if isStaff();
       allow write: if isAdmin();
     }
 
-    // ── BANK SOAL (VERSI PUBLIK, untuk dikerjakan siswa) ──
-    // Berisi field yang sama seperti questionPool KECUALI kunciJawaban,
-    // digantikan `kunciHash` (SHA-256, lihat assets/scoring.js). Dibuat
-    // otomatis oleh guru/bank-soal.html setiap kali soal diimpor/diperbarui.
-    // Siapa pun yang sudah login (siswa maupun staff) boleh membacanya —
-    // hash tidak bisa dibalik jadi jawaban asli tanpa kerja brute-force.
     match /soalPublik/{questionId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // ── BACAAN (stimulus bersama untuk beberapa soal Bahasa Indonesia) ──
     match /bacaanPool/{bacaanId} {
       allow read: if isStaff();
       allow write: if isAdmin();
     }
 
-    // ── PUSTAKA ILUSTRASI (menunggu teks soal, lihat ANTIREGRESI.md §9) ──
     match /ilustrasiSoal/{ilustrasiId} {
       allow read: if isStaff();
       allow write: if isAdmin();
     }
 
-    // ── PAKET SOAL ──
-    // Guru DAN admin boleh membuat/menyusun paket (memilih soal dari
-    // questionPool untuk dijadikan paket latihan/try out), tapi tidak
-    // boleh mengubah isi bank soal mentahnya (lihat questionPool di atas).
     match /packages/{packageId} {
       allow read: if isSignedIn();
       allow write: if isStaff();
     }
 
-    // ── HASIL PENGERJAAN ──
-    // Siswa hanya bisa membuat attempt miliknya sendiri, tidak bisa
-    // mengubah/menghapus setelah dibuat (integritas nilai). Staff bisa
-    // baca semua untuk dashboard rekap.
+    // HASIL PENGERJAAN
+    // Siswa create attempt sendiri; tidak bisa update/delete sendiri.
+    // Staff boleh DELETE (reset try out di guru/rekap-tryout.html).
+    // Update tetap ditolak — skor tidak boleh diedit manual.
     match /attempts/{attemptId} {
       allow create: if isSignedIn() &&
         request.resource.data.studentId == request.auth.uid;
       allow read: if isStaff() ||
         (isSignedIn() && resource.data.studentId == request.auth.uid);
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isStaff();
     }
   }
 }
