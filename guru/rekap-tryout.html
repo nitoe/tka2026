@@ -68,6 +68,13 @@
     padding: 6px 10px; font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 800; cursor: pointer;
   }
   .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-pdf {
+    background: var(--primary-light); color: var(--primary-dark); border: none; border-radius: 8px;
+    padding: 6px 10px; font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 800; cursor: pointer;
+  }
+  .btn-pdf:hover { filter: brightness(0.97); }
+  .btn-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
+  .aksi-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
   .empty { text-align: center; padding: 36px 16px; color: var(--text-muted); font-weight: 600; font-size: 0.88rem; }
   .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; font-size: 0.9rem; }
   .modal-backdrop {
@@ -115,7 +122,7 @@
 
   <main class="container">
     <div class="page-title">📊 Rekap Try Out & Latihan</div>
-    <div class="page-subtitle">Lihat hasil pengerjaan siswa. Gunakan <strong>Reset</strong> hanya jika siswa tertahan (kirim terlalu cepat / error) agar bisa mengerjakan ulang.</div>
+    <div class="page-subtitle">Tombol <strong>PDF</strong> mengunduh laporan hasil per siswa. <strong>Reset</strong> hanya bila siswa tertahan (kirim terlalu cepat / error).</div>
 
     <div class="card">
       <div class="filters">
@@ -181,9 +188,12 @@
   <a href="../index.html" style="color:#1a56db; font-weight:800;">← Kembali</a>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { buatLaporanPdf } from '../assets/laporan-pdf.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -312,12 +322,30 @@
         <td><span class="badge ${st === 'waktu_habis' ? 'badge-waktu' : 'badge-selesai'}">${st === 'waktu_habis' ? 'Waktu habis' : 'Selesai'}</span></td>
         <td><div>${formatWaktu(tSelesai)}</div><div class="meta">${durasi}</div></td>
         <td>
-          <button type="button" class="btn-reset" data-id="${a.id}"
-            data-nama="${escapeAttr(a.namaSiswa || '')}"
-            data-paket="${escapeAttr(a.packageNama || a.packageId || '')}">Reset</button>
+          <div class="aksi-wrap">
+            <button type="button" class="btn-pdf" data-id="${a.id}">PDF</button>
+            <button type="button" class="btn-reset" data-id="${a.id}"
+              data-nama="${escapeAttr(a.namaSiswa || '')}"
+              data-paket="${escapeAttr(a.packageNama || a.packageId || '')}">Reset</button>
+          </div>
         </td>
       </tr>`;
     }).join('');
+
+    tbody.querySelectorAll('.btn-pdf').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const att = allAttempts.find(x => x.id === btn.dataset.id);
+        if (!att) { alert('Data attempt tidak ditemukan.'); return; }
+        try {
+          btn.disabled = true;
+          buatLaporanPdf(att);
+          btn.disabled = false;
+        } catch (err) {
+          btn.disabled = false;
+          alert('Gagal membuat PDF: ' + err.message);
+        }
+      });
+    });
 
     tbody.querySelectorAll('.btn-reset').forEach(btn => {
       btn.addEventListener('click', () => {
