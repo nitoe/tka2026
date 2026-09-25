@@ -6,6 +6,22 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.17.0] — 2026-09-25
+
+### Added
+- **Sidebar layout** untuk seluruh area guru (`assets/guru-shell.js` + CSS di `theme.css`).
+- Navigasi tetap: Dashboard, Rekap Try Out, Bank Soal, Susun Paket; user + logout di footer sidebar.
+- Mobile: hamburger + backdrop; sidebar collapsible.
+
+### Changed
+- `guru/index.html`, `bank-soal.html` (dan berikutnya rekap/susun) memakai shell bersama.
+- Header per-halaman diganti topbar ringan + sidebar.
+
+### Tidak Berubah
+- Logika Firebase, filter, PDF, reset attempt, import, edit paket.
+
+---
+
 ## [0.16.0] — 2026-09-25
 
 ### Changed
