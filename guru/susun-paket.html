@@ -35,17 +35,18 @@
     background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
     border-radius: 20px; padding: 6px 14px;
   }
-  .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
   .page-title { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 4px; }
   .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
   .layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
-  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
   .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
   .card h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; }
-  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .filters select {
-    font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 700;
-    padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700;
+    padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+    max-width: 100%;
   }
   .soal-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
   .soal-item {
@@ -56,13 +57,13 @@
   .soal-item:hover { background: #f8fafc; }
   .soal-item.selected { background: var(--primary-light); }
   .soal-item input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
-  .soal-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+  .soal-meta { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; line-height: 1.4; }
   .soal-text { font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
   .selected-panel { position: sticky; top: 72px; }
   .selected-stats { display: flex; gap: 10px; margin-bottom: 12px; }
   .selected-stats .num { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
   .selected-stats .label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-  .selected-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; }
+  .selected-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; }
   .selected-list .item { padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
   .field { margin-bottom: 12px; }
   .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
@@ -74,15 +75,26 @@
   .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .btn { border: none; border-radius: 10px; padding: 12px 16px; font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 800; cursor: pointer; width: 100%; }
   .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; }
+  .btn-secondary { background: var(--slate-light); color: var(--text); margin-top: 8px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .status-line { font-size: 0.8rem; font-weight: 700; margin-top: 10px; min-height: 1.2em; }
   .empty-state { text-align: center; padding: 28px; color: var(--text-muted); font-weight: 600; }
   .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; }
   .badge-tryout { display: inline-block; background: var(--amber-light); color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
-  .paket-list .item { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .badge-edit { display: inline-block; background: var(--primary-light); color: var(--primary-dark); font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
+  .paket-list .item { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
   .paket-list .item:last-child { border-bottom: none; }
   .paket-list .nama { font-weight: 800; color: var(--primary-dark); }
   .paket-list .meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  .btn-edit {
+    flex-shrink: 0; border: none; background: var(--primary-light); color: var(--primary-dark);
+    border-radius: 8px; padding: 6px 10px; font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 800; cursor: pointer;
+  }
+  .edit-banner {
+    display: none; background: var(--amber-light); border: 1px solid #fde68a; color: #92400e;
+    border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; line-height: 1.4;
+  }
+  .edit-banner.show { display: block; }
 </style>
 </head>
 <body>
@@ -100,7 +112,7 @@
   </header>
   <main class="container">
     <div class="page-title">📦 Susun Paket Soal</div>
-    <div class="page-subtitle">Pilih soal dari bank, atur jenis paket (latihan / try out), lalu simpan.</div>
+    <div class="page-subtitle">Filter bank soal (mapel, tipe, materi, kompleksitas), susun paket latihan/try out, atau <strong>edit</strong> paket yang sudah ada.</div>
     <div class="layout">
       <div>
         <div class="card">
@@ -111,7 +123,9 @@
               <option value="matematika">Matematika</option>
               <option value="bahasa-indonesia">Bahasa Indonesia</option>
             </select>
-            <select id="filter-tipe"><option value="">Semua tipe</option></select>
+            <select id="filter-tipe"><option value="">Semua tipe soal</option></select>
+            <select id="filter-materi"><option value="">Semua tipe materi</option></select>
+            <select id="filter-kompleksitas"><option value="">Semua kompleksitas</option></select>
           </div>
           <div class="soal-list" id="soal-list"><div class="empty-state">Memuat soal...</div></div>
         </div>
@@ -122,7 +136,8 @@
       </div>
       <div class="selected-panel">
         <div class="card">
-          <h2>Paket Baru</h2>
+          <h2 id="form-title">Paket Baru</h2>
+          <div class="edit-banner" id="edit-banner">Mode edit: perubahan akan menimpa paket yang dipilih. Token, waktu, acak soal/opsi, dan daftar soal dapat diubah sebelum try out berlangsung.</div>
           <div class="selected-stats">
             <div><div class="num" id="selected-count">0</div><div class="label">Soal Dipilih</div></div>
             <div><div class="num" id="selected-skor">0</div><div class="label">Total Skor</div></div>
@@ -180,6 +195,7 @@
             </div>
           </div>
           <button class="btn btn-primary" id="btn-simpan-paket" disabled>Simpan Paket</button>
+          <button class="btn btn-secondary" id="btn-batal-edit" type="button" style="display:none;">Batal Edit</button>
           <div class="status-line" id="simpan-status"></div>
         </div>
       </div>
@@ -193,18 +209,27 @@
 </div>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
-  import { collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
   const notConfigured = document.getElementById('not-configured');
 
-  let allSoal = [], selected = {}, currentStaff = null;
+  let allSoal = [], selected = {}, currentStaff = null, editingId = null;
 
   function toIsoLocal(val) {
     if (!val) return null;
     const d = new Date(val);
     return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  function toDatetimeLocalValue(val) {
+    if (!val) return '';
+    let d;
+    if (typeof val.toDate === 'function') d = val.toDate();
+    else d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   if (!isConfigured) {
@@ -233,32 +258,50 @@
     try {
       const snap = await getDocs(collection(db, 'soalPublik'));
       allSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const tipeSet = [...new Set(allSoal.map(s => s.tipe).filter(Boolean))].sort();
-      const selTipe = document.getElementById('filter-tipe');
-      selTipe.innerHTML = '<option value="">Semua tipe</option>' + tipeSet.map(t => `<option value="${t}">${t}</option>`).join('');
+      populateFilters();
       renderSoalList();
     } catch (err) {
       list.innerHTML = `<div class="empty-state">Gagal memuat: ${err.message}</div>`;
     }
   }
 
+  function populateFilters() {
+    const tipeSet = [...new Set(allSoal.map(s => s.tipe).filter(Boolean))].sort();
+    const materiSet = [...new Set(allSoal.map(s => s.tipeMateri).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
+    const kompSet = [...new Set(allSoal.map(s => s.kompleksitas).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
+    const fill = (id, placeholder, values) => {
+      const el = document.getElementById(id);
+      const cur = el.value;
+      el.innerHTML = `<option value="">${placeholder}</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+      if (values.includes(cur)) el.value = cur;
+    };
+    fill('filter-tipe', 'Semua tipe soal', tipeSet);
+    fill('filter-materi', 'Semua tipe materi', materiSet);
+    fill('filter-kompleksitas', 'Semua kompleksitas', kompSet);
+  }
+
   function renderSoalList() {
     const mapel = document.getElementById('filter-mapel').value;
     const tipe = document.getElementById('filter-tipe').value;
+    const materi = document.getElementById('filter-materi').value;
+    const komp = document.getElementById('filter-kompleksitas').value;
     const list = document.getElementById('soal-list');
     let filtered = allSoal;
     if (mapel) filtered = filtered.filter(s => s.subjectId === mapel || s.mapel === mapel);
     if (tipe) filtered = filtered.filter(s => s.tipe === tipe);
+    if (materi) filtered = filtered.filter(s => s.tipeMateri === materi);
+    if (komp) filtered = filtered.filter(s => s.kompleksitas === komp);
     if (!filtered.length) {
-      list.innerHTML = '<div class="empty-state">Tidak ada soal.</div>';
+      list.innerHTML = '<div class="empty-state">Tidak ada soal cocok filter.</div>';
       return;
     }
     list.innerHTML = filtered.map(s => {
       const checked = selected[s.id] ? 'checked' : '';
       const cls = selected[s.id] ? 'selected' : '';
       const teks = (s.pertanyaan || s.teks || '').slice(0, 120);
+      const meta = [s.id, s.tipe || '-', s.tipeMateri || '-', s.kompleksitas || '-', `skor ${s.skor ?? '-'}`].join(' · ');
       return `<label class="soal-item ${cls}"><input type="checkbox" data-id="${s.id}" ${checked}>
-        <div><div class="soal-meta">${s.id} · ${s.tipe || '-'} · skor ${s.skor ?? '-'}</div>
+        <div><div class="soal-meta">${meta}</div>
         <div class="soal-text">${teks}</div></div></label>`;
     }).join('');
     list.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -272,8 +315,9 @@
     });
   }
 
-  document.getElementById('filter-mapel').addEventListener('change', renderSoalList);
-  document.getElementById('filter-tipe').addEventListener('change', renderSoalList);
+  ['filter-mapel', 'filter-tipe', 'filter-materi', 'filter-kompleksitas'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderSoalList);
+  });
 
   function updateSelected() {
     const ids = Object.keys(selected);
@@ -283,10 +327,67 @@
     if (!ids.length) {
       list.innerHTML = '<div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>';
     } else {
-      list.innerHTML = ids.map(id => `<div class="item">${id} · skor ${selected[id].skor ?? '-'}</div>`).join('');
+      list.innerHTML = ids.map(id => `<div class="item">${id} · ${selected[id].tipeMateri || '-'} · ${selected[id].kompleksitas || '-'} · skor ${selected[id].skor ?? '-'}</div>`).join('');
     }
     document.getElementById('btn-simpan-paket').disabled = ids.length === 0;
   }
+
+  function resetForm() {
+    editingId = null;
+    selected = {};
+    updateSelected();
+    document.getElementById('form-title').textContent = 'Paket Baru';
+    document.getElementById('edit-banner').classList.remove('show');
+    document.getElementById('btn-batal-edit').style.display = 'none';
+    document.getElementById('btn-simpan-paket').textContent = 'Simpan Paket';
+    document.getElementById('nama-paket').value = '';
+    document.getElementById('jenis-paket').value = 'latihan';
+    tryoutOptions.style.display = 'none';
+    document.getElementById('token-paket').value = '';
+    document.getElementById('acak-soal').checked = true;
+    document.getElementById('acak-opsi').checked = true;
+    document.getElementById('buka-pada').value = '';
+    document.getElementById('tutup-pada').value = '';
+    document.getElementById('durasi-menit').value = 60;
+    document.getElementById('maks-percobaan').value = 1;
+    document.getElementById('tampilkan-hasil').checked = false;
+    document.getElementById('simpan-status').textContent = '';
+    renderSoalList();
+  }
+
+  function loadPaketIntoForm(p) {
+    editingId = p.id;
+    selected = {};
+    (p.questionIds || []).forEach(id => {
+      const s = allSoal.find(x => x.id === id);
+      if (s) selected[id] = s;
+      else selected[id] = { id, skor: 0, pertanyaan: '(soal tidak ada di soalPublik)' };
+    });
+    updateSelected();
+    renderSoalList();
+    document.getElementById('form-title').textContent = 'Edit Paket';
+    document.getElementById('edit-banner').classList.add('show');
+    document.getElementById('btn-batal-edit').style.display = 'block';
+    document.getElementById('btn-simpan-paket').textContent = 'Simpan Perubahan';
+    document.getElementById('nama-paket').value = p.nama || '';
+    document.getElementById('jenis-paket').value = p.jenis || 'latihan';
+    const isTry = (p.jenis || 'latihan') === 'tryout';
+    tryoutOptions.style.display = isTry ? 'block' : 'none';
+    if (isTry) {
+      document.getElementById('durasi-menit').value = p.durasiMenit || 60;
+      document.getElementById('maks-percobaan').value = p.maksPercobaan || 1;
+      document.getElementById('token-paket').value = p.token || '';
+      document.getElementById('acak-soal').checked = p.acakSoal !== false;
+      document.getElementById('acak-opsi').checked = p.acakOpsi !== false;
+      document.getElementById('buka-pada').value = toDatetimeLocalValue(p.bukaPada);
+      document.getElementById('tutup-pada').value = toDatetimeLocalValue(p.tutupPada);
+      document.getElementById('tampilkan-hasil').checked = !!p.tampilkanHasil;
+    }
+    document.getElementById('simpan-status').textContent = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('btn-batal-edit').addEventListener('click', resetForm);
 
   document.getElementById('btn-simpan-paket').addEventListener('click', async () => {
     const nama = document.getElementById('nama-paket').value.trim();
@@ -308,35 +409,39 @@
       acakOpsi = document.getElementById('acak-opsi').checked;
     }
     const btn = document.getElementById('btn-simpan-paket');
-    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    btn.disabled = true; btn.textContent = editingId ? 'Menyimpan perubahan...' : 'Menyimpan...';
     const statusEl = document.getElementById('simpan-status');
+    const payload = {
+      nama, subjectId: mapel, questionIds,
+      totalSkor: questionIds.reduce((sum, id) => sum + (selected[id].skor || 0), 0),
+      aktif: true, jenis, durasiMenit, maksPercobaan, tampilkanHasil,
+      token, bukaPada, tutupPada, acakSoal, acakOpsi,
+    };
     try {
-      await addDoc(collection(db, 'packages'), {
-        nama, subjectId: mapel, questionIds,
-        totalSkor: questionIds.reduce((sum, id) => sum + (selected[id].skor || 0), 0),
-        aktif: true, jenis, durasiMenit, maksPercobaan, tampilkanHasil,
-        token, bukaPada, tutupPada, acakSoal, acakOpsi,
-        createdBy: currentStaff.nama, createdAt: serverTimestamp(),
-      });
-      statusEl.textContent = `✅ Paket "${nama}" (${jenis}) berhasil disimpan dengan ${questionIds.length} soal.`;
+      if (editingId) {
+        await updateDoc(doc(db, 'packages', editingId), {
+          ...payload,
+          updatedBy: currentStaff.nama,
+          updatedAt: serverTimestamp(),
+        });
+        statusEl.textContent = `✅ Paket "${nama}" berhasil diperbarui (${questionIds.length} soal).`;
+      } else {
+        await addDoc(collection(db, 'packages'), {
+          ...payload,
+          createdBy: currentStaff.nama,
+          createdAt: serverTimestamp(),
+        });
+        statusEl.textContent = `✅ Paket "${nama}" (${jenis}) berhasil disimpan dengan ${questionIds.length} soal.`;
+      }
       statusEl.style.color = '#057a55';
-      selected = {};
-      updateSelected();
-      document.getElementById('nama-paket').value = '';
-      document.getElementById('jenis-paket').value = 'latihan';
-      tryoutOptions.style.display = 'none';
-      document.getElementById('token-paket').value = '';
-      document.getElementById('acak-soal').checked = true;
-      document.getElementById('acak-opsi').checked = true;
-      document.getElementById('buka-pada').value = '';
-      document.getElementById('tutup-pada').value = '';
-      renderSoalList();
+      resetForm();
       await loadPaket();
     } catch (err) {
       statusEl.textContent = 'Gagal: ' + err.message;
       statusEl.style.color = '#dc2626';
+      btn.disabled = false;
+      btn.textContent = editingId ? 'Simpan Perubahan' : 'Simpan Paket';
     }
-    btn.disabled = false; btn.textContent = 'Simpan Paket';
   });
 
   async function loadPaket() {
@@ -344,17 +449,33 @@
     try {
       const snap = await getDocs(collection(db, 'packages'));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => String(b.createdAt?.seconds || 0).localeCompare(String(a.createdAt?.seconds || 0)));
+      list.sort((a, b) => {
+        const ta = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
+        const tb = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
       if (!list.length) { el.innerHTML = '<div class="empty-state">Belum ada paket.</div>'; return; }
       el.innerHTML = list.map(p => {
         let jenisLabel = 'Latihan';
         if (p.jenis === 'tryout') {
           jenisLabel = `<span class="badge-tryout">TRY OUT</span> · ${p.durasiMenit || 60} mnt · maks ${p.maksPercobaan || 1}x`;
           if (p.token) jenisLabel += ` · token: ${p.token}`;
+          if (p.acakSoal !== false) jenisLabel += ' · acak soal';
         }
-        return `<div class="item"><div class="nama">${p.nama || p.id}</div>
-          <div class="meta">${p.subjectId} · ${(p.questionIds || []).length} soal · ${jenisLabel} · oleh ${p.createdBy || '-'}</div></div>`;
+        return `<div class="item">
+          <div>
+            <div class="nama">${p.nama || p.id}${editingId === p.id ? ' <span class="badge-edit">sedang diedit</span>' : ''}</div>
+            <div class="meta">${p.subjectId || '-'} · ${(p.questionIds || []).length} soal · ${jenisLabel} · oleh ${p.createdBy || '-'}</div>
+          </div>
+          <button type="button" class="btn-edit" data-id="${p.id}">Edit</button>
+        </div>`;
       }).join('');
+      el.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = list.find(x => x.id === btn.dataset.id);
+          if (p) loadPaketIntoForm(p);
+        });
+      });
     } catch (err) {
       el.innerHTML = `<div class="empty-state">Gagal: ${err.message}</div>`;
     }
