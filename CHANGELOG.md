@@ -14,7 +14,7 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 - Mobile: hamburger + backdrop; sidebar collapsible.
 
 ### Changed
-- `guru/index.html`, `bank-soal.html` (dan berikutnya rekap/susun) memakai shell bersama.
+- `guru/index.html`, `bank-soal.html`, `rekap-tryout.html`, `susun-paket.html` memakai shell bersama.
 - Header per-halaman diganti topbar ringan + sidebar.
 
 ### Tidak Berubah
