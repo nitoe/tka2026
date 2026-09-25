@@ -28,6 +28,7 @@ Proyek pendahulu (portal TKA versi lama) beberapa kali mengalami regresi dengan 
 | **Firebase Auth (role admin vs siswa)** | Salah custom claim → siswa bisa akses panel admin, atau guru terkunci dari akun sendiri | Uji login dengan minimal 1 akun tiap role setelah perubahan apa pun di alur auth |
 | **UI kuis (timer, drawer navigasi soal, font size)** | Perubahan CSS/JS di satu tempat gampang merembet ke breakpoint mobile | Uji di lebar layar mobile (≤375px) dan desktop setelah perubahan tampilan |
 | **Penanganan jaringan gagal saat submit** | Jika tidak ditangani, siswa bisa kehilangan jawaban saat koneksi putus di tengah submit | Simulasikan offline/lambat (DevTools → Network throttling) saat menguji alur submit |
+| **Mekanisme Try Out (timer, batas percobaan, hasil ditahan)** | Timer yang macet / batas percobaan yang tidak jalan / skor bocor ke siswa | Uji: (1) paket try out dengan durasi pendek, pastikan auto-submit; (2) kerjakan 1x lalu coba lagi — harus diblokir; (3) setelah submit, pastikan skor tidak muncul di layar siswa |
 
 ---
 
@@ -129,13 +130,23 @@ Ini bukan bug proyek baru, tapi **pola bug** yang penting diingat karena arsitek
 
 ---
 
-## 12. Definition of Done (untuk fitur baru, bukan cuma bugfix)
+## 12. Catatan Mekanisme Try Out (mulai v0.10.0)
+
+- **Field baru di `packages`**: `jenis` (`"latihan"` | `"tryout"`), `durasiMenit` (number|null), `maksPercobaan` (number|null), `tampilkanHasil` (boolean). Paket lama tanpa field ini tetap diperlakukan sebagai latihan (hasil langsung terlihat, tidak ada batas waktu/percobaan).
+- **Batas percobaan dicek di client** lewat query `attempts` where `studentId` + `packageId`. Rules sudah mengizinkan siswa membaca attempt miliknya sendiri. Kalau nanti ingin lebih ketat (mencegah siswa yang canggih menghapus attempt lewat console), perlu Cloud Function atau rules yang lebih ketat — untuk skala SD saat ini dianggap cukup.
+- **Timer berjalan di client** (`setInterval`). Siswa yang menutup tab/browser lalu membuka lagi akan kehilangan sisa waktu (mulai dari awal lagi) **kecuali** sudah pernah submit. Ini disengaja sederhana; kalau butuh timer server-side, perlu Cloud Function + `serverTimestamp`.
+- **Auto-submit saat waktu habis** memakai flag `submitted` supaya tidak double-submit. Status disimpan sebagai `"waktu_habis"` (bukan `"selesai"`) agar bisa dibedakan di dashboard nanti.
+- **Hasil ditahan** hanya menyembunyikan skor di UI siswa. Dokumen `attempts` tetap berisi `skorAkhir` lengkap — guru bisa melihat lewat Firebase Console atau (nanti) dashboard rekap. Jangan pernah menghapus field skor dari dokumen attempt hanya karena `tampilkanHasil === false`.
+- **Query batas percobaan** (`where studentId + packageId`) memakai dua equality filter tanpa `orderBy` — tidak butuh composite index.
+
+---
+
+## 13. Definition of Done (untuk fitur baru, bukan cuma bugfix)
 
 Sebuah fitur baru dianggap selesai kalau:
 
 - [ ] Berfungsi sesuai spesifikasi di skenario normal.
-- [ ] Sudah diuji skenario gagal/edge case yang relevan (jaringan putus, input kosong, dsb).
-- [ ] Tidak menurunkan performa/aksesibilitas fitur lain yang sudah ada.
-- [ ] Firestore Rules & Cloud Functions terkait (kalau ada) sudah diuji, bukan cuma diasumsikan aman.
-- [ ] Dicatat di `CHANGELOG.md`.
-- [ ] Kalau menyentuh area di §2, checklist §3 sudah dijalankan penuh.
+- [ ] Sudah diuji skenario gagal/edge case yang relevan (jaringan putus, input kosong, dll).
+- [ ] Tidak merusak fitur yang sudah ada (cek area sensitif di §2).
+- [ ] `CHANGELOG.md` sudah diupdate.
+- [ ] Catatan antiregresi ditambahkan kalau ada pola baru yang perlu diingat.
