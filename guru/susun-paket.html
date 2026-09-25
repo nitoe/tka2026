@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Susun Paket – Portal Latihan TKA 2026</title>
+<link rel="stylesheet" href="../assets/theme.css">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -15,6 +16,7 @@
     --text: #1f2a37; --text-muted: #6b7280;
     --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
     --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --primary-light: #ebf5ff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { font-size: clamp(14px, 3.5vw, 16px); }
@@ -26,6 +28,8 @@
     display: flex; align-items: center; justify-content: space-between;
     box-shadow: 0 2px 10px rgba(26,86,219,0.4);
   }
+  /* Professional shell overrides (theme.css) */
+  .header { background: var(--brand-ink, #0f172a) !important; box-shadow: none !important; }
   .header-brand { display: flex; align-items: center; gap: 10px; }
   .logo { font-size: 1.5rem; }
   .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 800; line-height: 1.1; }
@@ -356,20 +360,50 @@
     document.getElementById('acak-opsi').checked = true;
     document.getElementById('buka-pada').value = '';
     document.getElementById('tutup-pada').value = '';
+    document.getElementById('tampilkan-hasil').checked = false;
     document.getElementById('durasi-menit').value = 60;
     document.getElementById('maks-percobaan').value = 1;
-    document.getElementById('tampilkan-hasil').checked = false;
-    document.getElementById('simpan-status').textContent = '';
     renderSoalList();
   }
 
-  function loadPaketIntoForm(p) {
+  document.getElementById('btn-batal-edit').addEventListener('click', resetForm);
+
+  async function loadPaket() {
+    const list = document.getElementById('paket-list');
+    try {
+      const snap = await getDocs(collection(db, 'packages'));
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      if (!items.length) {
+        list.innerHTML = '<div class="empty-state">Belum ada paket.</div>';
+        return;
+      }
+      list.innerHTML = items.map(p => {
+        const j = p.jenis || 'latihan';
+        const badge = j === 'tryout' ? '<span class="badge-tryout">TRY OUT</span>' : '';
+        return `<div class="item">
+          <div>
+            <div class="nama">${p.nama || p.id} ${badge}</div>
+            <div class="meta">${(p.questionIds || []).length} soal · ${p.subjectId || '-'} · ${j}</div>
+          </div>
+          <button type="button" class="btn-edit" data-id="${p.id}">Edit</button>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => startEdit(items.find(x => x.id === btn.dataset.id)));
+      });
+    } catch (err) {
+      list.innerHTML = `<div class="empty-state">Gagal memuat: ${err.message}</div>`;
+    }
+  }
+
+  function startEdit(p) {
+    if (!p) return;
     editingId = p.id;
     selected = {};
     (p.questionIds || []).forEach(id => {
       const s = allSoal.find(x => x.id === id);
       if (s) selected[id] = s;
-      else selected[id] = { id, skor: 0, pertanyaan: '(soal tidak ada di soalPublik)' };
     });
     updateSelected();
     renderSoalList();
@@ -379,115 +413,62 @@
     document.getElementById('btn-simpan-paket').textContent = 'Simpan Perubahan';
     document.getElementById('nama-paket').value = p.nama || '';
     document.getElementById('jenis-paket').value = p.jenis || 'latihan';
-    const isTry = (p.jenis || 'latihan') === 'tryout';
-    tryoutOptions.style.display = isTry ? 'block' : 'none';
-    if (isTry) {
-      document.getElementById('durasi-menit').value = p.durasiMenit || 60;
-      document.getElementById('maks-percobaan').value = p.maksPercobaan || 1;
-      document.getElementById('token-paket').value = p.token || '';
-      document.getElementById('acak-soal').checked = p.acakSoal !== false;
-      document.getElementById('acak-opsi').checked = p.acakOpsi !== false;
-      document.getElementById('buka-pada').value = toDatetimeLocalValue(p.bukaPada);
-      document.getElementById('tutup-pada').value = toDatetimeLocalValue(p.tutupPada);
-      document.getElementById('tampilkan-hasil').checked = !!p.tampilkanHasil;
-    }
+    tryoutOptions.style.display = (p.jenis === 'tryout') ? 'block' : 'none';
+    document.getElementById('durasi-menit').value = p.durasiMenit ?? 60;
+    document.getElementById('maks-percobaan').value = p.maksPercobaan ?? 1;
+    document.getElementById('token-paket').value = p.token || '';
+    document.getElementById('acak-soal').checked = p.acakSoal !== false;
+    document.getElementById('acak-opsi').checked = p.acakOpsi !== false;
+    document.getElementById('buka-pada').value = toDatetimeLocalValue(p.bukaPada);
+    document.getElementById('tutup-pada').value = toDatetimeLocalValue(p.tutupPada);
+    document.getElementById('tampilkan-hasil').checked = !!p.tampilkanHasil;
     document.getElementById('simpan-status').textContent = '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  document.getElementById('btn-batal-edit').addEventListener('click', resetForm);
-
   document.getElementById('btn-simpan-paket').addEventListener('click', async () => {
+    const ids = Object.keys(selected);
+    if (!ids.length) return;
     const nama = document.getElementById('nama-paket').value.trim();
-    if (!nama) { alert('Isi nama paket.'); return; }
-    const questionIds = Object.keys(selected);
-    if (!questionIds.length) { alert('Pilih minimal 1 soal.'); return; }
-    const mapel = selected[questionIds[0]].subjectId || selected[questionIds[0]].mapel || 'matematika';
+    if (!nama) { alert('Nama paket wajib diisi.'); return; }
     const jenis = document.getElementById('jenis-paket').value;
-    let durasiMenit = null, maksPercobaan = null, tampilkanHasil = true, token = null, bukaPada = null, tutupPada = null, acakSoal = false, acakOpsi = false;
-    if (jenis === 'tryout') {
-      durasiMenit = parseInt(document.getElementById('durasi-menit').value, 10) || 60;
-      maksPercobaan = parseInt(document.getElementById('maks-percobaan').value, 10) || 1;
-      tampilkanHasil = document.getElementById('tampilkan-hasil').checked;
-      const t = document.getElementById('token-paket').value.trim();
-      token = t || null;
-      bukaPada = toIsoLocal(document.getElementById('buka-pada').value);
-      tutupPada = toIsoLocal(document.getElementById('tutup-pada').value);
-      acakSoal = document.getElementById('acak-soal').checked;
-      acakOpsi = document.getElementById('acak-opsi').checked;
-    }
-    const btn = document.getElementById('btn-simpan-paket');
-    btn.disabled = true; btn.textContent = editingId ? 'Menyimpan perubahan...' : 'Menyimpan...';
-    const statusEl = document.getElementById('simpan-status');
     const payload = {
-      nama, subjectId: mapel, questionIds,
-      totalSkor: questionIds.reduce((sum, id) => sum + (selected[id].skor || 0), 0),
-      aktif: true, jenis, durasiMenit, maksPercobaan, tampilkanHasil,
-      token, bukaPada, tutupPada, acakSoal, acakOpsi,
+      nama,
+      jenis,
+      questionIds: ids,
+      subjectId: selected[ids[0]]?.subjectId || selected[ids[0]]?.mapel || null,
+      updatedAt: serverTimestamp(),
     };
+    if (jenis === 'tryout') {
+      payload.durasiMenit = Number(document.getElementById('durasi-menit').value) || 60;
+      payload.maksPercobaan = Number(document.getElementById('maks-percobaan').value) || 1;
+      payload.token = document.getElementById('token-paket').value.trim() || null;
+      payload.acakSoal = document.getElementById('acak-soal').checked;
+      payload.acakOpsi = document.getElementById('acak-opsi').checked;
+      payload.bukaPada = toIsoLocal(document.getElementById('buka-pada').value);
+      payload.tutupPada = toIsoLocal(document.getElementById('tutup-pada').value);
+      payload.tampilkanHasil = document.getElementById('tampilkan-hasil').checked;
+    }
+    const status = document.getElementById('simpan-status');
+    const btn = document.getElementById('btn-simpan-paket');
+    btn.disabled = true;
+    status.textContent = 'Menyimpan...';
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'packages', editingId), {
-          ...payload,
-          updatedBy: currentStaff.nama,
-          updatedAt: serverTimestamp(),
-        });
-        statusEl.textContent = `✅ Paket "${nama}" berhasil diperbarui (${questionIds.length} soal).`;
+        await updateDoc(doc(db, 'packages', editingId), payload);
+        status.textContent = 'Perubahan tersimpan.';
       } else {
-        await addDoc(collection(db, 'packages'), {
-          ...payload,
-          createdBy: currentStaff.nama,
-          createdAt: serverTimestamp(),
-        });
-        statusEl.textContent = `✅ Paket "${nama}" (${jenis}) berhasil disimpan dengan ${questionIds.length} soal.`;
+        payload.createdAt = serverTimestamp();
+        payload.createdBy = currentStaff?.uid || auth.currentUser?.uid || null;
+        await addDoc(collection(db, 'packages'), payload);
+        status.textContent = 'Paket baru tersimpan.';
       }
-      statusEl.style.color = '#057a55';
       resetForm();
       await loadPaket();
     } catch (err) {
-      statusEl.textContent = 'Gagal: ' + err.message;
-      statusEl.style.color = '#dc2626';
-      btn.disabled = false;
-      btn.textContent = editingId ? 'Simpan Perubahan' : 'Simpan Paket';
+      status.textContent = 'Gagal: ' + err.message;
     }
+    btn.disabled = false;
   });
-
-  async function loadPaket() {
-    const el = document.getElementById('paket-list');
-    try {
-      const snap = await getDocs(collection(db, 'packages'));
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => {
-        const ta = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
-        const tb = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
-        return tb - ta;
-      });
-      if (!list.length) { el.innerHTML = '<div class="empty-state">Belum ada paket.</div>'; return; }
-      el.innerHTML = list.map(p => {
-        let jenisLabel = 'Latihan';
-        if (p.jenis === 'tryout') {
-          jenisLabel = `<span class="badge-tryout">TRY OUT</span> · ${p.durasiMenit || 60} mnt · maks ${p.maksPercobaan || 1}x`;
-          if (p.token) jenisLabel += ` · token: ${p.token}`;
-          if (p.acakSoal !== false) jenisLabel += ' · acak soal';
-        }
-        return `<div class="item">
-          <div>
-            <div class="nama">${p.nama || p.id}${editingId === p.id ? ' <span class="badge-edit">sedang diedit</span>' : ''}</div>
-            <div class="meta">${p.subjectId || '-'} · ${(p.questionIds || []).length} soal · ${jenisLabel} · oleh ${p.createdBy || '-'}</div>
-          </div>
-          <button type="button" class="btn-edit" data-id="${p.id}">Edit</button>
-        </div>`;
-      }).join('');
-      el.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const p = list.find(x => x.id === btn.dataset.id);
-          if (p) loadPaketIntoForm(p);
-        });
-      });
-    } catch (err) {
-      el.innerHTML = `<div class="empty-state">Gagal: ${err.message}</div>`;
-    }
-  }
 </script>
 </body>
 </html>
