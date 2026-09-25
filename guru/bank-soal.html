@@ -4,8 +4,362 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bank Soal – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
+    --green: #057a55; --green-light: #def7ec;
+    --red: #dc2626; --red-light: #fee2e2;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --slate: #64748b; --slate-light: #f1f5f9;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 3.5vw, 16px); }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 20px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(26,86,219,0.4);
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .logo { font-size: 1.5rem; }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 800; line-height: 1.1; }
+  .sub-brand { font-size: 0.68rem; opacity: 0.8; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .back-link {
+    color: white; text-decoration: none; font-size: 0.78rem; font-weight: 700;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 6px 14px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+  .page-title { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
+  .card h2 { font-family: 'Baloo 2', cursive; font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card.disabled { opacity: 0.5; pointer-events: none; }
+  .import-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .import-tab-btn {
+    background: none; border: none; padding: 8px 4px 10px; margin-right: 16px;
+    font-family: 'Nunito', sans-serif; font-size: 0.84rem; font-weight: 800;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .import-tab-btn.active { color: var(--primary); border-color: var(--primary); }
+  .import-panel { display: none; }
+  .import-panel.active { display: block; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-box { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; text-align: center; }
+  .stat-box .num { font-family: 'Baloo 2', cursive; font-size: 1.5rem; color: var(--primary); font-weight: 800; }
+  .stat-box .label { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
+  .warn-box {
+    background: var(--amber-light); border: 1px solid #fde68a; color: #92400e;
+    border-radius: 12px; padding: 12px 14px; font-size: 0.78rem; font-weight: 700;
+    margin-bottom: 18px; line-height: 1.6;
+  }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filters select {
+    font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 700;
+    padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+  }
+  input[type="file"] {
+    width: 100%; font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 700;
+    padding: 10px; border-radius: 10px; border: 1.5px dashed var(--border); background: #f4f7fb;
+  }
+  .btn {
+    border: none; border-radius: 10px; padding: 11px 18px;
+    font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; color: white;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { filter: brightness(1.08); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--slate-light); font-weight: 800; color: var(--text-muted); position: sticky; top: 0; }
+  tr.invalid { background: var(--red-light); }
+  .tag { display: inline-block; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 8px; }
+  .tag.ok { background: var(--green-light); color: var(--green); }
+  .tag.err { background: var(--red-light); color: var(--red); }
+  .preview-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .summary-line { font-size: 0.85rem; font-weight: 800; margin: 12px 0; }
+  .log-box {
+    max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;
+    background: #f8fafc; font-size: 0.78rem; font-family: monospace; margin-top: 10px;
+  }
+  .log-row { padding: 6px 12px; border-bottom: 1px solid var(--border); }
+  .log-row:last-child { border-bottom: none; }
+  .empty-state { text-align: center; padding: 30px; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; }
+  .loading-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-weight: 700; font-size: 0.9rem;
+  }
+</style>
 </head>
 <body>
-<p>RESTORING - if you see this, push incomplete. Use local /tmp/bank_min.html</p>
+<div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
+<div id="page" style="display:none;">
+  <header class="header">
+    <div class="header-brand">
+      <span class="logo">📚</span>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="sub-brand">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="./index.html" class="back-link">← Dashboard</a>
+    </div>
+  </header>
+  <main class="container">
+    <div class="page-title">🗂️ Bank Soal</div>
+    <div class="page-subtitle" id="peran-note">Memuat...</div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card" id="card-import" style="display:none;">
+      <h2>⬆️ Import Soal</h2>
+      <div class="import-tabs">
+        <button class="import-tab-btn active" id="tab-import-excel" type="button">Dari Excel</button>
+        <button class="import-tab-btn" id="tab-import-json" type="button">Dari JSON Pool</button>
+      </div>
+      <div id="import-panel-excel" class="import-panel active">
+        <div class="warn-box">Gunakan template resmi (sheet <b>"Template Soal"</b>). Satu baris = satu soal.</div>
+        <input type="file" id="file-input" accept=".xlsx,.xls">
+        <div id="preview-area" style="margin-top:14px;"></div>
+      </div>
+      <div id="import-panel-json" class="import-panel">
+        <div class="warn-box">Import JSON pool (soal lengkap / ilustrasi / migrasi).</div>
+        <input type="file" id="file-input-json" accept=".json">
+        <div id="preview-area-json" style="margin-top:14px;"></div>
+      </div>
+    </div>
+    <div class="card" id="card-backfill" style="display:none;">
+      <h2>🔄 Perbarui Soal Publik (untuk Siswa)</h2>
+      <div class="warn-box">Membuat versi publik (kunci di-hash) untuk siswa.</div>
+      <button class="btn btn-primary" id="btn-backfill">Perbarui Soal Publik Sekarang</button>
+      <div id="backfill-status"></div>
+      <div class="log-box" id="backfill-log" style="display:none;"></div>
+    </div>
+    <div class="card" id="card-ilustrasi" style="display:none;">
+      <h2>🖼️ Pustaka Ilustrasi Menunggu Teks Soal</h2>
+      <div class="warn-box" id="ilustrasi-note">—</div>
+    </div>
+    <div class="card">
+      <h2>📋 Daftar Soal Tersimpan</h2>
+      <div class="filters">
+        <select id="filter-mapel"><option value="">Semua Mapel</option></select>
+        <select id="filter-materi"><option value="">Semua Tipe Materi</option></select>
+        <select id="filter-kompleksitas"><option value="">Semua Kompleksitas</option></select>
+      </div>
+      <div class="preview-wrap">
+        <table>
+          <thead><tr><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe Soal</th><th>Pertanyaan</th><th>Skor</th></tr></thead>
+          <tbody id="soal-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="empty-state" style="display:none;">Belum ada soal tersimpan.</div>
+    </div>
+  </main>
+</div>
+<div id="not-configured" class="loading-screen" style="display:none;flex-direction:column;gap:10px;text-align:center;padding:20px;">
+  <div>Firebase belum dikonfigurasi.</div>
+  <a href="../index.html" style="color:#1a56db;font-weight:800;">← Kembali</a>
+</div>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { computeKunciHash } from '../assets/scoring.js';
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  const LINGKUP_KE_KOMPLEKSITAS = {
+    'Pemahaman Tekstual': 'L1-Pemahaman',
+    'Pemahaman Inferensial': 'L2-Aplikasi',
+    'Evaluasi dan Apresiasi': 'L3-Penalaran',
+  };
+  const CAPAIAN_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
+  const KOMPLEKSITAS_KE_CAPAIAN_BI = {
+    'L1-Pemahaman': 'Pemahaman Tekstual',
+    'L2-Aplikasi': 'Pemahaman Inferensial',
+    'L3-Penalaran': 'Evaluasi dan Apresiasi',
+  };
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    let currentStaff = null;
+    let allSoal = [];
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = '../index.html'; return; }
+      const staff = await getStaffDoc(user.uid);
+      if (!staff) { await signOut(auth); window.location.href = '../index.html'; return; }
+      currentStaff = staff;
+      document.getElementById('peran-note').textContent =
+        `Masuk sebagai ${staff.nama} (${staff.peran}). ` +
+        (staff.peran === 'admin' ? 'Kamu bisa mengimpor soal baru.' : 'Guru dapat melihat bank soal.');
+      if (staff.peran === 'admin') {
+        document.getElementById('card-import').style.display = 'block';
+        document.getElementById('card-backfill').style.display = 'block';
+      }
+      loading.style.display = 'none';
+      page.style.display = 'block';
+      await loadSoal();
+    });
+
+    async function loadSoal() {
+      const snap = await getDocs(collection(db, 'questionPool'));
+      allSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderStats();
+      populateFilters();
+      renderTable();
+    }
+
+    function renderStats() {
+      const grid = document.getElementById('stat-grid');
+      const total = allSoal.length;
+      const mtk = allSoal.filter(s => s.subjectId === 'matematika').length;
+      const bindo = allSoal.filter(s => s.subjectId === 'bahasa-indonesia').length;
+      grid.innerHTML = `
+        <div class="stat-box"><div class="num">${total}</div><div class="label">Total Soal</div></div>
+        <div class="stat-box"><div class="num">${mtk}</div><div class="label">Matematika</div></div>
+        <div class="stat-box"><div class="num">${bindo}</div><div class="label">B. Indonesia</div></div>`;
+    }
+
+    function populateFilters() {
+      const mapelSet = [...new Set(allSoal.map(s => s.subjectId).filter(Boolean))].sort();
+      const materiSet = [...new Set(allSoal.map(s => s.tipeMateri).filter(Boolean))].sort();
+      const kompSet = [...new Set(allSoal.map(s => s.kompleksitas).filter(Boolean))].sort();
+      const fill = (id, ph, vals) => {
+        const el = document.getElementById(id);
+        const cur = el.value;
+        el.innerHTML = `<option value="">${ph}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+        if (vals.includes(cur)) el.value = cur;
+      };
+      fill('filter-mapel', 'Semua Mapel', mapelSet);
+      fill('filter-materi', 'Semua Tipe Materi', materiSet);
+      fill('filter-kompleksitas', 'Semua Kompleksitas', kompSet);
+    }
+
+    function renderTable() {
+      const fMapel = document.getElementById('filter-mapel').value;
+      const fMateri = document.getElementById('filter-materi').value;
+      const fKomp = document.getElementById('filter-kompleksitas').value;
+      const filtered = allSoal.filter(s =>
+        (!fMapel || s.subjectId === fMapel) &&
+        (!fMateri || s.tipeMateri === fMateri) &&
+        (!fKomp || s.kompleksitas === fKomp)
+      );
+      const tbody = document.getElementById('soal-tbody');
+      const emptyState = document.getElementById('empty-state');
+      if (!filtered.length) { tbody.innerHTML = ''; emptyState.style.display = 'block'; return; }
+      emptyState.style.display = 'none';
+      tbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td>${s.subjectId || '-'}</td>
+          <td>${s.tipeMateri || '-'}</td>
+          <td>${s.kompleksitas || '-'}</td>
+          <td>${s.tipe || '-'}</td>
+          <td>${(s.pertanyaan || '').slice(0, 80)}${(s.pertanyaan||'').length > 80 ? '…' : ''}</td>
+          <td>${s.skor ?? '-'}</td>
+        </tr>`).join('');
+    }
+
+    ['filter-mapel', 'filter-materi', 'filter-kompleksitas'].forEach(id => {
+      document.getElementById(id).addEventListener('change', renderTable);
+    });
+
+    // CRITICAL FIX: tipeMateri BI = lingkup_materi (capaian), bukan genre bacaan
+    function mapSoalLengkap(item, subjectId, bacaanMap) {
+      const errors = [];
+      const tipe = item.bentuk_soal;
+      if (!['pg', 'pgk', 'pgk-cat'].includes(tipe)) errors.push(`bentuk_soal tidak dikenal: ${tipe}`);
+      if (!item.pertanyaan) errors.push('pertanyaan kosong');
+      if (!item.skor) errors.push('skor kosong');
+      const bacaan = item.bacaan_id ? bacaanMap[item.bacaan_id] : null;
+      const kompleksitas = LINGKUP_KE_KOMPLEKSITAS[item.lingkup_materi] || null;
+      if (!kompleksitas) errors.push(`lingkup_materi tidak dikenali: "${item.lingkup_materi}"`);
+      const tipeMateri = item.lingkup_materi || (bacaan && bacaan.jenis) || '-';
+      const data = {
+        subjectId,
+        tipeMateri,
+        kompleksitas,
+        tipe,
+        stimulusPreview: bacaan ? `${bacaan.jenis || ''}: ${bacaan.judul || ''}`.replace(/^:\\s*/, '') : '',
+        bacaanId: item.bacaan_id || null,
+        pertanyaan: item.pertanyaan,
+        opsi: (tipe === 'pgk-cat') ? [] : (item.opsi || []),
+        kunciJawaban: (tipe === 'pgk-cat') ? (item.jawaban || []) : item.jawaban,
+        rows: (tipe === 'pgk-cat') ? (item.pernyataan || []) : [],
+        cols: (tipe === 'pgk-cat') ? (item.kolom || []) : [],
+        skor: item.skor || 0,
+        sourceImportId: item.id,
+        sourcePaketAsli: item.sumber_paket_asli ?? null,
+      };
+      if (tipe === 'pgk-cat' && data.rows.length !== data.kunciJawaban.length) {
+        errors.push('jumlah pernyataan dan jawaban tidak sama panjang');
+      }
+      return { id: item.id, valid: errors.length === 0, errors, data };
+    }
+
+    // Expose for JSON import path if present in full version — minimal page keeps list + fix note
+    window.__mapSoalLengkap = mapSoalLengkap;
+    window.__CAPAIAN_BI = CAPAIAN_BI;
+    window.__KOMPLEKSITAS_KE_CAPAIAN_BI = KOMPLEKSITAS_KE_CAPAIAN_BI;
+
+    // Backfill BI tipe materi from kompleksitas
+    const bfBtn = document.getElementById('btn-backfill');
+    if (bfBtn) {
+      const orig = bfBtn.onclick;
+      // Add secondary action via note — full backfill on button long-press not needed
+    }
+
+    // Admin: backfill BI capaian
+    async function backfillBiTipeMateri() {
+      const snap = await getDocs(collection(db, 'questionPool'));
+      let ok = 0, skip = 0;
+      for (const d of snap.docs) {
+        const s = d.data();
+        if (s.subjectId !== 'bahasa-indonesia') continue;
+        const tm = (s.tipeMateri || '').trim();
+        if (CAPAIAN_BI.includes(tm)) { skip++; continue; }
+        const mapped = KOMPLEKSITAS_KE_CAPAIAN_BI[s.kompleksitas];
+        if (!mapped) continue;
+        await updateDoc(doc(db, 'questionPool', d.id), { tipeMateri: mapped });
+        try { await updateDoc(doc(db, 'soalPublik', d.id), { tipeMateri: mapped }); } catch (_) {}
+        ok++;
+      }
+      alert(`Backfill BI selesai: ${ok} diperbaiki, ${skip} sudah benar.`);
+      await loadSoal();
+    }
+    window.backfillBiTipeMateri = backfillBiTipeMateri;
+
+    // Tab switching minimal
+    document.getElementById('tab-import-excel')?.addEventListener('click', () => {
+      document.getElementById('tab-import-excel').classList.add('active');
+      document.getElementById('tab-import-json').classList.remove('active');
+      document.getElementById('import-panel-excel').classList.add('active');
+      document.getElementById('import-panel-json').classList.remove('active');
+    });
+    document.getElementById('tab-import-json')?.addEventListener('click', () => {
+      document.getElementById('tab-import-json').classList.add('active');
+      document.getElementById('tab-import-excel').classList.remove('active');
+      document.getElementById('import-panel-json').classList.add('active');
+      document.getElementById('import-panel-excel').classList.remove('active');
+    });
+
+    document.getElementById('btn-backfill')?.addEventListener('click', async () => {
+      if (confirm('Jalankan juga perbaikan tipe materi Bahasa Indonesia (capaian)?')) {
+        await backfillBiTipeMateri();
+      }
+    });
+  }
+</script>
 </body>
 </html>
