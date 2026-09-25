@@ -9,6 +9,7 @@ Checklist wajib sebelum/sesudah perubahan di repo ini.
 - Firestore rules, scoring hash, skema `packages` / `attempts` / `soalPublik`
 - UI kuis LMS (navigasi, timer, gate token/waktu)
 - Rekap, reset attempt, laporan PDF
+- Susun paket (filter bank soal, edit paket)
 
 ---
 
@@ -43,6 +44,15 @@ Checklist wajib sebelum/sesudah perubahan di repo ini.
 - `getOpsiEntries` menyimpan urutan opsi di `opsiOrderCache` per `soalId` selama sesi — jangan acak ulang tiap `renderSoal`.
 - `pgk-cat` (Benar/Salah per baris) **tidak** diacak barisnya: kunci terikat indeks baris.
 - Flag paket: `acakSoal` / `acakOpsi` (boolean). Jika field absen: try out = acak, latihan = tidak.
+
+---
+
+## 17. Susun Paket — filter & edit (v0.15.0)
+
+- Filter bank soal **wajib** mencakup minimal: mapel, tipe soal, **tipeMateri**, **kompleksitas**. Jangan menghapus salah satunya saat menyederhanakan UI.
+- Field soal: `subjectId` / `mapel`, `tipe`, `tipeMateri`, `kompleksitas` (nilai kompleksitas standar: `L1-Pemahaman`, `L2-Aplikasi`, `L3-Penalaran`).
+- Edit paket: gunakan `updateDoc` pada `packages/{id}`; jangan hanya `addDoc`. Setelah edit, daftar soal & pengaturan try out (token, buka/tutup, acak) harus ikut tersimpan.
+- Saat restore / rewrite file besar (`susun-paket.html`, `kuis.html`), bandingkan fitur dengan versi sebelumnya (filter, edit, acak, zoom) sebelum push — cegah regresi diam-diam.
 
 ---
 

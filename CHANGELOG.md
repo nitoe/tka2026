@@ -6,30 +6,35 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.15.0] — 2026-09-25
+
+### Added
+- **Edit paket** (latihan & try out) di `guru/susun-paket.html`: tombol Edit memuat nama, jenis, token, waktu, acak soal/opsi, dan daftar soal; simpan memakai `updateDoc`.
+- Filter bank soal saat susun paket dipulihkan: **tipe materi** (`tipeMateri`) dan **kompleksitas** selain mapel & tipe soal.
+
+### Fixed
+- Filter materi/kompleksitas sempat hilang saat restore file susun-paket (regresi v0.14) — dikembalikan.
+
+---
+
 ## [0.14.1] — 2026-09-25
 
 ### Added
-- Kontrol **ukuran tulisan** di halaman kuis/try out (`A−` / `A+`): 90%–150%, tersimpan di `localStorage` agar tetap dipakai di sesi berikutnya.
+- Kontrol **ukuran tulisan** di halaman kuis/try out (`A−` / `A+`): 90%–150%, tersimpan di `localStorage`.
 
 ---
 
 ## [0.14.0] — 2026-09-25
 
 ### Added
-- **Acak urutan soal & pilihan** saat try out (`app/kuis.html`):
-  - Urutan soal diacak sekali per sesi siswa (beda siswa → beda urutan).
-  - Urutan pilihan A–D diacak per soal; stabil saat navigasi bolak-balik.
-  - Penilaian tetap aman: nilai yang di-hash adalah **teks opsi**, bukan posisi.
-- Opsi di **Susun Paket** (try out): checkbox *Acak urutan soal* dan *Acak urutan pilihan* (default: aktif). Disimpan sebagai `acakSoal` / `acakOpsi` di dokumen paket.
-- Paket lama tanpa field ini: try out tetap diacak; latihan tidak.
+- Acak urutan soal & pilihan try out; flag `acakSoal` / `acakOpsi` di paket.
 
 ---
 
 ## [0.13.2] — 2026-09-25
 
 ### Fixed
-- CDN jsPDF di `guru/rekap-tryout.html`: URL cdnjs 2.5.2 **404** → jsDelivr.
-- `escapeAttr` di rekap.
+- CDN jsPDF 404 → jsDelivr; `escapeAttr` di rekap.
 
 ---
 
