@@ -8,7 +8,7 @@ Checklist wajib sebelum/sesudah perubahan di repo ini.
 
 - Firestore rules, scoring hash, skema `packages` / `attempts` / `soalPublik`
 - UI kuis LMS (navigasi, timer, gate token/waktu)
-- Rekap & reset attempt (`guru/rekap-tryout.html`)
+- Rekap, reset attempt, laporan PDF
 
 ---
 
@@ -16,17 +16,24 @@ Checklist wajib sebelum/sesudah perubahan di repo ini.
 
 - Field: `jenis`, `durasiMenit`, `maksPercobaan`, `tampilkanHasil`, `token`, `bukaPada`, `tutupPada`.
 - Layout LMS satu soal per layar; token dicek client-side.
-- Timer client-side; hasil ditahan hanya di UI siswa.
 
 ---
 
-## 14. Reset Attempt Try Out (v0.12.0)
+## 14. Reset Attempt (v0.12.0)
 
-- Hanya **staff** boleh `delete` dokumen `attempts`. Siswa: update/delete ditolak.
-- Reset **menghapus** attempt (bukan ubah status) supaya batas `maksPercobaan` longgar otomatis.
-- UI wajib modal konfirmasi — jangan one-click.
-- Setelah ubah rules: **deploy** ke Firebase atau Reset gagal permission.
-- Jangan izinkan `update` attempt dari client (cegah manipulasi skor).
+- Hanya **staff** boleh `delete` `attempts`. Siswa: update/delete ditolak.
+- Reset menghapus attempt supaya batas `maksPercobaan` longgar.
+- UI wajib modal konfirmasi.
+- Deploy firestore.rules setelah ubah rules.
+
+---
+
+## 15. Laporan PDF (v0.13.0)
+
+- Generator: `assets/laporan-pdf.js` (jsPDF + autotable CDN hanya di halaman rekap).
+- Attempt baru: simpan `poinBenar` / `poinMaks` / `noSoal` per kategori; jangan hapus field lama `{benar,total}`.
+- KKM default 70% — ubah lewat `buatLaporanPdf(attempt, { kkm })` jika perlu.
+- Jangan muat jsPDF di halaman siswa.
 
 ---
 
