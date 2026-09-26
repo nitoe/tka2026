@@ -6,78 +6,63 @@
 <title>Susun Paket – Portal Latihan TKA 2026</title>
 <link rel="stylesheet" href="../assets/theme.css">
 <style>
-  :root {
-    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
-    --green: #057a55; --green-light: #def7ec;
-    --red: #dc2626; --red-light: #fee2e2;
-    --amber: #d97706; --amber-light: #fef3c7;
-    --slate: #64748b; --slate-light: #f1f5f9;
-    --text: #1f2a37; --text-muted: #6b7280;
-    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
-    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
-    --primary-light: #ebf5ff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: clamp(14px, 3.5vw, 16px); }
-  body { font-family: var(--font, system-ui, sans-serif); background: var(--bg); color: var(--text); min-height: 100vh; }
   .container { max-width: 1100px; margin: 0 auto; padding: 0 0 40px; }
   .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.02em; }
-  .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
-  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  .page-subtitle { color: var(--text-2); font-weight: 500; font-size: 0.88rem; margin-bottom: 1.25rem; }
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 1rem; align-items: start; }
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
-  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; border: 1px solid var(--border); }
-  .card h2 { font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; font-weight: 800; }
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line); }
+  .card h2 { font-size: 0.95rem; font-weight: 750; color: var(--text); margin-bottom: 0.75rem; }
+  .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
   .filters select {
-    font-size: 0.8rem; font-weight: 700;
-    padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
-    max-width: 100%;
+    font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+    padding: 0.55rem 0.75rem; border-radius: var(--radius-xs);
+    border: 1px solid var(--line-strong); background: #fff; color: var(--text);
   }
-  .soal-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .soal-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
   .soal-item {
-    display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line);
     cursor: pointer; align-items: flex-start;
   }
   .soal-item:last-child { border-bottom: none; }
-  .soal-item:hover { background: #f8fafc; }
-  .soal-item.selected { background: var(--primary-light); }
+  .soal-item:hover { background: var(--bg-elev); }
+  .soal-item.selected { background: var(--brand-soft); }
   .soal-item input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
-  .soal-meta { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; line-height: 1.4; }
+  .soal-meta { font-size: 0.7rem; color: var(--text-3); font-weight: 600; margin-bottom: 2px; line-height: 1.4; }
   .soal-text { font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
   .selected-panel { position: sticky; top: 72px; }
   .selected-stats { display: flex; gap: 10px; margin-bottom: 12px; }
-  .selected-stats .num { font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
-  .selected-stats .label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-  .selected-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; }
-  .selected-list .item { padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .selected-stats .num { font-size: 1.3rem; color: var(--brand); font-weight: 800; }
+  .selected-stats .label { font-size: 0.68rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
+  .selected-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 0.8rem; }
+  .selected-list .item { padding: 8px 12px; border-bottom: 1px solid var(--line); font-weight: 600; }
   .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
   .field input, .field select {
-    width: 100%; font-size: 0.88rem; font-weight: 700;
-    padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+    width: 100%; font-family: var(--font); font-size: 0.88rem; font-weight: 700;
+    padding: 10px 12px; border-radius: var(--radius-xs); border: 1px solid var(--line-strong); background: #fff;
   }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .btn { border: none; border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; font-weight: 800; cursor: pointer; width: 100%; }
-  .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; }
-  .btn-secondary { background: var(--slate-light); color: var(--text); margin-top: 8px; }
+  .btn { border: none; border-radius: var(--radius-xs); padding: 12px 16px; font: 800 0.88rem var(--font); cursor: pointer; width: 100%; }
+  .btn-primary { background: var(--brand); color: white; }
+  .btn-secondary { background: var(--bg-elev); color: var(--text); margin-top: 8px; border: 1px solid var(--line); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status-line { font-size: 0.8rem; font-weight: 700; margin-top: 10px; min-height: 1.2em; }
-  .empty-state { text-align: center; padding: 28px; color: var(--text-muted); font-weight: 600; }
-  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 700; }
-  .badge-tryout { display: inline-block; background: var(--amber-light); color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
-  .badge-edit { display: inline-block; background: var(--primary-light); color: var(--primary-dark); font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
-  .paket-list .item { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .status-line { font-size: 0.8rem; font-weight: 700; margin-top: 10px; min-height: 1.2em; color: var(--text-2); }
+  .empty-state { text-align: center; padding: 28px; color: var(--text-2); font-weight: 600; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-weight: 700; }
+  .badge-tryout { display: inline-block; background: var(--warn-soft); color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .paket-list .item { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
   .paket-list .item:last-child { border-bottom: none; }
-  .paket-list .nama { font-weight: 800; color: var(--primary-dark); }
-  .paket-list .meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  .paket-list .nama { font-weight: 800; color: var(--text); }
+  .paket-list .meta { font-size: 0.72rem; color: var(--text-2); font-weight: 600; margin-top: 2px; }
   .btn-edit {
-    flex-shrink: 0; border: none; background: var(--primary-light); color: var(--primary-dark);
-    border-radius: 8px; padding: 6px 10px; font-size: 0.72rem; font-weight: 800; cursor: pointer;
+    flex-shrink: 0; border: none; background: var(--brand-soft); color: var(--brand);
+    border-radius: 8px; padding: 6px 10px; font: 800 0.72rem var(--font); cursor: pointer;
   }
   .edit-banner {
-    display: none; background: var(--amber-light); border: 1px solid #fde68a; color: #92400e;
-    border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; line-height: 1.4;
+    display: none; background: var(--warn-soft); border: 1px solid #fde68a; color: #92400e;
+    border-radius: var(--radius-xs); padding: 10px 12px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; line-height: 1.4;
   }
   .edit-banner.show { display: block; }
 </style>
@@ -87,7 +72,7 @@
 <div id="page" style="display:none;">
   <main class="container">
     <div class="page-title">📦 Susun Paket Soal</div>
-    <div class="page-subtitle">Filter bank soal (mapel → materi/kompleksitas), susun paket latihan/try out, atau <strong>edit</strong> paket yang sudah ada.</div>
+    <div class="page-subtitle">Filter bank soal, susun paket latihan/try out, atau <strong>edit</strong> paket. Centang <strong>Aktifkan paket</strong> agar terlihat siswa.</div>
     <div class="layout">
       <div>
         <div class="card">
@@ -169,6 +154,11 @@
               <label for="tampilkan-hasil" style="text-transform:none; font-size:0.84rem; margin:0;">Tampilkan skor langsung ke siswa setelah selesai</label>
             </div>
           </div>
+          <div class="checkbox-row" style="margin-top:4px;">
+            <input type="checkbox" id="paket-aktif" checked>
+            <label for="paket-aktif" style="text-transform:none; font-size:0.84rem; margin:0; font-weight:700;">Aktifkan paket (tampil di daftar siswa)</label>
+          </div>
+          <p style="font-size:0.72rem; color:var(--text-3); font-weight:600; margin:0 0 12px; line-height:1.4;">Wajib dicentang agar siswa melihat paket. Jadwal buka/tutup tetap berlaku terpisah.</p>
           <button class="btn btn-primary" id="btn-simpan-paket" disabled>Simpan Paket</button>
           <button class="btn btn-secondary" id="btn-batal-edit" type="button" style="display:none;">Batal Edit</button>
           <div class="status-line" id="simpan-status"></div>
@@ -334,6 +324,7 @@
     document.getElementById('buka-pada').value = '';
     document.getElementById('tutup-pada').value = '';
     document.getElementById('tampilkan-hasil').checked = false;
+    document.getElementById('paket-aktif').checked = true;
     document.getElementById('durasi-menit').value = 60;
     document.getElementById('maks-percobaan').value = 1;
     document.getElementById('simpan-status').textContent = '';
@@ -346,28 +337,28 @@
     const list = document.getElementById('paket-list');
     try {
       const snap = await getDocs(collection(db, 'packages'));
-      const pakets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      pakets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      if (!pakets.length) {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      if (!items.length) {
         list.innerHTML = '<div class="empty-state">Belum ada paket.</div>';
         return;
       }
-      list.innerHTML = pakets.map(p => {
+      list.innerHTML = items.map(p => {
         const j = p.jenis || 'latihan';
-        const nSoal = (p.questionIds || []).length;
+        const badge = j === 'tryout' ? '<span class="badge-tryout">TRY OUT</span>' : '';
+        const aktifBadge = p.aktif === true
+          ? '<span style="display:inline-block;background:#def7ec;color:#057a55;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">AKTIF</span>'
+          : '<span style="display:inline-block;background:#f1f5f9;color:#64748b;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">NONAKTIF</span>';
         return `<div class="item">
           <div>
-            <div class="nama">${p.nama || p.id}</div>
-            <div class="meta">
-              <span class="badge-tryout" style="${j!=='tryout'?'display:none':''}">TRY OUT</span>
-              ${nSoal} soal · skor ${p.skorMaksimal ?? '-'} · ${p.subjectId || '-'}
-            </div>
+            <div class="nama">${p.nama || p.id} ${badge}${aktifBadge}</div>
+            <div class="meta">${(p.questionIds || []).length} soal · ${p.subjectId || '-'} · ${j}</div>
           </div>
           <button type="button" class="btn-edit" data-id="${p.id}">Edit</button>
         </div>`;
       }).join('');
       list.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => startEdit(pakets.find(x => x.id === btn.dataset.id)));
+        btn.addEventListener('click', () => startEdit(items.find(x => x.id === btn.dataset.id)));
       });
     } catch (err) {
       list.innerHTML = `<div class="empty-state">Gagal memuat: ${err.message}</div>`;
@@ -399,6 +390,7 @@
     document.getElementById('buka-pada').value = toDatetimeLocalValue(p.bukaPada);
     document.getElementById('tutup-pada').value = toDatetimeLocalValue(p.tutupPada);
     document.getElementById('tampilkan-hasil').checked = !!p.tampilkanHasil;
+    document.getElementById('paket-aktif').checked = p.aktif === true;
     document.getElementById('simpan-status').textContent = '';
   }
 
@@ -408,14 +400,19 @@
     const nama = document.getElementById('nama-paket').value.trim();
     if (!nama) { alert('Nama paket wajib diisi.'); return; }
     const jenis = document.getElementById('jenis-paket').value;
-    const skorMaksimal = ids.reduce((s, id) => s + (selected[id].skor || 0), 0);
-    const subjectId = selected[ids[0]]?.subjectId || selected[ids[0]]?.mapel || null;
+    const skorMaksimal = ids.reduce((s, id) => s + (Number(selected[id]?.skor) || 0), 0);
+    let subjectId = selected[ids[0]]?.subjectId || selected[ids[0]]?.mapel || null;
+    if (subjectId === 'bahasa_indonesia' || subjectId === 'BI' || subjectId === 'bi') subjectId = 'bahasa-indonesia';
+    if (subjectId === 'matematika' || subjectId === 'MTK' || subjectId === 'mtk') subjectId = 'matematika';
+
     const payload = {
       nama,
       jenis,
       questionIds: ids,
-      skorMaksimal,
       subjectId,
+      skorMaksimal,
+      totalSkor: skorMaksimal,
+      aktif: document.getElementById('paket-aktif').checked === true,
       updatedAt: serverTimestamp(),
     };
     if (jenis === 'tryout') {
@@ -427,6 +424,13 @@
       payload.bukaPada = toIsoLocal(document.getElementById('buka-pada').value);
       payload.tutupPada = toIsoLocal(document.getElementById('tutup-pada').value);
       payload.tampilkanHasil = document.getElementById('tampilkan-hasil').checked;
+    } else {
+      payload.durasiMenit = null;
+      payload.maksPercobaan = null;
+      payload.token = null;
+      payload.bukaPada = null;
+      payload.tutupPada = null;
+      payload.tampilkanHasil = true;
     }
     const status = document.getElementById('simpan-status');
     const btn = document.getElementById('btn-simpan-paket');
@@ -435,12 +439,16 @@
     try {
       if (editingId) {
         await updateDoc(doc(db, 'packages', editingId), payload);
-        status.textContent = 'Perubahan tersimpan.';
+        status.textContent = payload.aktif
+          ? 'Perubahan tersimpan. Paket aktif — terlihat siswa.'
+          : 'Perubahan tersimpan. Paket nonaktif — disembunyikan dari siswa.';
       } else {
         payload.createdAt = serverTimestamp();
         payload.createdBy = currentStaff?.uid || auth.currentUser?.uid || null;
         await addDoc(collection(db, 'packages'), payload);
-        status.textContent = 'Paket baru tersimpan.';
+        status.textContent = payload.aktif
+          ? 'Paket baru tersimpan & aktif.'
+          : 'Paket baru tersimpan (nonaktif). Centang Aktif lalu simpan ulang agar siswa melihat.';
       }
       resetForm();
       await loadPaket();
