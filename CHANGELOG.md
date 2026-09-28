@@ -6,6 +6,18 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.4] — 2026-09-28
+
+### Fixed
+- **Penilaian kuis**: `skor` dipaksa `Number(...)` agar tidak concat string dari import.
+- **No. soal di laporan**: memakai urutan stabil di `package.questionIds` (bukan urutan setelah acak soal).
+- **Rekap**: `escapeAttr` / `escapeHtml` dipastikan memakai entitas HTML yang benar.
+
+### Tidak Berubah
+- Rumus skor total, KKM 70%, struktur `skorPerKompleksitas` / `skorPerTipeMateri`.
+
+---
+
 ## [0.18.3] — 2026-09-28
 
 ### Fixed / Improved
