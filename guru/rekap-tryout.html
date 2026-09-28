@@ -307,10 +307,10 @@
     return Math.round((skor / maks) * 100);
   }
   function escapeAttr(s) {
-    return String(s ?? '').replace(/&/g,'&').replace(/"/g,'"').replace(/</g,'<').replace(/>/g,'>');
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
   function escapeHtml(s) {
-    return String(s ?? '').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
   function deltaClass(n) {
     if (n > 0) return 'up';
