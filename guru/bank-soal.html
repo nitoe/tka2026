@@ -6,80 +6,70 @@
 <title>Bank Soal – Portal Latihan TKA 2026</title>
 <link rel="stylesheet" href="../assets/theme.css">
 <style>
-  :root {
-    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
-    --green: #057a55; --green-light: #def7ec;
-    --red: #dc2626; --red-light: #fee2e2;
-    --amber: #d97706; --amber-light: #fef3c7;
-    --slate: #64748b; --slate-light: #f1f5f9;
-    --text: #1f2a37; --text-muted: #6b7280;
-    --bg: #f0f4ff; --white: #fff; --border: #d1d5db;
-    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: clamp(14px, 3.5vw, 16px); }
-  body { font-family: var(--font, system-ui, sans-serif); background: var(--bg); color: var(--text); min-height: 100vh; }
   .container { max-width: 960px; margin: 0 auto; padding: 0 0 40px; }
   .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.02em; }
-  .page-subtitle { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 20px; }
-  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; border: 1px solid var(--border); }
-  .card h2 { font-size: 1rem; color: var(--primary-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
-  .card.disabled { opacity: 0.5; pointer-events: none; }
-  .import-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .page-subtitle { color: var(--text-2); font-weight: 500; font-size: 0.88rem; margin-bottom: 1.25rem; }
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line); }
+  .card h2 { font-size: 0.95rem; font-weight: 750; color: var(--text); margin-bottom: 0.75rem; letter-spacing: -.02em; }
+  .import-tabs { display: flex; gap: 0.35rem; margin-bottom: 0.85rem; border-bottom: 1px solid var(--line); }
   .import-tab-btn {
-    background: none; border: none; padding: 8px 4px 10px; margin-right: 16px;
-    font-size: 0.84rem; font-weight: 800;
-    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+    appearance: none; border: none; background: transparent;
+    font: 700 0.82rem var(--font); color: var(--text-3);
+    padding: 0.55rem 0.9rem; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
   }
-  .import-tab-btn.active { color: var(--primary); border-color: var(--primary); }
+  .import-tab-btn.active { color: var(--brand-2); border-bottom-color: var(--brand-2); }
   .import-panel { display: none; }
   .import-panel.active { display: block; }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat-box { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; text-align: center; border: 1px solid var(--border); }
-  .stat-box .num { font-size: 1.5rem; color: var(--primary); font-weight: 800; }
-  .stat-box .label { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
-  .warn-box {
-    background: var(--amber-light); border: 1px solid #fde68a; color: #92400e;
-    border-radius: 12px; padding: 12px 14px; font-size: 0.78rem; font-weight: 700;
-    margin-bottom: 18px; line-height: 1.6;
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.65rem; margin-bottom: 1rem; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 0.9rem 1rem; text-align: center;
   }
-  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat-box .num { font-size: 1.4rem; font-weight: 800; color: var(--brand); letter-spacing: -.02em; }
+  .stat-box .label { font-size: 0.7rem; font-weight: 600; color: var(--text-3); margin-top: 0.15rem; }
+  .warn-box {
+    background: var(--warn-soft); border: 1px solid #fde68a; color: #92400e;
+    border-radius: var(--radius-xs); padding: 0.65rem 0.75rem; font-size: 0.78rem; font-weight: 600;
+    margin-bottom: 0.85rem; line-height: 1.45;
+  }
+  .template-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
+  .btn {
+    border: none; border-radius: var(--radius-xs); padding: 0.55rem 0.9rem;
+    font: 700 0.8rem var(--font); cursor: pointer; color: #fff;
+  }
+  .btn-primary { background: var(--brand); }
+  .btn-secondary { background: var(--bg-elev); color: var(--text); border: 1px solid var(--line); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { filter: brightness(0.97); }
+  .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
   .filters select {
-    font-size: 0.82rem; font-weight: 700;
-    padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #f4f7fb;
+    font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+    padding: 0.55rem 0.75rem; border-radius: var(--radius-xs);
+    border: 1px solid var(--line-strong); background: #fff; color: var(--text);
   }
   input[type="file"] {
-    width: 100%; font-size: 0.85rem; font-weight: 700;
-    padding: 10px; border-radius: 10px; border: 1.5px dashed var(--border); background: #f4f7fb;
+    width: 100%; font-family: var(--font); font-size: 0.85rem; font-weight: 600;
+    padding: 0.65rem; border-radius: var(--radius-xs); border: 1.5px dashed var(--line-strong); background: var(--bg-elev);
   }
-  .btn {
-    border: none; border-radius: 10px; padding: 11px 18px;
-    font-size: 0.85rem; font-weight: 800;
-    cursor: pointer; color: white;
-  }
-  .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn:hover:not(:disabled) { filter: brightness(1.08); }
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  th { background: var(--slate-light); font-weight: 800; color: var(--text-muted); position: sticky; top: 0; }
-  tr.invalid { background: var(--red-light); }
-  .tag { display: inline-block; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 8px; }
-  .tag.ok { background: var(--green-light); color: var(--green); }
-  .tag.err { background: var(--red-light); color: var(--red); }
-  .preview-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
-  .summary-line { font-size: 0.85rem; font-weight: 800; margin: 12px 0; }
+  th, td { text-align: left; padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--bg-elev); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; color: var(--text-2); }
+  tr.invalid { background: var(--danger-soft); }
+  .tag { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 6px; }
+  .tag.ok { background: var(--ok-soft); color: #065f46; }
+  .tag.err { background: var(--danger-soft); color: var(--danger); }
+  .preview-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  .summary-line { font-size: 0.85rem; font-weight: 700; margin: 0.75rem 0; }
   .log-box {
-    max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;
-    background: #f8fafc; font-size: 0.78rem; font-family: monospace; margin-top: 10px;
+    max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-xs);
+    background: var(--bg-elev); font-size: 0.78rem; font-family: ui-monospace, monospace; margin-top: 0.5rem;
   }
-  .log-row { padding: 6px 12px; border-bottom: 1px solid var(--border); }
+  .log-row { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--line); }
   .log-row:last-child { border-bottom: none; }
-  .empty-state { text-align: center; padding: 30px; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; }
-  .loading-screen {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    color: var(--text-muted); font-weight: 700; font-size: 0.9rem;
-  }
+  .empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-2); font-weight: 500; font-size: 0.88rem; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-weight: 600; font-size: 0.9rem; }
+  code { font-size: 0.85em; background: var(--bg-elev); padding: 0.1em 0.35em; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -89,34 +79,49 @@
     <div class="page-title">🗂️ Bank Soal</div>
     <div class="page-subtitle" id="peran-note">Memuat...</div>
     <div class="stat-grid" id="stat-grid"></div>
+
     <div class="card" id="card-import" style="display:none;">
       <h2>⬆️ Import Soal</h2>
       <div class="import-tabs">
         <button class="import-tab-btn active" id="tab-import-excel" type="button">Dari Excel</button>
-        <button class="import-tab-btn" id="tab-import-json" type="button">Dari JSON Pool</button>
+        <button class="import-tab-btn" id="tab-import-json" type="button">Dari JSON</button>
       </div>
+
       <div id="import-panel-excel" class="import-panel active">
-        <div class="warn-box">Gunakan template resmi (sheet <b>"Template Soal"</b>). Satu baris = satu soal.</div>
+        <div class="warn-box">
+          Unduh template resmi dulu. Sheet <b>"Template Soal"</b> — satu baris = satu soal.
+          Baris invalid ditandai merah dan <b>tidak</b> ikut diimpor.
+          <br>Setelah import, jalankan <b>Perbarui Soal Publik</b> jika perlu (biasanya otomatis saat import).
+        </div>
+        <div class="template-row">
+          <button type="button" class="btn btn-secondary" id="btn-dl-xlsx">⬇️ Unduh Template Excel (.xlsx)</button>
+          <button type="button" class="btn btn-secondary" id="btn-dl-json">⬇️ Unduh Template JSON (.json)</button>
+        </div>
         <input type="file" id="file-input" accept=".xlsx,.xls">
         <div id="preview-area" style="margin-top:14px;"></div>
       </div>
+
       <div id="import-panel-json" class="import-panel">
-        <div class="warn-box">Import JSON pool (soal lengkap / ilustrasi / migrasi).</div>
+        <div class="warn-box">
+          Format JSON migrasi (array soal) atau pool lengkap (BI dengan bacaan).
+          Contoh struktur ada di template JSON. Field wajib mengikuti skema yang sama dengan Excel.
+        </div>
+        <div class="template-row">
+          <button type="button" class="btn btn-secondary" id="btn-dl-json-2">⬇️ Unduh Template JSON (.json)</button>
+        </div>
         <input type="file" id="file-input-json" accept=".json">
         <div id="preview-area-json" style="margin-top:14px;"></div>
       </div>
     </div>
+
     <div class="card" id="card-backfill" style="display:none;">
       <h2>🔄 Perbarui Soal Publik (untuk Siswa)</h2>
-      <div class="warn-box">Membuat versi publik (kunci di-hash) untuk siswa. Juga bisa memperbaiki tipe materi Bahasa Indonesia (capaian).</div>
+      <div class="warn-box">Menyalin bank soal ke <code>soalPublik</code> dengan kunci di-hash. Juga bisa merapikan tipe materi BI (capaian).</div>
       <button class="btn btn-primary" id="btn-backfill">Perbarui Soal Publik Sekarang</button>
-      <div id="backfill-status"></div>
+      <div id="backfill-status" style="margin-top:0.5rem;font-size:0.85rem;font-weight:600;"></div>
       <div class="log-box" id="backfill-log" style="display:none;"></div>
     </div>
-    <div class="card" id="card-ilustrasi" style="display:none;">
-      <h2>🖼️ Pustaka Ilustrasi Menunggu Teks Soal</h2>
-      <div class="warn-box" id="ilustrasi-note">—</div>
-    </div>
+
     <div class="card">
       <h2>📋 Daftar Soal Tersimpan</h2>
       <div class="filters">
@@ -126,7 +131,7 @@
       </div>
       <div class="preview-wrap">
         <table>
-          <thead><tr><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe Soal</th><th>Pertanyaan</th><th>Skor</th></tr></thead>
+          <thead><tr><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe</th><th>Pertanyaan</th><th>Skor</th></tr></thead>
           <tbody id="soal-tbody"></tbody>
         </table>
       </div>
@@ -138,28 +143,358 @@
   <div>Firebase belum dikonfigurasi.</div>
   <a href="../index.html" style="color:#1a56db;font-weight:800;">← Kembali</a>
 </div>
+
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
-  import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-  import { computeKunciHash } from '../assets/scoring.js';
+  import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { computeKunciHash, toSoalPublik } from '../assets/scoring.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
   const notConfigured = document.getElementById('not-configured');
 
+  const TIPE_SOAL_VALID = ['pg', 'pgk', 'pgk-cat'];
+  const KOMPLEKSITAS_VALID = ['L1-Pemahaman', 'L2-Aplikasi', 'L3-Penalaran'];
+  const MAPEL_VALID = ['matematika', 'bahasa-indonesia'];
+  const CAPAIAN_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
   const LINGKUP_KE_KOMPLEKSITAS = {
     'Pemahaman Tekstual': 'L1-Pemahaman',
     'Pemahaman Inferensial': 'L2-Aplikasi',
     'Evaluasi dan Apresiasi': 'L3-Penalaran',
   };
-  const CAPAIAN_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
   const KOMPLEKSITAS_KE_CAPAIAN_BI = {
     'L1-Pemahaman': 'Pemahaman Tekstual',
     'L2-Aplikasi': 'Pemahaman Inferensial',
     'L3-Penalaran': 'Evaluasi dan Apresiasi',
   };
+
+  // ── Kolom Excel resmi (urutan stabil) ──
+  const EXCEL_HEADERS = [
+    'mataPelajaran', 'tipeMateri', 'kompleksitas', 'tipeSoal', 'stimulus', 'pertanyaan', 'skor',
+    'opsiA', 'opsiB', 'opsiC', 'opsiD', 'kunciJawaban',
+    'pernyataan1', 'kunci1', 'pernyataan2', 'kunci2', 'pernyataan3', 'kunci3', 'pernyataan4', 'kunci4',
+  ];
+
+  function downloadBlob(filename, blob) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  function buildExcelTemplate() {
+    if (typeof XLSX === 'undefined') {
+      alert('Library Excel belum termuat. Muat ulang halaman.');
+      return;
+    }
+    // Contoh 3 tipe soal
+    const contoh = [
+      {
+        mataPelajaran: 'matematika',
+        tipeMateri: 'Bilangan',
+        kompleksitas: 'L1-Pemahaman',
+        tipeSoal: 'pg',
+        stimulus: '',
+        pertanyaan: 'Hasil dari 12 + 8 adalah …',
+        skor: 1,
+        opsiA: '18', opsiB: '20', opsiC: '22', opsiD: '24',
+        kunciJawaban: '20',
+        pernyataan1: '', kunci1: '', pernyataan2: '', kunci2: '',
+        pernyataan3: '', kunci3: '', pernyataan4: '', kunci4: '',
+      },
+      {
+        mataPelajaran: 'matematika',
+        tipeMateri: 'Bilangan',
+        kompleksitas: 'L2-Aplikasi',
+        tipeSoal: 'pgk',
+        stimulus: '',
+        pertanyaan: 'Manakah yang termasuk bilangan genap? (boleh lebih dari satu)',
+        skor: 2,
+        opsiA: '3', opsiB: '4', opsiC: '7', opsiD: '10',
+        kunciJawaban: '4;10',
+        pernyataan1: '', kunci1: '', pernyataan2: '', kunci2: '',
+        pernyataan3: '', kunci3: '', pernyataan4: '', kunci4: '',
+      },
+      {
+        mataPelajaran: 'bahasa-indonesia',
+        tipeMateri: 'Pemahaman Tekstual',
+        kompleksitas: 'L1-Pemahaman',
+        tipeSoal: 'pgk-cat',
+        stimulus: 'Bacalah teks singkat tentang kebersihan sekolah.',
+        pertanyaan: 'Tentukan benar/salah setiap pernyataan berikut.',
+        skor: 2,
+        opsiA: '', opsiB: '', opsiC: '', opsiD: '',
+        kunciJawaban: '',
+        pernyataan1: 'Menjaga kebersihan adalah tanggung jawab bersama.', kunci1: 'Benar',
+        pernyataan2: 'Membuang sampah di sungai diperbolehkan.', kunci2: 'Salah',
+        pernyataan3: '', kunci3: '', pernyataan4: '', kunci4: '',
+      },
+    ];
+
+    const petunjuk = [
+      ['Kolom', 'Wajib', 'Keterangan'],
+      ['mataPelajaran', 'Ya', 'matematika | bahasa-indonesia'],
+      ['tipeMateri', 'Ya', 'MTK: materi bebas (mis. Bilangan). BI: gunakan capaian: Pemahaman Tekstual | Pemahaman Inferensial | Evaluasi dan Apresiasi'],
+      ['kompleksitas', 'Ya', 'L1-Pemahaman | L2-Aplikasi | L3-Penalaran'],
+      ['tipeSoal', 'Ya', 'pg (satu jawaban) | pgk (multi) | pgk-cat (benar/salah per pernyataan)'],
+      ['stimulus', 'Tidak', 'Teks stimulus/bacaan singkat (opsional)'],
+      ['pertanyaan', 'Ya', 'Teks pertanyaan'],
+      ['skor', 'Ya', 'Angka > 0'],
+      ['opsiA..opsiD', 'pg/pgk', 'Minimal 2 opsi terisi. Teks opsi harus unik.'],
+      ['kunciJawaban', 'pg/pgk', 'pg: teks opsi yang benar (harus sama persis dengan salah satu opsi). pgk: beberapa opsi dipisah titik koma ; tanpa spasi berlebih (contoh: 4;10)'],
+      ['pernyataan1..4 + kunci1..4', 'pgk-cat', 'Isi pernyataan; kunci harus tepat "Benar" atau "Salah". Minimal pernyataan1.'],
+      ['Catatan', '', 'Nama sheet harus "Template Soal". Baris contoh boleh dihapus/diganti. Jangan ubah nama kolom header.'],
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const wsData = [EXCEL_HEADERS, ...contoh.map(r => EXCEL_HEADERS.map(h => r[h] ?? ''))];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = EXCEL_HEADERS.map(h => ({ wch: Math.min(28, Math.max(12, h.length + 2)) }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Template Soal');
+
+    const wsP = XLSX.utils.aoa_to_sheet(petunjuk);
+    wsP['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 70 }];
+    XLSX.utils.book_append_sheet(wb, wsP, 'Petunjuk');
+
+    XLSX.writeFile(wb, 'TKA2026-template-soal.xlsx');
+  }
+
+  function buildJsonTemplate() {
+    const template = {
+      _petunjuk: {
+        deskripsi: 'Template JSON import bank soal TKA 2026. Hapus field _petunjuk sebelum import jika parser menolak objek non-soal (importer akan mengabaikan kunci yang diawali _).',
+        format_excel_setara: 'Setiap item = satu baris Excel. Gunakan subjectId (bukan mataPelajaran).',
+        tipe: 'pg | pgk | pgk-cat',
+        kompleksitas: KOMPLEKSITAS_VALID,
+        subjectId: MAPEL_VALID,
+        kunci_pg: 'string teks opsi yang benar',
+        kunci_pgk: 'array string teks opsi yang benar',
+        kunci_pgk_cat: 'array "Benar"|"Salah" sejajar dengan rows',
+      },
+      soal: [
+        {
+          subjectId: 'matematika',
+          tipeMateri: 'Bilangan',
+          kompleksitas: 'L1-Pemahaman',
+          tipe: 'pg',
+          stimulus: '',
+          pertanyaan: 'Hasil dari 12 + 8 adalah …',
+          skor: 1,
+          opsi: ['18', '20', '22', '24'],
+          kunciJawaban: '20',
+        },
+        {
+          subjectId: 'matematika',
+          tipeMateri: 'Bilangan',
+          kompleksitas: 'L2-Aplikasi',
+          tipe: 'pgk',
+          stimulus: '',
+          pertanyaan: 'Manakah yang termasuk bilangan genap?',
+          skor: 2,
+          opsi: ['3', '4', '7', '10'],
+          kunciJawaban: ['4', '10'],
+        },
+        {
+          subjectId: 'bahasa-indonesia',
+          tipeMateri: 'Pemahaman Tekstual',
+          kompleksitas: 'L1-Pemahaman',
+          tipe: 'pgk-cat',
+          stimulus: 'Bacalah teks singkat tentang kebersihan sekolah.',
+          pertanyaan: 'Tentukan benar/salah setiap pernyataan.',
+          skor: 2,
+          opsi: [],
+          rows: [
+            'Menjaga kebersihan adalah tanggung jawab bersama.',
+            'Membuang sampah di sungai diperbolehkan.',
+          ],
+          cols: ['Benar', 'Salah'],
+          kunciJawaban: ['Benar', 'Salah'],
+        },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+    downloadBlob('TKA2026-template-soal.json', blob);
+  }
+
+  function validateExcelRow(row, idx) {
+    const errors = [];
+    const mapel = String(row.mataPelajaran || '').trim();
+    const tipeMateri = String(row.tipeMateri || '').trim();
+    const kompleksitas = String(row.kompleksitas || '').trim();
+    const tipeSoal = String(row.tipeSoal || '').trim();
+    const pertanyaan = String(row.pertanyaan || '').trim();
+    const skor = Number(row.skor);
+
+    if (!MAPEL_VALID.includes(mapel)) errors.push(`mataPelajaran harus: ${MAPEL_VALID.join(' | ')}`);
+    if (!tipeMateri) errors.push('tipeMateri kosong');
+    if (!KOMPLEKSITAS_VALID.includes(kompleksitas)) errors.push(`kompleksitas harus: ${KOMPLEKSITAS_VALID.join(' | ')}`);
+    if (!TIPE_SOAL_VALID.includes(tipeSoal)) errors.push(`tipeSoal harus: ${TIPE_SOAL_VALID.join(' | ')}`);
+    if (!pertanyaan) errors.push('pertanyaan kosong');
+    if (!skor || skor <= 0) errors.push('skor harus angka > 0');
+
+    let opsi = [row.opsiA, row.opsiB, row.opsiC, row.opsiD].map(v => String(v || '').trim()).filter(Boolean);
+    let kunciJawaban = null;
+    let pernyataanRows = [];
+    let kunciRows = [];
+
+    if (tipeSoal === 'pg' || tipeSoal === 'pgk') {
+      if (opsi.length < 2) errors.push('opsi minimal 2 (isi opsiA..opsiD)');
+      const kunciRaw = String(row.kunciJawaban || '').trim();
+      if (!kunciRaw) {
+        errors.push('kunciJawaban kosong');
+      } else if (tipeSoal === 'pg') {
+        if (!opsi.includes(kunciRaw)) errors.push('kunciJawaban harus sama persis dengan salah satu opsi');
+        kunciJawaban = kunciRaw;
+      } else {
+        kunciJawaban = kunciRaw.split(';').map(s => s.trim()).filter(Boolean);
+        const invalid = kunciJawaban.filter(k => !opsi.includes(k));
+        if (!kunciJawaban.length) errors.push('kunciJawaban pgk kosong setelah di-split');
+        if (invalid.length) errors.push(`kunci tidak cocok opsi: ${invalid.join(', ')}`);
+      }
+    } else if (tipeSoal === 'pgk-cat') {
+      for (let i = 1; i <= 4; i++) {
+        const pernyataan = String(row['pernyataan' + i] || '').trim();
+        const kunci = String(row['kunci' + i] || '').trim();
+        if (pernyataan) {
+          if (!['Benar', 'Salah'].includes(kunci)) {
+            errors.push(`kunci${i} harus "Benar" atau "Salah"`);
+          }
+          pernyataanRows.push(pernyataan);
+          kunciRows.push(kunci);
+        }
+      }
+      if (!pernyataanRows.length) errors.push('minimal isi pernyataan1 untuk pgk-cat');
+    }
+
+    return {
+      rowIndex: idx,
+      valid: errors.length === 0,
+      errors,
+      data: {
+        subjectId: mapel,
+        tipeMateri,
+        kompleksitas,
+        tipe: tipeSoal,
+        stimulus: String(row.stimulus || '').trim(),
+        pertanyaan,
+        opsi: (tipeSoal === 'pgk-cat') ? [] : opsi,
+        kunciJawaban: (tipeSoal === 'pgk-cat') ? kunciRows : kunciJawaban,
+        rows: (tipeSoal === 'pgk-cat') ? pernyataanRows : [],
+        cols: (tipeSoal === 'pgk-cat') ? ['Benar', 'Salah'] : [],
+        skor: skor || 0,
+      },
+    };
+  }
+
+  function validateJsonItem(item, idx) {
+    const errors = [];
+    if (!item || typeof item !== 'object') {
+      return { rowIndex: idx, valid: false, errors: ['bukan objek soal'], data: null };
+    }
+    // skip meta
+    if (item._petunjuk || item.deskripsi && !item.pertanyaan) {
+      return { rowIndex: idx, valid: false, errors: ['meta — dilewati'], data: null, skip: true };
+    }
+    const subjectId = String(item.subjectId || item.mataPelajaran || '').trim();
+    const tipe = String(item.tipe || item.tipeSoal || '').trim();
+    const tipeMateri = String(item.tipeMateri || '').trim();
+    const kompleksitas = String(item.kompleksitas || '').trim();
+    const pertanyaan = String(item.pertanyaan || '').trim();
+    const skor = Number(item.skor);
+
+    if (!MAPEL_VALID.includes(subjectId)) errors.push(`subjectId harus: ${MAPEL_VALID.join(' | ')}`);
+    if (!tipeMateri) errors.push('tipeMateri kosong');
+    if (!KOMPLEKSITAS_VALID.includes(kompleksitas)) errors.push(`kompleksitas tidak valid`);
+    if (!TIPE_SOAL_VALID.includes(tipe)) errors.push(`tipe tidak valid`);
+    if (!pertanyaan) errors.push('pertanyaan kosong');
+    if (!skor || skor <= 0) errors.push('skor harus > 0');
+
+    let opsi = Array.isArray(item.opsi) ? item.opsi.map(String) : [];
+    let kunciJawaban = item.kunciJawaban;
+    let rows = Array.isArray(item.rows) ? item.rows.map(String) : [];
+    let cols = Array.isArray(item.cols) ? item.cols.map(String) : [];
+
+    if (tipe === 'pg') {
+      if (opsi.length < 2) errors.push('opsi minimal 2');
+      if (typeof kunciJawaban !== 'string' || !kunciJawaban.trim()) errors.push('kunciJawaban string wajib');
+      else if (!opsi.includes(kunciJawaban)) errors.push('kunciJawaban tidak ada di opsi');
+    } else if (tipe === 'pgk') {
+      if (opsi.length < 2) errors.push('opsi minimal 2');
+      if (!Array.isArray(kunciJawaban) || !kunciJawaban.length) errors.push('kunciJawaban harus array');
+      else {
+        const inv = kunciJawaban.filter(k => !opsi.includes(k));
+        if (inv.length) errors.push('kunci tidak cocok opsi');
+      }
+    } else if (tipe === 'pgk-cat') {
+      if (!rows.length) errors.push('rows kosong');
+      if (!Array.isArray(kunciJawaban) || kunciJawaban.length !== rows.length) {
+        errors.push('kunciJawaban harus array sama panjang dengan rows');
+      } else if (kunciJawaban.some(k => !['Benar', 'Salah'].includes(k))) {
+        errors.push('setiap kunci harus Benar/Salah');
+      }
+      if (!cols.length) cols = ['Benar', 'Salah'];
+      opsi = [];
+    }
+
+    return {
+      rowIndex: idx,
+      valid: errors.length === 0,
+      errors,
+      data: errors.length ? null : {
+        subjectId,
+        tipeMateri,
+        kompleksitas,
+        tipe,
+        stimulus: String(item.stimulus || '').trim(),
+        pertanyaan,
+        opsi: tipe === 'pgk-cat' ? [] : opsi,
+        kunciJawaban,
+        rows: tipe === 'pgk-cat' ? rows : [],
+        cols: tipe === 'pgk-cat' ? cols : [],
+        skor: skor || 0,
+      },
+    };
+  }
+
+  async function commitSoalList(validDataList, sourceLabel, statusEl, logEl) {
+    let count = 0;
+    const chunk = 40;
+    for (let i = 0; i < validDataList.length; i += chunk) {
+      const slice = validDataList.slice(i, i + chunk);
+      const batch = writeBatch(db);
+      for (const data of slice) {
+        const ref = doc(collection(db, 'questionPool'));
+        const kunciHash = await computeKunciHash(data.tipe, data.kunciJawaban);
+        const { kunciJawaban, ...rest } = data;
+        const payload = {
+          ...rest,
+          kunciJawaban,
+          sourceFile: sourceLabel,
+          createdAt: serverTimestamp(),
+        };
+        batch.set(ref, payload);
+        const publik = await toSoalPublik({ id: ref.id, ...payload });
+        const { id: _id, kunciJawaban: _k, ...pubRest } = publik;
+        batch.set(doc(db, 'soalPublik', ref.id), {
+          ...pubRest,
+          kunciHash,
+          createdAt: serverTimestamp(),
+        });
+        count++;
+      }
+      await batch.commit();
+      if (logEl) {
+        logEl.style.display = 'block';
+        logEl.innerHTML += `<div class="log-row">✅ ${count}/${validDataList.length} tersimpan…</div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+    if (statusEl) statusEl.textContent = `Selesai: ${count} soal diimpor.`;
+    return count;
+  }
 
   if (!isConfigured) {
     loading.style.display = 'none';
@@ -175,7 +510,7 @@
       currentStaff = staff;
       document.getElementById('peran-note').textContent =
         `Masuk sebagai ${staff.nama} (${staff.peran}). ` +
-        (staff.peran === 'admin' ? 'Kamu bisa mengimpor soal baru.' : 'Guru dapat melihat bank soal.');
+        (staff.peran === 'admin' ? 'Anda dapat mengimpor soal dan mengunduh template.' : 'Guru dapat melihat bank soal.');
       if (staff.peran === 'admin') {
         document.getElementById('card-import').style.display = 'block';
         document.getElementById('card-backfill').style.display = 'block';
@@ -215,8 +550,8 @@
 
       const mapel = selMapel.value;
       const pool = mapel ? allSoal.filter(s => s.subjectId === mapel) : allSoal;
-      const materiSet = [...new Set(pool.map(s => s.tipeMateri).filter(Boolean))].sort((a,c) => a.localeCompare(c, 'id'));
-      const kompSet = [...new Set(pool.map(s => s.kompleksitas).filter(Boolean))].sort((a,c) => a.localeCompare(c, 'id'));
+      const materiSet = [...new Set(pool.map(s => s.tipeMateri).filter(Boolean))].sort((a, c) => a.localeCompare(c, 'id'));
+      const kompSet = [...new Set(pool.map(s => s.kompleksitas).filter(Boolean))].sort((a, c) => a.localeCompare(c, 'id'));
       const fillDep = (id, ph, vals) => {
         const el = document.getElementById(id);
         const cur = el.value;
@@ -246,7 +581,7 @@
           <td>${s.tipeMateri || '-'}</td>
           <td>${s.kompleksitas || '-'}</td>
           <td>${s.tipe || '-'}</td>
-          <td>${(s.pertanyaan || '').slice(0, 80)}${(s.pertanyaan||'').length > 80 ? '…' : ''}</td>
+          <td>${(s.pertanyaan || '').slice(0, 80)}${(s.pertanyaan || '').length > 80 ? '…' : ''}</td>
           <td>${s.skor ?? '-'}</td>
         </tr>`).join('');
     }
@@ -259,58 +594,12 @@
       document.getElementById(id).addEventListener('change', renderTable);
     });
 
-    function mapSoalLengkap(item, subjectId, bacaanMap) {
-      const errors = [];
-      const tipe = item.bentuk_soal;
-      if (!['pg', 'pgk', 'pgk-cat'].includes(tipe)) errors.push(`bentuk_soal tidak dikenal: ${tipe}`);
-      if (!item.pertanyaan) errors.push('pertanyaan kosong');
-      if (!item.skor) errors.push('skor kosong');
-      const bacaan = item.bacaan_id ? bacaanMap[item.bacaan_id] : null;
-      const kompleksitas = LINGKUP_KE_KOMPLEKSITAS[item.lingkup_materi] || null;
-      if (!kompleksitas) errors.push(`lingkup_materi tidak dikenali: "${item.lingkup_materi}"`);
-      const tipeMateri = item.lingkup_materi || (bacaan && bacaan.jenis) || '-';
-      const data = {
-        subjectId,
-        tipeMateri,
-        kompleksitas,
-        tipe,
-        stimulusPreview: bacaan ? `${bacaan.jenis || ''}: ${bacaan.judul || ''}`.replace(/^:\s*/, '') : '',
-        bacaanId: item.bacaan_id || null,
-        pertanyaan: item.pertanyaan,
-        opsi: (tipe === 'pgk-cat') ? [] : (item.opsi || []),
-        kunciJawaban: (tipe === 'pgk-cat') ? (item.jawaban || []) : item.jawaban,
-        rows: (tipe === 'pgk-cat') ? (item.pernyataan || []) : [],
-        cols: (tipe === 'pgk-cat') ? (item.kolom || []) : [],
-        skor: item.skor || 0,
-        sourceImportId: item.id,
-        sourcePaketAsli: item.sumber_paket_asli ?? null,
-      };
-      if (tipe === 'pgk-cat' && data.rows.length !== data.kunciJawaban.length) {
-        errors.push('jumlah pernyataan dan jawaban tidak sama panjang');
-      }
-      return { id: item.id, valid: errors.length === 0, errors, data };
-    }
-    window.__mapSoalLengkap = mapSoalLengkap;
+    // Template downloads
+    document.getElementById('btn-dl-xlsx')?.addEventListener('click', buildExcelTemplate);
+    document.getElementById('btn-dl-json')?.addEventListener('click', buildJsonTemplate);
+    document.getElementById('btn-dl-json-2')?.addEventListener('click', buildJsonTemplate);
 
-    async function backfillBiTipeMateri() {
-      const snap = await getDocs(collection(db, 'questionPool'));
-      let ok = 0, skip = 0;
-      for (const d of snap.docs) {
-        const s = d.data();
-        if (s.subjectId !== 'bahasa-indonesia') continue;
-        const tm = (s.tipeMateri || '').trim();
-        if (CAPAIAN_BI.includes(tm)) { skip++; continue; }
-        const mapped = KOMPLEKSITAS_KE_CAPAIAN_BI[s.kompleksitas];
-        if (!mapped) continue;
-        await updateDoc(doc(db, 'questionPool', d.id), { tipeMateri: mapped });
-        try { await updateDoc(doc(db, 'soalPublik', d.id), { tipeMateri: mapped }); } catch (_) {}
-        ok++;
-      }
-      alert(`Backfill BI selesai: ${ok} diperbaiki, ${skip} sudah benar.`);
-      await loadSoal();
-    }
-    window.backfillBiTipeMateri = backfillBiTipeMateri;
-
+    // Tabs
     document.getElementById('tab-import-excel')?.addEventListener('click', () => {
       document.getElementById('tab-import-excel').classList.add('active');
       document.getElementById('tab-import-json').classList.remove('active');
@@ -324,9 +613,169 @@
       document.getElementById('import-panel-excel').classList.remove('active');
     });
 
+    // Excel import
+    document.getElementById('file-input')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const previewArea = document.getElementById('preview-area');
+      previewArea.innerHTML = 'Membaca file…';
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheetName = wb.SheetNames.includes('Template Soal') ? 'Template Soal' : wb.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+        const results = rows.map((row, i) => validateExcelRow(row, i + 2));
+        const validRows = results.filter(r => r.valid);
+        const invalidRows = results.filter(r => !r.valid);
+
+        let html = `<div class="summary-line">✅ ${validRows.length} valid siap impor &nbsp;|&nbsp; ❌ ${invalidRows.length} ditolak</div>`;
+        html += `<div class="preview-wrap"><table><thead><tr>
+          <th>Baris</th><th>Status</th><th>Mapel</th><th>Tipe</th><th>Pertanyaan</th><th>Catatan</th>
+        </tr></thead><tbody>`;
+        results.forEach(r => {
+          html += `<tr class="${r.valid ? '' : 'invalid'}">
+            <td>${r.rowIndex}</td>
+            <td><span class="tag ${r.valid ? 'ok' : 'err'}">${r.valid ? 'OK' : 'ERR'}</span></td>
+            <td>${r.data?.subjectId || '-'}</td>
+            <td>${r.data?.tipe || '-'}</td>
+            <td>${(r.data?.pertanyaan || '').slice(0, 60)}</td>
+            <td>${r.errors.join('; ') || '—'}</td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        if (validRows.length) {
+          html += `<button type="button" class="btn btn-primary" id="btn-do-import-xlsx" style="margin-top:10px;">Impor ${validRows.length} Soal Valid</button>
+            <div id="xlsx-import-status"></div><div class="log-box" id="xlsx-import-log" style="display:none;"></div>`;
+        }
+        previewArea.innerHTML = html;
+        document.getElementById('btn-do-import-xlsx')?.addEventListener('click', async () => {
+          const btn = document.getElementById('btn-do-import-xlsx');
+          btn.disabled = true;
+          btn.textContent = 'Mengimpor…';
+          try {
+            await commitSoalList(
+              validRows.map(r => r.data),
+              file.name,
+              document.getElementById('xlsx-import-status'),
+              document.getElementById('xlsx-import-log')
+            );
+            btn.textContent = 'Selesai ✅';
+            await loadSoal();
+          } catch (err) {
+            document.getElementById('xlsx-import-status').textContent = 'Gagal: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      } catch (err) {
+        previewArea.innerHTML = `<div class="warn-box">❌ Gagal membaca file: ${err.message}</div>`;
+      }
+    });
+
+    // JSON import (migrasi array / { soal: [...] })
+    document.getElementById('file-input-json')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const previewArea = document.getElementById('preview-area-json');
+      previewArea.innerHTML = 'Membaca JSON…';
+      try {
+        const text = await file.text();
+        let parsed = JSON.parse(text);
+        let list = [];
+        if (Array.isArray(parsed)) list = parsed;
+        else if (Array.isArray(parsed.soal)) list = parsed.soal;
+        else if (Array.isArray(parsed.items)) list = parsed.items;
+        else throw new Error('JSON harus array soal, atau objek dengan field "soal" / "items" (array).');
+
+        const results = list.map((item, i) => validateJsonItem(item, i + 1)).filter(r => !r.skip);
+        const validRows = results.filter(r => r.valid);
+        const invalidRows = results.filter(r => !r.valid);
+
+        let html = `<div class="summary-line">✅ ${validRows.length} valid &nbsp;|&nbsp; ❌ ${invalidRows.length} ditolak</div>`;
+        html += `<div class="preview-wrap"><table><thead><tr>
+          <th>#</th><th>Status</th><th>Mapel</th><th>Tipe</th><th>Pertanyaan</th><th>Catatan</th>
+        </tr></thead><tbody>`;
+        results.forEach(r => {
+          html += `<tr class="${r.valid ? '' : 'invalid'}">
+            <td>${r.rowIndex}</td>
+            <td><span class="tag ${r.valid ? 'ok' : 'err'}">${r.valid ? 'OK' : 'ERR'}</span></td>
+            <td>${r.data?.subjectId || '-'}</td>
+            <td>${r.data?.tipe || '-'}</td>
+            <td>${(r.data?.pertanyaan || '').slice(0, 60)}</td>
+            <td>${r.errors.join('; ') || '—'}</td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        if (validRows.length) {
+          html += `<button type="button" class="btn btn-primary" id="btn-do-import-json" style="margin-top:10px;">Impor ${validRows.length} Soal Valid</button>
+            <div id="json-import-status"></div><div class="log-box" id="json-import-log" style="display:none;"></div>`;
+        }
+        previewArea.innerHTML = html;
+        document.getElementById('btn-do-import-json')?.addEventListener('click', async () => {
+          const btn = document.getElementById('btn-do-import-json');
+          btn.disabled = true;
+          btn.textContent = 'Mengimpor…';
+          try {
+            await commitSoalList(
+              validRows.map(r => r.data),
+              file.name,
+              document.getElementById('json-import-status'),
+              document.getElementById('json-import-log')
+            );
+            btn.textContent = 'Selesai ✅';
+            await loadSoal();
+          } catch (err) {
+            document.getElementById('json-import-status').textContent = 'Gagal: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      } catch (err) {
+        previewArea.innerHTML = `<div class="warn-box">❌ Gagal: ${err.message}</div>`;
+      }
+    });
+
+    // Backfill publik
     document.getElementById('btn-backfill')?.addEventListener('click', async () => {
-      if (confirm('Jalankan juga perbaikan tipe materi Bahasa Indonesia (capaian)?')) {
-        await backfillBiTipeMateri();
+      const status = document.getElementById('backfill-status');
+      const log = document.getElementById('backfill-log');
+      log.style.display = 'block';
+      log.innerHTML = '';
+      status.textContent = 'Memproses…';
+      try {
+        if (confirm('Rapikan juga tipe materi Bahasa Indonesia ke capaian resmi?')) {
+          const snap = await getDocs(collection(db, 'questionPool'));
+          let ok = 0, skip = 0;
+          for (const d of snap.docs) {
+            const s = d.data();
+            if (s.subjectId !== 'bahasa-indonesia') continue;
+            const tm = (s.tipeMateri || '').trim();
+            if (CAPAIAN_BI.includes(tm)) { skip++; continue; }
+            const mapped = KOMPLEKSITAS_KE_CAPAIAN_BI[s.kompleksitas];
+            if (!mapped) continue;
+            await updateDoc(doc(db, 'questionPool', d.id), { tipeMateri: mapped });
+            try { await updateDoc(doc(db, 'soalPublik', d.id), { tipeMateri: mapped }); } catch (_) {}
+            ok++;
+          }
+          log.innerHTML += `<div class="log-row">BI tipeMateri: ${ok} diperbaiki, ${skip} sudah benar.</div>`;
+        }
+        const snap = await getDocs(collection(db, 'questionPool'));
+        let n = 0;
+        for (const d of snap.docs) {
+          const s = { id: d.id, ...d.data() };
+          if (!s.kunciJawaban && !s.tipe) continue;
+          try {
+            const publik = await toSoalPublik(s);
+            const { id, kunciJawaban, ...rest } = publik;
+            await setDoc(doc(db, 'soalPublik', d.id), { ...rest, updatedAt: serverTimestamp() }, { merge: true });
+            n++;
+            if (n % 20 === 0) log.innerHTML += `<div class="log-row">${n} soal publik…</div>`;
+          } catch (err) {
+            log.innerHTML += `<div class="log-row">Gagal ${d.id}: ${err.message}</div>`;
+          }
+        }
+        status.textContent = `Backfill selesai: ${n} soal publik.`;
+        await loadSoal();
+      } catch (err) {
+        status.textContent = 'Gagal: ' + err.message;
       }
     });
   }
