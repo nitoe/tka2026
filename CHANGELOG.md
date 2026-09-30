@@ -9,6 +9,7 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 ## [0.18.11] — 2026-09-30
 
 ### Added
+- **Analisis statistik per kelas; regresi linear BI~MTK (r, R², scatter)**: mean, median, min/max, simpangan baku, ketuntasan KKM 70%, sebaran 4 band, grafik Chart.js, insight otomatis; ringkasan statistik di PDF.
 - **Rekap nilai per kelas** (`guru/rekap-kelas.html`): roster siswa kelas 6A/6B, nilai MTK & BI (persen terbaik), keterangan "tidak mengikuti", peringkat terbaik / MTK / BI.
 - Ekspor **PDF** landscape + blok pengesahan (Guru Kelas 6A/6B, Kepala Sekolah).
 - Menu sidebar **Rekap per Kelas**.
