@@ -6,6 +6,18 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.10] — 2026-09-30
+
+### Added
+- **Susun paket — kelola soal paket**: daftar soal terpilih menampilkan cuplikan pertanyaan, meta, tombol **Edit soal** (buka `bank-soal.html?edit=…`) dan **Keluarkan**.
+- Filter **Tampilkan hanya soal dalam paket** + pintasan **Kelola di Bank Soal**.
+- **Bank soal**: parameter URL `?edit=<idSoal>` membuka form edit otomatis setelah data termuat.
+
+### Tidak Berubah
+- Skema `packages.questionIds`, gate try out, scoring.
+
+---
+
 ## [0.18.9] — 2026-09-30
 
 ### Fixed
