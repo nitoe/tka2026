@@ -326,6 +326,28 @@
     background: linear-gradient(transparent, #f8fafc);
     pointer-events: none;
   }
+
+  .stimulus-lightbox:not(.show) { visibility: hidden; pointer-events: none; }
+  .stimulus-lightbox.show { visibility: visible; pointer-events: auto; }
+  .stimulus-lightbox-panel:focus { outline: none; }
+  .stimulus-lightbox-panel:focus-visible {
+    outline: 3px solid #93c5fd; outline-offset: 2px;
+  }
+  .btn-perbesar:focus-visible,
+  #stimulus-lightbox-tutup:focus-visible,
+  .preview-img-wrap:focus-visible {
+    outline: 3px solid #2563eb; outline-offset: 2px;
+  }
+  .preview-img-wrap { cursor: zoom-in; }
+  .preview-img-wrap[role="button"] { border: none; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .preview-img-wrap.is-loading { animation: none; background: #e2e8f0; }
+    #preview-stim-img { transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -477,13 +499,14 @@
 </div>
 
 
-<div id="stimulus-lightbox" class="stimulus-lightbox" role="dialog" aria-modal="true" aria-label="Tampilan penuh stimulus">
-  <div class="stimulus-lightbox-panel">
+<div id="stimulus-lightbox" class="stimulus-lightbox" role="dialog" aria-modal="true" aria-labelledby="stimulus-lightbox-title" aria-describedby="stimulus-lightbox-desc" hidden>
+  <div class="stimulus-lightbox-panel" tabindex="-1">
     <div class="stimulus-lightbox-head">
-      <strong>Tampilan penuh stimulus</strong>
-      <button type="button" class="btn-sm btn-secondary" id="stimulus-lightbox-tutup">Tutup</button>
+      <strong id="stimulus-lightbox-title">Tampilan penuh stimulus</strong>
+      <button type="button" class="btn-sm btn-secondary" id="stimulus-lightbox-tutup" aria-label="Tutup tampilan penuh stimulus">Tutup</button>
     </div>
-    <div class="stimulus-lightbox-body" id="stimulus-lightbox-body"></div>
+    <p id="stimulus-lightbox-desc" class="sr-only">Isi stimulus teks dan gambar. Tekan Escape untuk menutup. Tab untuk berpindah kontrol.</p>
+    <div class="stimulus-lightbox-body" id="stimulus-lightbox-body" tabindex="0"></div>
   </div>
 </div>
 
@@ -1348,35 +1371,138 @@
       // Data untuk lightbox tampilan penuh
       window.__previewStimulus = { img: stimImg || '', text: stimText || '' };
       const openFull = () => openStimulusLightbox(window.__previewStimulus);
-      document.getElementById('btn-perbesar-stimulus')?.addEventListener('click', openFull);
-      wrap?.addEventListener('click', openFull);
+      const btnFull = document.getElementById('btn-perbesar-stimulus');
+      btnFull?.addEventListener('click', openFull);
+      if (wrap) {
+        wrap.setAttribute('role', 'button');
+        wrap.setAttribute('tabindex', '0');
+        wrap.setAttribute('aria-label', 'Perbesar gambar stimulus ke tampilan penuh');
+        wrap.addEventListener('click', openFull);
+        wrap.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openFull();
+          }
+        });
+      }
       backdrop.classList.add('show');
+    }
+
+    let __lightboxPrevFocus = null;
+    let __lightboxKeyHandler = null;
+
+    function getLightboxFocusable() {
+      const lb = document.getElementById('stimulus-lightbox');
+      if (!lb) return [];
+      return [...lb.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter(el => el.offsetParent !== null || el === document.activeElement);
     }
 
     function openStimulusLightbox(data) {
       const lb = document.getElementById('stimulus-lightbox');
       const body = document.getElementById('stimulus-lightbox-body');
+      const panel = lb?.querySelector('.stimulus-lightbox-panel');
       if (!lb || !body || !data) return;
+
+      __lightboxPrevFocus = document.activeElement;
+
       let html = '';
       const img = data.img || '';
+      const text = data.text || '';
       if (img && (String(img).startsWith('data:image') || /^https?:\/\//i.test(String(img)))) {
         const src = String(img).startsWith('data:image') ? img : escapePreview(img);
-        html += '<img id="lightbox-stim-img" src="' + src + '" alt="Stimulus penuh" title="Klik gambar untuk perbesar/kecilkan">';
+        const altText = text
+          ? 'Gambar stimulus. Teks bacaan tersedia di bawah gambar.'
+          : 'Gambar stimulus soal.';
+        html += '<img id="lightbox-stim-img" src="' + src + '" alt="' + escapePreview(altText) + '" ' +
+          'role="img" tabindex="0" ' +
+          'aria-description="Tekan Enter untuk memperbesar atau memperkecil gambar.">';
       }
-      if (data.text) html += '<div>' + escapePreview(data.text) + '</div>';
+      if (text) {
+        html += '<div id="lightbox-stim-text">' + escapePreview(text) + '</div>';
+      }
       if (!html) html = '<em>Tidak ada stimulus.</em>';
       body.innerHTML = html;
+
       const limg = document.getElementById('lightbox-stim-img');
       if (limg) {
-        limg.addEventListener('click', () => limg.classList.toggle('zoomed'));
+        const toggleZoom = () => {
+          const z = limg.classList.toggle('zoomed');
+          limg.setAttribute('aria-description',
+            z ? 'Gambar diperbesar. Tekan Enter untuk mengecilkan.'
+              : 'Tekan Enter untuk memperbesar atau memperkecil gambar.');
+        };
+        limg.addEventListener('click', toggleZoom);
+        limg.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleZoom();
+          }
+        });
       }
+
+      lb.hidden = false;
       lb.classList.add('show');
+      lb.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      // Fokus ke tombol tutup (kontrol paling jelas)
+      const tutup = document.getElementById('stimulus-lightbox-tutup');
+      (tutup || panel)?.focus();
+
+      if (__lightboxKeyHandler) {
+        document.removeEventListener('keydown', __lightboxKeyHandler, true);
+      }
+      __lightboxKeyHandler = (e) => {
+        if (!lb.classList.contains('show')) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeStimulusLightbox();
+          return;
+        }
+        if (e.key !== 'Tab') return;
+        const nodes = getLightboxFocusable();
+        if (!nodes.length) {
+          e.preventDefault();
+          panel?.focus();
+          return;
+        }
+        const first = nodes[0];
+        const last = nodes[nodes.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener('keydown', __lightboxKeyHandler, true);
     }
 
     function closeStimulusLightbox() {
-      document.getElementById('stimulus-lightbox')?.classList.remove('show');
+      const lb = document.getElementById('stimulus-lightbox');
+      if (!lb || (!lb.classList.contains('show') && lb.hidden)) {
+        document.body.style.overflow = '';
+        return;
+      }
+      lb.classList.remove('show');
+      lb.hidden = true;
+      lb.setAttribute('aria-hidden', 'true');
       const body = document.getElementById('stimulus-lightbox-body');
       if (body) body.innerHTML = '';
+      document.body.style.overflow = '';
+      if (__lightboxKeyHandler) {
+        document.removeEventListener('keydown', __lightboxKeyHandler, true);
+        __lightboxKeyHandler = null;
+      }
+      const prev = __lightboxPrevFocus;
+      __lightboxPrevFocus = null;
+      if (prev && typeof prev.focus === 'function') {
+        try { prev.focus(); } catch (_) {}
+      }
     }
 
 
