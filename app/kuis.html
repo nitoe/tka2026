@@ -60,6 +60,77 @@
   .soal-nomor { background: var(--primary-light); color: var(--primary-dark); font-weight: 800; font-size: 0.78rem; padding: 4px 12px; border-radius: 8px; }
   .skor-tag { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
   .soal-stimulus { font-size: 0.88rem; line-height: 1.6; margin-bottom: 14px; padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid var(--border); }
+  .soal-stim-img-box {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; max-width: 100%;
+    max-height: min(42vh, 280px);
+    margin: 0 auto 10px; padding: 8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; contain: layout paint;
+  }
+  .soal-stimulus-img {
+    display: block; max-width: 100%; max-height: min(40vh, 260px);
+    width: auto; height: auto; object-fit: contain; object-position: center;
+  }
+  .soal-card .soal-stim-img-box { max-height: min(42vh, calc(280px * min(var(--kuis-fs, 1), 1.2))); }
+  .soal-card .soal-stimulus-img { max-height: min(40vh, calc(260px * min(var(--kuis-fs, 1), 1.2))); }
+  .btn-stim-zoom {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 2px 0 8px;
+    border: 1.5px solid #93c5fd; background: #eff6ff; color: #1e40af;
+    font-family: inherit; font-size: 0.75rem; font-weight: 800;
+    padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .btn-stim-zoom:hover { background: #dbeafe; }
+  .btn-stim-zoom:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+  .kuis-lightbox {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(15, 23, 42, 0.75);
+    display: none; align-items: center; justify-content: center; padding: 12px;
+  }
+  .kuis-lightbox.show { display: flex; }
+  .kuis-lightbox-panel {
+    background: #fff; border-radius: 14px;
+    width: min(960px, 100%); max-height: min(94vh, 920px);
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35); overflow: hidden;
+  }
+  .kuis-lightbox-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: #f8fafc; flex-shrink: 0;
+  }
+  .kuis-lightbox-head strong { font-size: 0.88rem; font-weight: 800; color: var(--primary-dark); }
+  .kuis-lightbox-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .kuis-lightbox-tools button {
+    border: 1.5px solid var(--border); background: #fff; color: var(--text);
+    font-family: inherit; font-size: 0.78rem; font-weight: 800;
+    padding: 7px 11px; border-radius: 8px; cursor: pointer;
+  }
+  .kuis-lightbox-tools button:hover { background: #f1f5f9; }
+  .kuis-lightbox-tools .btn-lb-close {
+    background: var(--primary); color: #fff; border-color: var(--primary);
+  }
+  .kuis-lightbox-body {
+    flex: 1; overflow: auto; padding: 14px; text-align: center; background: #f1f5f9;
+  }
+  .kuis-lightbox-body img {
+    display: inline-block; max-width: 100%; height: auto;
+    transform-origin: center top; transition: transform 0.15s ease;
+    border-radius: 8px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .kuis-lightbox-caption {
+    text-align: left; margin-top: 12px; padding: 12px;
+    background: #fff; border-radius: 10px; border: 1px solid var(--border);
+    font-size: 0.9rem; font-weight: 600; line-height: 1.6; white-space: pre-wrap;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kuis-lightbox-body img { transition: none; }
+  }
   .soal-pertanyaan { font-weight: 800; font-size: 0.98rem; margin-bottom: 16px; line-height: 1.5; }
   .opsi-row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
   .opsi-row:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
@@ -171,6 +242,22 @@
     <a href="./index.html" class="btn-kembali">Kembali ke Beranda</a>
   </div></main>
 </div>
+
+<div id="kuis-lightbox" class="kuis-lightbox" role="dialog" aria-modal="true" aria-labelledby="kuis-lb-title" hidden>
+  <div class="kuis-lightbox-panel" tabindex="-1">
+    <div class="kuis-lightbox-head">
+      <strong id="kuis-lb-title">Tampilan penuh ilustrasi</strong>
+      <div class="kuis-lightbox-tools">
+        <button type="button" id="kuis-lb-zoom-out" aria-label="Perkecil gambar">− Kecil</button>
+        <button type="button" id="kuis-lb-zoom-in" aria-label="Perbesar gambar">+ Besar</button>
+        <button type="button" id="kuis-lb-zoom-reset" aria-label="Ukuran normal">100%</button>
+        <button type="button" class="btn-lb-close" id="kuis-lb-close" aria-label="Tutup tampilan penuh">Tutup</button>
+      </div>
+    </div>
+    <div class="kuis-lightbox-body" id="kuis-lb-body"></div>
+  </div>
+</div>
+
 <div id="error-box" class="loading-screen" style="display:none;"></div>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
@@ -468,7 +555,90 @@
     document.getElementById('btn-prev').disabled = currentIndex === 0;
     document.getElementById('btn-next').disabled = currentIndex === soalList.length - 1;
   }
-  function renderSoal(idx) {
+  
+  let kuisLbScale = 1;
+  let kuisLbKeyHandler = null;
+  let kuisLbPrevFocus = null;
+
+  function openKuisLightbox({ imgSrc = '', text = '' } = {}) {
+    const lb = document.getElementById('kuis-lightbox');
+    const body = document.getElementById('kuis-lb-body');
+    const panel = lb?.querySelector('.kuis-lightbox-panel');
+    if (!lb || !body) return;
+    kuisLbPrevFocus = document.activeElement;
+    kuisLbScale = 1;
+    let html = '';
+    if (imgSrc) {
+      html += `<img id="kuis-lb-img" src="${imgSrc}" alt="Ilustrasi soal ukuran penuh" draggable="false">`;
+    }
+    if (text) html += `<div class="kuis-lightbox-caption">${escapeHtml(text)}</div>`;
+    if (!html) html = '<p>Tidak ada ilustrasi.</p>';
+    body.innerHTML = html;
+    applyKuisLbZoom();
+    lb.hidden = false;
+    lb.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('kuis-lb-close')?.focus();
+    if (kuisLbKeyHandler) document.removeEventListener('keydown', kuisLbKeyHandler, true);
+    kuisLbKeyHandler = (e) => {
+      if (!lb.classList.contains('show')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeKuisLightbox();
+        return;
+      }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); kuisLbZoomBy(0.2); }
+      if (e.key === '-' || e.key === '_') { e.preventDefault(); kuisLbZoomBy(-0.2); }
+      if (e.key === '0') { e.preventDefault(); kuisLbScale = 1; applyKuisLbZoom(); }
+      if (e.key === 'Tab') {
+        const nodes = [...lb.querySelectorAll('button')].filter(b => !b.disabled);
+        if (!nodes.length) return;
+        const first = nodes[0], last = nodes[nodes.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', kuisLbKeyHandler, true);
+  }
+
+  function applyKuisLbZoom() {
+    const img = document.getElementById('kuis-lb-img');
+    const resetBtn = document.getElementById('kuis-lb-zoom-reset');
+    if (img) img.style.transform = `scale(${kuisLbScale})`;
+    if (resetBtn) resetBtn.textContent = Math.round(kuisLbScale * 100) + '%';
+  }
+
+  function kuisLbZoomBy(delta) {
+    kuisLbScale = Math.min(3, Math.max(0.5, Math.round((kuisLbScale + delta) * 100) / 100));
+    applyKuisLbZoom();
+  }
+
+  function closeKuisLightbox() {
+    const lb = document.getElementById('kuis-lightbox');
+    if (!lb) return;
+    lb.classList.remove('show');
+    lb.hidden = true;
+    const body = document.getElementById('kuis-lb-body');
+    if (body) body.innerHTML = '';
+    document.body.style.overflow = '';
+    if (kuisLbKeyHandler) {
+      document.removeEventListener('keydown', kuisLbKeyHandler, true);
+      kuisLbKeyHandler = null;
+    }
+    const prev = kuisLbPrevFocus;
+    kuisLbPrevFocus = null;
+    if (prev && prev.focus) try { prev.focus(); } catch (_) {}
+  }
+
+  // Wire lightbox controls once (tidak menutup saat klik di luar panel)
+  document.getElementById('kuis-lb-close')?.addEventListener('click', closeKuisLightbox);
+  document.getElementById('kuis-lb-zoom-in')?.addEventListener('click', () => kuisLbZoomBy(0.25));
+  document.getElementById('kuis-lb-zoom-out')?.addEventListener('click', () => kuisLbZoomBy(-0.25));
+  document.getElementById('kuis-lb-zoom-reset')?.addEventListener('click', () => { kuisLbScale = 1; applyKuisLbZoom(); });
+  // Sengaja TIDAK menutup saat klik backdrop — hindari tutup tidak sengaja
+
+function renderSoal(idx) {
     currentIndex = idx;
     const s = soalList[idx];
     const card = document.getElementById('soal-card');
@@ -477,12 +647,13 @@
     const stimImg = s.stimulusImage || s.ilustrasi || s.gambar || '';
     if (stimImg || stimText) {
       let stimHtml = '';
-      if (stimImg && String(stimImg).startsWith('data:image')) {
-        stimHtml += `<img class="soal-stimulus-img" src="${stimImg}" alt="Gambar soal" loading="lazy">`;
-      } else if (stimImg && /^https?:\/\//i.test(String(stimImg))) {
-        stimHtml += `<img class="soal-stimulus-img" src="${escapeHtml(stimImg)}" alt="Gambar soal" loading="lazy">`;
+      const hasImg = stimImg && (String(stimImg).startsWith('data:image') || /^https?:\/\//i.test(String(stimImg)));
+      if (hasImg) {
+        const src = String(stimImg).startsWith('data:image') ? stimImg : escapeHtml(stimImg);
+        stimHtml += `<div class="soal-stim-img-box"><img class="soal-stimulus-img" src="${src}" alt="Ilustrasi soal" loading="lazy" decoding="async"></div>`;
+        stimHtml += `<button type="button" class="btn-stim-zoom" data-stim-zoom="1">🔍 Lihat lebih besar</button>`;
       }
-      if (stimText) stimHtml += `<div>${escapeHtml(stimText)}</div>`;
+      if (stimText) stimHtml += `<div class="soal-stim-text">${escapeHtml(stimText)}</div>`;
       body += `<div class="soal-stimulus">${stimHtml}</div>`;
     }
     body += `<div class="soal-pertanyaan">${escapeHtml(s.pertanyaan || s.teks || '')}</div>`;
@@ -513,6 +684,17 @@
       body += `</tbody></table>`;
     }
     card.innerHTML = body;
+    const stimZoomBtn = card.querySelector('[data-stim-zoom]');
+    if (stimZoomBtn) {
+      const imgEl = card.querySelector('.soal-stimulus-img');
+      const textEl = card.querySelector('.soal-stim-text');
+      stimZoomBtn.addEventListener('click', () => {
+        openKuisLightbox({
+          imgSrc: imgEl ? imgEl.getAttribute('src') : '',
+          text: textEl ? textEl.textContent : '',
+        });
+      });
+    }
     card.querySelectorAll(`input[type=radio][name="q_${qid}"]`).forEach(input => {
       input.onchange = () => { jawaban[qid] = input.value; updateNav(); scheduleAutosave(); };
     });
