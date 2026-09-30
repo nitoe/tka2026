@@ -9,6 +9,7 @@ import { signOut, auth } from './firebase-init.js';
 const NAV = [
   { id: 'dashboard', href: './index.html',        icon: '🏠', label: 'Dashboard' },
   { id: 'rekap',     href: './rekap-tryout.html',  icon: '📊', label: 'Rekap Try Out' },
+  { id: 'rekap-kelas', href: './rekap-kelas.html', icon: '🏫', label: 'Rekap per Kelas' },
   { id: 'bank',      href: './bank-soal.html',     icon: '🗂️', label: 'Bank Soal' },
   { id: 'susun',     href: './susun-paket.html',   icon: '🧩', label: 'Susun Paket' },
 ];
@@ -62,10 +63,10 @@ function buildTopbarHTML(active) {
 
 function escapeHtml(s) {
   return String(s ?? '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -73,6 +74,7 @@ function escapeHtml(s) {
  * Expects #page to already exist (will be moved into .guru-content).
  */
 export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
+  // Prevent double-mount
   if (document.getElementById('guru-sidebar')) return;
 
   const page = document.getElementById('page');
@@ -81,14 +83,17 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
     return;
   }
 
+  // Create layout wrapper
   const layout = document.createElement('div');
   layout.className = 'guru-layout';
   layout.id = 'guru-layout';
 
+  // Sidebar
   const sidebarWrap = document.createElement('div');
   sidebarWrap.innerHTML = buildSidebarHTML(active, staff);
   while (sidebarWrap.firstChild) layout.appendChild(sidebarWrap.firstChild);
 
+  // Main column
   const main = document.createElement('div');
   main.className = 'guru-main';
 
@@ -99,21 +104,26 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
   const content = document.createElement('div');
   content.className = 'guru-content';
 
+  // Move existing page children into content (skip old header if present)
   const oldHeader = page.querySelector('header.header, header.app-header');
   if (oldHeader) oldHeader.remove();
 
+  // Move remaining children of #page into content
   while (page.firstChild) {
     content.appendChild(page.firstChild);
   }
+  // Put content back into #page so existing JS that toggles #page still works
   page.appendChild(content);
-  page.style.display = '';
+  page.style.display = ''; // let layout control visibility
   page.classList.add('guru-page-ready');
 
   main.appendChild(page);
   layout.appendChild(main);
 
+  // Insert layout at body start (after loading screens)
   document.body.insertBefore(layout, document.body.firstChild);
 
+  // Wire interactions
   const sidebar = document.getElementById('guru-sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
   const btnMenu = document.getElementById('btn-menu');
@@ -135,10 +145,12 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
   });
   backdrop?.addEventListener('click', closeSidebar);
 
+  // Close on nav click (mobile)
   sidebar.querySelectorAll('.sidebar-link').forEach(a => {
     a.addEventListener('click', () => closeSidebar());
   });
 
+  // Logout
   document.getElementById('btn-logout-shell')?.addEventListener('click', async () => {
     try {
       await signOut(auth);
@@ -146,5 +158,6 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
     location.href = '../index.html';
   });
 
+  // Hide any leftover page-level logout buttons
   document.getElementById('btn-logout')?.remove();
 }
