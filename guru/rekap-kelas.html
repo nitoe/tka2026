@@ -66,7 +66,29 @@
     font-weight: 700; color: var(--text-2, #64748b);
   }
   .table-wrap { overflow-x: auto; }
+
+  .analisa-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;
+  }
+  @media (max-width: 800px) { .analisa-grid { grid-template-columns: 1fr; } }
+  .analisa-block h4 {
+    font-size: 0.8rem; font-weight: 800; margin-bottom: 8px; color: var(--brand-ink, #0f172a);
+  }
+  table.stat-tbl { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  table.stat-tbl th, table.stat-tbl td {
+    border: 1px solid var(--line, #e2e8f0); padding: 6px 8px;
+  }
+  table.stat-tbl th { background: #f1f5f9; font-weight: 800; font-size: 0.7rem; text-align: left; }
+  table.stat-tbl td.num { text-align: center; font-weight: 700; }
+  .chart-box { position: relative; height: 220px; }
+  .insight {
+    margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    font-size: 0.8rem; font-weight: 600; line-height: 1.5; color: #1e3a5f;
+  }
+  .insight strong { font-weight: 800; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -102,6 +124,57 @@
         <div class="stat-box"><div class="num" id="stat-ikut">0</div><div class="label">Mengikuti (≥1 mapel)</div></div>
         <div class="stat-box"><div class="num" id="stat-mtk">0</div><div class="label">Ikut Matematika</div></div>
         <div class="stat-box"><div class="num" id="stat-bi">0</div><div class="label">Ikut B. Indonesia</div></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-analisa" style="display:none;">
+      <h3>Analisis statistik nilai</h3>
+      <div class="analisa-grid">
+        <div class="analisa-block">
+          <h4>Ringkasan numerik</h4>
+          <table class="stat-tbl" id="tabel-stat">
+            <thead>
+              <tr>
+                <th>Metrik</th>
+                <th class="num">MTK</th>
+                <th class="num">BI</th>
+                <th class="num">Rata-rata</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-stat"></tbody>
+          </table>
+          <div class="insight" id="insight-text">—</div>
+        </div>
+        <div class="analisa-block">
+          <h4>Sebaran nilai (jumlah siswa)</h4>
+          <div class="chart-box"><canvas id="chart-sebaran"></canvas></div>
+        </div>
+      </div>
+      <div class="analisa-grid" style="margin-top:14px;">
+        <div class="analisa-block">
+          <h4>Partisipasi &amp; ketuntasan (KKM 70%)</h4>
+          <div class="chart-box"><canvas id="chart-partisipasi"></canvas></div>
+        </div>
+        <div class="analisa-block">
+          <h4>Interpretasi cepat</h4>
+          <ul id="list-insight" style="margin:0;padding-left:1.2rem;font-size:0.8rem;font-weight:600;line-height:1.55;color:var(--text);"></ul>
+        </div>
+      </div>
+      <div class="analisa-grid" style="margin-top:14px;">
+        <div class="analisa-block">
+          <h4>Regresi linear: BI ~ MTK</h4>
+          <p class="hint" style="margin:0 0 8px;">Hanya siswa yang mengikuti <strong>kedua</strong> mapel. Sumbu X = nilai MTK, Y = nilai BI.</p>
+          <div class="chart-box" style="height:260px;"><canvas id="chart-regresi"></canvas></div>
+        </div>
+        <div class="analisa-block">
+          <h4>Hasil regresi &amp; korelasi</h4>
+          <table class="stat-tbl" id="tabel-regresi">
+            <tbody id="tbody-regresi">
+              <tr><td colspan="2">Belum ada pasangan nilai MTK–BI.</td></tr>
+            </tbody>
+          </table>
+          <div class="insight" id="insight-regresi" style="margin-top:10px;">—</div>
+        </div>
       </div>
     </div>
 
@@ -191,7 +264,344 @@
     return Math.round((s / m) * 100);
   }
 
-  function normalizeKelas(k) {
+  
+  const KKM = 70;
+  let chartSebaran = null;
+  let chartPartisipasi = null;
+  let chartRegresi = null;
+
+  function sortedNums(arr) {
+    return arr.filter(v => v != null && !Number.isNaN(v)).slice().sort((a, b) => a - b);
+  }
+  function mean(arr) {
+    const a = sortedNums(arr);
+    if (!a.length) return null;
+    return a.reduce((s, x) => s + x, 0) / a.length;
+  }
+  function median(arr) {
+    const a = sortedNums(arr);
+    if (!a.length) return null;
+    const m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  }
+  function stdev(arr) {
+    const a = sortedNums(arr);
+    if (a.length < 2) return a.length ? 0 : null;
+    const m = mean(a);
+    const v = a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1);
+    return Math.sqrt(v);
+  }
+  function bandCounts(arr) {
+    const bands = { '0–50': 0, '51–70': 0, '71–85': 0, '86–100': 0 };
+    for (const v of arr) {
+      if (v == null || Number.isNaN(v)) continue;
+      if (v <= 50) bands['0–50']++;
+      else if (v <= 70) bands['51–70']++;
+      else if (v <= 85) bands['71–85']++;
+      else bands['86–100']++;
+    }
+    return bands;
+  }
+  function round1(n) {
+    if (n == null || Number.isNaN(n)) return '—';
+    return (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '');
+  }
+
+  function computeStats(rowList) {
+    const mtk = rowList.map(r => r.mtk);
+    const bi = rowList.map(r => r.bi);
+    const rata = rowList.map(r => r.rata);
+    const n = rowList.length;
+    const nMtk = mtk.filter(v => v != null).length;
+    const nBi = bi.filter(v => v != null).length;
+    const nRata = rata.filter(v => v != null).length;
+    const tuntasMtk = mtk.filter(v => v != null && v >= KKM).length;
+    const tuntasBi = bi.filter(v => v != null && v >= KKM).length;
+    const tuntasRata = rata.filter(v => v != null && v >= KKM).length;
+    return {
+      n, nMtk, nBi, nRata,
+      mtk: {
+        mean: mean(mtk), median: median(mtk), min: sortedNums(mtk)[0] ?? null,
+        max: sortedNums(mtk).slice(-1)[0] ?? null, stdev: stdev(mtk),
+        bands: bandCounts(mtk), tuntas: tuntasMtk, ikut: nMtk,
+      },
+      bi: {
+        mean: mean(bi), median: median(bi), min: sortedNums(bi)[0] ?? null,
+        max: sortedNums(bi).slice(-1)[0] ?? null, stdev: stdev(bi),
+        bands: bandCounts(bi), tuntas: tuntasBi, ikut: nBi,
+      },
+      rata: {
+        mean: mean(rata), median: median(rata), min: sortedNums(rata)[0] ?? null,
+        max: sortedNums(rata).slice(-1)[0] ?? null, stdev: stdev(rata),
+        bands: bandCounts(rata), tuntas: tuntasRata, ikut: nRata,
+      },
+    };
+  }
+
+  
+  /**
+   * Regresi linear sederhana Y = a + bX (least squares).
+   * @param {number[]} xs
+   * @param {number[]} ys
+   */
+  function linearRegression(xs, ys) {
+    const n = xs.length;
+    if (n < 2) return null;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0, sumYY = 0;
+    for (let i = 0; i < n; i++) {
+      const x = xs[i], y = ys[i];
+      sumX += x; sumY += y;
+      sumXY += x * y; sumXX += x * x; sumYY += y * y;
+    }
+    const denom = n * sumXX - sumX * sumX;
+    if (Math.abs(denom) < 1e-12) return null; // X konstan
+    const b = (n * sumXY - sumX * sumY) / denom;
+    const a = (sumY - b * sumX) / n;
+    const meanY = sumY / n;
+    let ssTot = 0, ssRes = 0;
+    for (let i = 0; i < n; i++) {
+      const yHat = a + b * xs[i];
+      ssRes += (ys[i] - yHat) ** 2;
+      ssTot += (ys[i] - meanY) ** 2;
+    }
+    const r2 = ssTot < 1e-12 ? null : 1 - ssRes / ssTot;
+    // Pearson r
+    const denomR = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+    const r = denomR < 1e-12 ? null : (n * sumXY - sumX * sumY) / denomR;
+    return { a, b, r2, r, n };
+  }
+
+  function interpretCorrelation(r) {
+    if (r == null || Number.isNaN(r)) return 'tidak dapat dihitung';
+    const abs = Math.abs(r);
+    let strength = 'sangat lemah';
+    if (abs >= 0.9) strength = 'sangat kuat';
+    else if (abs >= 0.7) strength = 'kuat';
+    else if (abs >= 0.5) strength = 'sedang';
+    else if (abs >= 0.3) strength = 'lemah';
+    const dir = r >= 0 ? 'positif' : 'negatif';
+    return `${strength} (${dir})`;
+  }
+
+  function renderRegresi(rowList) {
+    const pairs = rowList.filter(r => r.mtk != null && r.bi != null);
+    const tbody = document.getElementById('tbody-regresi');
+    const insight = document.getElementById('insight-regresi');
+    const ctx = document.getElementById('chart-regresi');
+    if (chartRegresi) {
+      chartRegresi.destroy();
+      chartRegresi = null;
+    }
+
+    if (pairs.length < 2) {
+      tbody.innerHTML = `<tr><td colspan="2">Minimal 2 siswa dengan nilai MTK <em>dan</em> BI untuk regresi. Saat ini: ${pairs.length} pasangan.</td></tr>`;
+      insight.textContent = 'Data pasangan belum cukup untuk analisis regresi.';
+      // empty chart
+      chartRegresi = new Chart(ctx, {
+        type: 'scatter',
+        data: { datasets: [] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'Nilai MTK' }, min: 0, max: 100 },
+            y: { title: { display: true, text: 'Nilai BI' }, min: 0, max: 100 },
+          },
+        },
+      });
+      return;
+    }
+
+    const xs = pairs.map(r => r.mtk);
+    const ys = pairs.map(r => r.bi);
+    const reg = linearRegression(xs, ys);
+    if (!reg) {
+      tbody.innerHTML = '<tr><td colspan="2">Regresi gagal (nilai MTK terlalu seragam).</td></tr>';
+      insight.textContent = 'Tidak ada variasi pada nilai MTK.';
+      return;
+    }
+
+    const { a, b, r2, r, n } = reg;
+    const fmt = (v, d = 3) => v == null || Number.isNaN(v) ? '—' : (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+    tbody.innerHTML = [
+      ['Jumlah pasangan (n)', String(n)],
+      ['Persamaan', `BI ≈ ${fmt(a, 2)} + ${fmt(b, 3)} × MTK`],
+      ['Intercept (a)', fmt(a, 3)],
+      ['Slope (b)', fmt(b, 3)],
+      ['Korelasi Pearson (r)', fmt(r, 3)],
+      ['Kekuatan korelasi', interpretCorrelation(r)],
+      ['Koefisien determinasi (R²)', r2 == null ? '—' : fmt(r2, 3)],
+      ['R² (%)', r2 == null ? '—' : `${Math.round(r2 * 1000) / 10}% variasi BI dijelaskan MTK`],
+    ].map(([k, v]) => `<tr><th>${k}</th><td class="num" style="text-align:left;font-weight:700;">${v}</td></tr>`).join('');
+
+    let msg = `Korelasi MTK–BI bersifat <strong>${interpretCorrelation(r)}</strong> (r = ${fmt(r, 3)}). `;
+    if (r2 != null) {
+      msg += `Sekitar <strong>${Math.round(r2 * 100)}%</strong> variasi nilai BI dapat dikaitkan secara linear dengan nilai MTK. `;
+    }
+    if (b > 0.15) msg += 'Siswa dengan MTK lebih tinggi cenderung BI lebih tinggi.';
+    else if (b < -0.15) msg += 'Pola terbalik: MTK lebih tinggi cenderung diiringi BI lebih rendah.';
+    else msg += 'Kemiringan garis relatif datar — hubungan linear antar-mapel terbatas.';
+    if (r2 != null && r2 < 0.2) msg += ' R² rendah: faktor lain (di luar MTK) lebih dominan terhadap nilai BI.';
+    insight.innerHTML = msg;
+
+    // Garis regresi dari minX..maxX
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const linePoints = [
+      { x: minX, y: a + b * minX },
+      { x: maxX, y: a + b * maxX },
+    ];
+
+    chartRegresi = new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          {
+            type: 'scatter',
+            label: 'Siswa (MTK, BI)',
+            data: pairs.map(r => ({ x: r.mtk, y: r.bi })),
+            backgroundColor: 'rgba(26,86,219,0.75)',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          },
+          {
+            type: 'line',
+            label: 'Garis regresi',
+            data: linePoints,
+            borderColor: 'rgba(220,38,38,0.9)',
+            backgroundColor: 'rgba(220,38,38,0.9)',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                if (ctx.dataset.type === 'line' || ctx.dataset.label === 'Garis regresi') {
+                  return `Regresi: BI ≈ ${fmt(a, 1)} + ${fmt(b, 2)}×MTK`;
+                }
+                const p = pairs[ctx.dataIndex];
+                return p ? `${p.nama}: MTK ${p.mtk}, BI ${p.bi}` : `(${ctx.parsed.x}, ${ctx.parsed.y})`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: 'Nilai Matematika' },
+            min: 0,
+            max: 100,
+          },
+          y: {
+            type: 'linear',
+            title: { display: true, text: 'Nilai Bahasa Indonesia' },
+            min: 0,
+            max: 100,
+          },
+        },
+      },
+    });
+
+    window.__lastRegression = reg;
+  }
+
+function renderAnalisa(rowList) {
+    const card = document.getElementById('card-analisa');
+    if (!rowList.length) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = 'block';
+    const st = computeStats(rowList);
+    const body = document.getElementById('tbody-stat');
+    const row = (label, fn) =>
+      `<tr><th>${label}</th><td class="num">${fn(st.mtk)}</td><td class="num">${fn(st.bi)}</td><td class="num">${fn(st.rata)}</td></tr>`;
+    body.innerHTML = [
+      row('Jumlah ikut', x => x.ikut),
+      row('Rata-rata (mean)', x => round1(x.mean)),
+      row('Median', x => round1(x.median)),
+      row('Terendah', x => x.min == null ? '—' : x.min),
+      row('Tertinggi', x => x.max == null ? '—' : x.max),
+      row('Simpangan baku', x => round1(x.stdev)),
+      row('Tuntas ≥70%', x => x.ikut ? `${x.tuntas} (${Math.round(x.tuntas / x.ikut * 100)}%)` : '—'),
+    ].join('');
+
+    const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+    const insight = document.getElementById('insight-text');
+    const better = (st.mtk.mean ?? -1) >= (st.bi.mean ?? -1) ? 'Matematika' : 'Bahasa Indonesia';
+    insight.innerHTML = st.nRata
+      ? `Dari <strong>${st.n}</strong> siswa kelas, <strong>${st.nRata}</strong> memiliki nilai rata-rata.
+         Mean MTK <strong>${round1(st.mtk.mean)}</strong>, mean BI <strong>${round1(st.bi.mean)}</strong>
+         — mapel lebih kuat secara rata-rata: <strong>${better}</strong>.`
+      : 'Belum ada siswa yang mengikuti try out pada mapel mana pun.';
+
+    const bullets = [];
+    if (st.mtk.ikut) {
+      bullets.push(`MTK: ketuntasan ${pct(st.mtk.tuntas, st.mtk.ikut)}% (${st.mtk.tuntas}/${st.mtk.ikut}); sebaran terbanyak di band ${Object.entries(st.mtk.bands).sort((a,b)=>b[1]-a[1])[0][0]}.`);
+    } else bullets.push('MTK: belum ada peserta.');
+    if (st.bi.ikut) {
+      bullets.push(`BI: ketuntasan ${pct(st.bi.tuntas, st.bi.ikut)}% (${st.bi.tuntas}/${st.bi.ikut}); sebaran terbanyak di band ${Object.entries(st.bi.bands).sort((a,b)=>b[1]-a[1])[0][0]}.`);
+    } else bullets.push('BI: belum ada peserta.');
+    const tidak = st.n - st.nRata;
+    if (tidak > 0) bullets.push(`${tidak} siswa belum mengikuti keduanya (atau belum ada nilai rata-rata).`);
+    if (st.mtk.stdev != null && st.mtk.stdev >= 15) bullets.push('Sebaran MTK cukup lebar (simpangan baku ≥ 15) — pertimbangkan penguatan diferensiasi.');
+    if (st.bi.stdev != null && st.bi.stdev >= 15) bullets.push('Sebaran BI cukup lebar (simpangan baku ≥ 15).');
+    document.getElementById('list-insight').innerHTML = bullets.map(b => `<li>${b}</li>`).join('');
+
+    // Charts
+    const labels = ['0–50', '51–70', '71–85', '86–100'];
+    const ctx1 = document.getElementById('chart-sebaran');
+    if (chartSebaran) chartSebaran.destroy();
+    chartSebaran = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'MTK', data: labels.map(l => st.mtk.bands[l]), backgroundColor: 'rgba(26,86,219,0.75)' },
+          { label: 'BI', data: labels.map(l => st.bi.bands[l]), backgroundColor: 'rgba(5,122,85,0.75)' },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+
+    const ctx2 = document.getElementById('chart-partisipasi');
+    if (chartPartisipasi) chartPartisipasi.destroy();
+    chartPartisipasi = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: ['MTK ikut', 'MTK tuntas', 'BI ikut', 'BI tuntas', 'Ada rata-rata'],
+        datasets: [{
+          label: 'Jumlah siswa',
+          data: [st.nMtk, st.mtk.tuntas, st.nBi, st.bi.tuntas, st.nRata],
+          backgroundColor: [
+            'rgba(26,86,219,0.7)', 'rgba(26,86,219,0.4)',
+            'rgba(5,122,85,0.7)', 'rgba(5,122,85,0.4)',
+            'rgba(217,119,6,0.7)',
+          ],
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+
+    window.__lastClassStats = st;
+  }
+
+function normalizeKelas(k) {
     return String(k ?? '').trim().toUpperCase().replace(/\s+/g, '');
   }
 
@@ -323,6 +733,7 @@
 
     document.getElementById('btn-pdf').disabled = false;
     updateTtd(kelas);
+    renderAnalisa(rows);
   }
 
   function escapeHtml(s) {
@@ -423,7 +834,26 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), margin, y);
+    y += 5;
+
+    const st = window.__lastClassStats || computeStats(rows);
+    doc.setFontSize(8);
+    doc.text(
+      `Statistik — MTK mean ${round1(st.mtk.mean)} (n=${st.nMtk}, tuntas ${st.mtk.tuntas}); ` +
+      `BI mean ${round1(st.bi.mean)} (n=${st.nBi}, tuntas ${st.bi.tuntas}); ` +
+      `Rata-rata mean ${round1(st.rata.mean)} (n=${st.nRata}).`,
+      margin, y
+    );
     y += 4;
+    const reg = window.__lastRegression;
+    if (reg && reg.n >= 2) {
+      const fmtR = (v) => (Math.round(v * 1000) / 1000).toFixed(3);
+      doc.text(
+        `Regresi BI~MTK (n=${reg.n}): BI ≈ ${fmtR(reg.a)} + ${fmtR(reg.b)}×MTK; r=${fmtR(reg.r)}; R²=${fmtR(reg.r2)}.`,
+        margin, y
+      );
+      y += 4;
+    }
 
     const body = rows.map((r, i) => [
       i + 1,
