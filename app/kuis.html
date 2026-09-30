@@ -4,6 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mengerjakan Kuis – Portal Latihan TKA 2026</title>
+
+
+<script>
+  (function () {
+    var eng = 'auto';
+    try {
+      var m = /(?:\?|&)(?:math|engine)=([^&]+)/i.exec(location.search);
+      if (m) eng = decodeURIComponent(m[1]).toLowerCase();
+    } catch (e) {}
+    if (eng !== 'katex' && eng !== 'mathjax') eng = 'auto';
+    window.TKA_MATH_ENGINE = eng;
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        tags: 'none'
+      },
+      chtml: {
+        scale: 1,
+        matchFontHeight: false,
+        displayAlign: 'left'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-katex|no-mathjax',
+        enableMenu: false
+      },
+      startup: { typeset: false }
+    };
+  })();
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/mhchem.min.js" crossorigin="anonymous"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -63,16 +100,38 @@
     font-size: 0.88rem; line-height: 1.65; margin-bottom: 14px; padding: 12px;
     background: #f8fafc; border-radius: 10px; border: 1px solid var(--border);
   }
-  .soal-stim-text {
-    white-space: pre-wrap;
+
+  .soal-stim-text, .soal-pertanyaan.rich {
+    white-space: normal;
     word-break: break-word;
     font-weight: 600;
     color: var(--text);
-  }
-  .soal-card .soal-stim-text {
-    font-size: calc(0.88rem * var(--kuis-fs, 1));
     line-height: 1.65;
   }
+  .soal-stim-text p, .soal-pertanyaan.rich p { margin: 0 0 0.65em; }
+  .soal-stim-text p:last-child, .soal-pertanyaan.rich p:last-child { margin-bottom: 0; }
+  .soal-stim-text ul, .soal-stim-text ol,
+  .soal-pertanyaan.rich ul, .soal-pertanyaan.rich ol {
+    margin: 0.4em 0 0.65em 1.25em; padding: 0;
+  }
+  .soal-stim-text table, .soal-pertanyaan.rich table {
+    width: 100%; border-collapse: collapse; margin: 0.5em 0 0.75em;
+    font-size: 0.9em; background: #fff;
+  }
+  .soal-stim-text th, .soal-stim-text td,
+  .soal-pertanyaan.rich th, .soal-pertanyaan.rich td {
+    border: 1px solid var(--border); padding: 6px 8px; text-align: left;
+  }
+  .soal-stim-text th, .soal-pertanyaan.rich th { background: #f1f5f9; font-weight: 800; }
+  .soal-stim-text .katex, .soal-pertanyaan.rich .katex { font-size: 1.05em; }
+  .soal-stim-text .katex-display, .soal-pertanyaan.rich .katex-display { margin: 0.6em 0; overflow-x: auto; }
+  .kuis-lightbox-caption { white-space: normal; }
+  .kuis-lightbox-caption p { margin: 0 0 0.65em; }
+
+  .soal-card .soal-stim-text, .soal-card .soal-pertanyaan.rich {
+    font-size: calc(0.88rem * var(--kuis-fs, 1));
+  }
+
   .soal-stim-img-box {
     display: flex; align-items: center; justify-content: center;
     width: 100%; max-width: 100%;
@@ -298,9 +357,231 @@
     if (!d) return '—';
     return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   }
+
   function escapeHtml(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  const RICH_ALLOWED = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TFOOT','TR','TD','TH','H1','H2','H3','H4','H5','SPAN','SUB','SUP','BLOCKQUOTE','HR','DIV','PRE','CODE']);
+  function sanitizeHtml(html) {
+    const doc = new DOMParser().parseFromString('<div id="root">' + String(html ?? '') + '</div>', 'text/html');
+    const root = doc.getElementById('root') || doc.body;
+    (function walk(node) {
+      const children = [...node.childNodes];
+      for (const child of children) {
+        if (child.nodeType === 8) { child.remove(); continue; }
+        if (child.nodeType !== 1) continue;
+        if (!RICH_ALLOWED.has(child.tagName)) {
+          while (child.firstChild) node.insertBefore(child.firstChild, child);
+          child.remove();
+          continue;
+        }
+        for (const attr of [...child.attributes]) {
+          const n = attr.name.toLowerCase();
+          if (n.startsWith('on') || n === 'src' || n === 'href' || n === 'style' || n === 'srcset') {
+            child.removeAttribute(attr.name);
+          } else if (!['colspan', 'rowspan', 'class', 'scope'].includes(n)) {
+            child.removeAttribute(attr.name);
+          }
+        }
+        walk(child);
+      }
+    })(root);
+    return root.innerHTML;
+  }
+  function plainTextToHtml(text) {
+    const esc = escapeHtml(text);
+    return esc.split(/\n{2,}/).map(block => {
+      const lines = block.replace(/\n/g, '<br>');
+      return '<p>' + lines + '</p>';
+    }).join('');
+  }
+  function formatRichHtml(raw) {
+    const s = String(raw ?? '');
+    if (!s.trim()) return '';
+    // HTML dari editor / import
+    if (/<[a-z][\s\S]*>/i.test(s)) return sanitizeHtml(s);
+    return plainTextToHtml(s);
+  }
+      const KATEX_DELIMS = [
+    { left: '$$', right: '$$', display: true },
+    { left: '\\[', right: '\\]', display: true },
+    { left: '$', right: '$', display: false },
+    { left: '\\(', right: '\\)', display: false },
+  ];
+  const KATEX_MACROS = {
+    '\\RR': '\\mathbb{R}',
+    '\\NN': '\\mathbb{N}',
+    '\\ZZ': '\\mathbb{Z}',
+    '\\QQ': '\\mathbb{Q}',
+    '\\abs': '\\left|#1\\right|',
+  };
+  const KATEX_OPTS = {
+    delimiters: KATEX_DELIMS,
+    macros: KATEX_MACROS,
+    throwOnError: false,
+    strict: 'ignore',
+    trust: false,
+    ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
+    ignoredClasses: ['no-katex', 'no-mathjax'],
+  };
+  const MATH_HINT_RE = /\$|\\\(|\\\[|\\begin\{|\\ce\{/;
+  const MATH_TARGET_SEL = '.soal-stim-text, .soal-pertanyaan, .opsi-rich, .opsi-text, .kuis-lightbox-caption';
+  const MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js';
+
+  function preferredMathEngine() {
+    const eng = (window.TKA_MATH_ENGINE || 'auto').toLowerCase();
+    if (eng === 'mathjax' || eng === 'katex') return eng;
+    return 'auto';
+  }
+
+  function katexReady() {
+    return typeof katex !== 'undefined' && typeof renderMathInElement === 'function';
+  }
+
+  function mathjaxReady() {
+    return !!(window.MathJax && typeof MathJax.typesetPromise === 'function');
+  }
+
+  let _katexWaitPromise = null;
+  function waitForKatex(timeoutMs = 5000) {
+    if (katexReady()) return Promise.resolve(true);
+    if (_katexWaitPromise) return _katexWaitPromise;
+    _katexWaitPromise = new Promise((resolve) => {
+      const t0 = Date.now();
+      let delay = 32;
+      const tick = () => {
+        if (katexReady()) { _katexWaitPromise = null; resolve(true); return; }
+        if (Date.now() - t0 > timeoutMs) { _katexWaitPromise = null; resolve(false); return; }
+        delay = Math.min(delay * 1.4, 200);
+        setTimeout(tick, delay);
+      };
+      setTimeout(tick, 0);
+    });
+    return _katexWaitPromise;
+  }
+
+    let _mathjaxLoadPromise = null;
+  let _mjQueue = [];
+  let _mjFlushTimer = null;
+  let _mjChain = Promise.resolve();
+
+  function loadMathJax() {
+    if (mathjaxReady()) return Promise.resolve(true);
+    if (_mathjaxLoadPromise) return _mathjaxLoadPromise;
+    _mathjaxLoadPromise = new Promise((resolve) => {
+      const done = (ok) => resolve(!!ok);
+      const waitReady = () => {
+        const startup = window.MathJax && MathJax.startup && MathJax.startup.promise;
+        if (startup && typeof startup.then === 'function') {
+          startup.then(() => done(mathjaxReady())).catch(() => done(false));
+          return;
+        }
+        const t0 = Date.now();
+        const iv = setInterval(() => {
+          if (mathjaxReady()) { clearInterval(iv); done(true); }
+          else if (Date.now() - t0 > 10000) { clearInterval(iv); done(false); }
+        }, 48);
+      };
+      if (document.querySelector('script[data-tka-mathjax]')) {
+        waitReady();
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = MATHJAX_CDN;
+      s.async = true;
+      s.dataset.tkaMathjax = '1';
+      s.onload = waitReady;
+      s.onerror = () => done(false);
+      document.head.appendChild(s);
+    });
+    return _mathjaxLoadPromise;
+  }
+
+  function queueMathJaxTypeset(elements) {
+    for (const el of elements) {
+      if (el && el.isConnected && !_mjQueue.includes(el)) _mjQueue.push(el);
+    }
+    if (_mjFlushTimer) clearTimeout(_mjFlushTimer);
+    _mjFlushTimer = setTimeout(flushMathJaxQueue, 48);
+    return _mjChain;
+  }
+
+  function flushMathJaxQueue() {
+    _mjFlushTimer = null;
+    const batch = _mjQueue.splice(0, _mjQueue.length);
+    if (!batch.length) return _mjChain;
+    _mjChain = _mjChain.then(async () => {
+      const ok = await loadMathJax();
+      if (!ok || !mathjaxReady()) return;
+      const need = batch.filter((el) => {
+        if (!el || !el.isConnected) return false;
+        if (el.dataset.mathjaxDone === '1' && !nodeStillHasRawMath(el)) return false;
+        return MATH_HINT_RE.test(el.textContent || '');
+      });
+      if (!need.length) return;
+      try {
+        if (typeof MathJax.typesetClear === 'function') {
+          try { MathJax.typesetClear(need); } catch (_) {}
+        }
+        await MathJax.typesetPromise(need);
+        need.forEach((el) => {
+          el.dataset.mathjaxDone = '1';
+          el.dataset.mathEngine = 'mathjax';
+        });
+      } catch (_) {}
+    });
+    return _mjChain;
+  }
+
+  async function renderWithMathJax(targets) {
+    const list = (targets || []).filter(Boolean);
+    if (!list.length) return false;
+    await queueMathJaxTypeset(list);
+    await _mjChain;
+    return list.some((el) => el.dataset.mathEngine === 'mathjax' || el.querySelector?.('.MathJax, mjx-container'));
+  }
+
+  function renderRichMath(container) {
+    if (!container) return;
+    if (container.__katexRaf) cancelAnimationFrame(container.__katexRaf);
+    container.__katexRaf = requestAnimationFrame(() => {
+      const targets = collectMathTargets(container);
+      if (!targets.length) return;
+      // Skip cepat jika tidak ada hint rumus sama sekali
+      if (!targets.some((el) => MATH_HINT_RE.test(el.textContent || ''))) {
+        targets.forEach((el) => { el.dataset.katexDone = '1'; });
+        return;
+      }
+      const eng = preferredMathEngine();
+      const run = async () => {
+        if (eng === 'mathjax') {
+          await renderWithMathJax(targets);
+          return;
+        }
+        if (eng === 'katex') {
+          if (katexReady()) renderWithKatex(targets);
+          else {
+            const ok = await waitForKatex(5000);
+            if (ok) renderWithKatex(targets);
+          }
+          return;
+        }
+        // auto: KaTeX → MathJax fallback
+        if (katexReady()) {
+          renderWithKatex(targets);
+          return;
+        }
+        const ok = await waitForKatex(2500);
+        if (ok) {
+          renderWithKatex(targets);
+          return;
+        }
+        await renderWithMathJax(targets);
+      };
+      run();
+    });
+  }
+
   function opsiEntries(opsi) {
     if (Array.isArray(opsi)) {
       return opsi.map((text, i) => ({
@@ -584,9 +865,10 @@
     if (imgSrc) {
       html += `<img id="kuis-lb-img" src="${imgSrc}" alt="Ilustrasi soal ukuran penuh" draggable="false">`;
     }
-    if (text) html += `<div class="kuis-lightbox-caption">${escapeHtml(text)}</div>`;
+    if (text) html += `<div class="kuis-lightbox-caption">${formatRichHtml(text)}</div>`;
     if (!html) html = '<p>Tidak ada ilustrasi.</p>';
     body.innerHTML = html;
+    renderRichMath(body);
     applyKuisLbZoom();
     lb.hidden = false;
     lb.classList.add('show');
@@ -666,21 +948,21 @@ function renderSoal(idx) {
         stimHtml += `<div class="soal-stim-img-box"><img class="soal-stimulus-img" src="${src}" alt="Ilustrasi soal" loading="lazy" decoding="async"></div>`;
         stimHtml += `<button type="button" class="btn-stim-zoom" data-stim-zoom="1">🔍 Lihat lebih besar</button>`;
       }
-      if (stimText) stimHtml += `<div class="soal-stim-text">${escapeHtml(stimText)}</div>`;
+      if (stimText) stimHtml += `<div class="soal-stim-text">${formatRichHtml(stimText)}</div>`;
       body += `<div class="soal-stimulus">${stimHtml}</div>`;
     }
-    body += `<div class="soal-pertanyaan">${escapeHtml(s.pertanyaan || s.teks || '')}</div>`;
+    body += `<div class="soal-pertanyaan rich">${formatRichHtml(s.pertanyaan || s.teks || '')}</div>`;
     const qid = s.id;
     if (s.tipe === 'pg') {
       getOpsiEntries(s).forEach(e => {
         const checked = (jawaban[qid] === e.value || jawaban[qid] === e.label) ? 'checked' : '';
-        body += `<label class="opsi-row"><input type="radio" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
+        body += `<label class="opsi-row"><input type="radio" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> <span class="opsi-rich">${escapeHtml(e.label)}</span></span></label>`;
       });
     } else if (s.tipe === 'pgk') {
       const selected = Array.isArray(jawaban[qid]) ? jawaban[qid] : [];
       getOpsiEntries(s).forEach(e => {
         const checked = (selected.includes(e.value) || selected.includes(e.label)) ? 'checked' : '';
-        body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> ${escapeHtml(e.label)}</span></label>`;
+        body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> <span class="opsi-rich">${escapeHtml(e.label)}</span></span></label>`;
       });
     } else if (s.tipe === 'pgk-cat') {
       const rows = s.rows || [], cols = s.cols || s.opsiKolom || ['Benar', 'Salah'];
@@ -697,6 +979,7 @@ function renderSoal(idx) {
       body += `</tbody></table>`;
     }
     card.innerHTML = body;
+    renderRichMath(card);
     const stimZoomBtn = card.querySelector('[data-stim-zoom]');
     if (stimZoomBtn) {
       const imgEl = card.querySelector('.soal-stimulus-img');
