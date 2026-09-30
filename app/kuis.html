@@ -59,7 +59,20 @@
   .soal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .soal-nomor { background: var(--primary-light); color: var(--primary-dark); font-weight: 800; font-size: 0.78rem; padding: 4px 12px; border-radius: 8px; }
   .skor-tag { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
-  .soal-stimulus { font-size: 0.88rem; line-height: 1.6; margin-bottom: 14px; padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid var(--border); }
+  .soal-stimulus {
+    font-size: 0.88rem; line-height: 1.65; margin-bottom: 14px; padding: 12px;
+    background: #f8fafc; border-radius: 10px; border: 1px solid var(--border);
+  }
+  .soal-stim-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .soal-card .soal-stim-text {
+    font-size: calc(0.88rem * var(--kuis-fs, 1));
+    line-height: 1.65;
+  }
   .soal-stim-img-box {
     display: flex; align-items: center; justify-content: center;
     width: 100%; max-width: 100%;
@@ -122,7 +135,7 @@
   .kuis-lightbox-caption {
     text-align: left; margin-top: 12px; padding: 12px;
     background: #fff; border-radius: 10px; border: 1px solid var(--border);
-    font-size: 0.9rem; font-weight: 600; line-height: 1.6; white-space: pre-wrap;
+    font-size: 0.9rem; font-weight: 600; line-height: 1.65; white-space: pre-wrap; word-break: break-word;
   }
   .sr-only {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
