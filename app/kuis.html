@@ -16,23 +16,34 @@
     if (eng !== 'katex' && eng !== 'mathjax') eng = 'auto';
     window.TKA_MATH_ENGINE = eng;
     window.MathJax = {
+      // Konfigurasi ringkas untuk kuis/bank soal (fallback KaTeX)
       tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']],
         processEscapes: true,
-        tags: 'none'
+        processEnvironments: true,
+        tags: 'none',
+        maxMacros: 200,
+        maxBuffer: 8192
       },
       chtml: {
         scale: 1,
+        minScale: 0.5,
         matchFontHeight: false,
-        displayAlign: 'left'
+        displayAlign: 'left',
+        displayIndent: '0'
       },
       options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'annotation'],
         ignoreHtmlClass: 'no-katex|no-mathjax',
-        enableMenu: false
+        enableMenu: false,
+        enableEnrichment: false,
+        enableComplexity: false,
+        enableExplorer: false
       },
-      startup: { typeset: false }
+      startup: {
+        typeset: false
+      }
     };
   })();
 </script>
@@ -395,10 +406,17 @@
       return '<p>' + lines + '</p>';
     }).join('');
   }
-  function formatRichHtml(raw) {
-    const s = String(raw ?? '');
+  
+  function normalizeLatexDelimiters(s) {
+    s = String(s ?? '');
+    // Jika tersimpan sebagai \\( (double escape), jadikan \(
+    s = s.replace(/\\\\([()[\]])/g, '\\$1');
+    s = s.replace(/\\\\(frac|ce|sqrt)/g, '\\$1');
+    return s;
+  }
+function formatRichHtml(raw) {
+    let s = normalizeLatexDelimiters(String(raw ?? ''));
     if (!s.trim()) return '';
-    // HTML dari editor / import
     if (/<[a-z][\s\S]*>/i.test(s)) return sanitizeHtml(s);
     return plainTextToHtml(s);
   }
@@ -533,7 +551,28 @@
     return _mjChain;
   }
 
-  async function renderWithMathJax(targets) {
+    function renderWithKatex(targets) {
+    if (!katexReady()) return;
+    for (const el of targets || []) {
+      if (!el) continue;
+      try {
+        if (el.dataset.katexDone === '1' && !nodeStillHasRawMath(el)) continue;
+        if (!MATH_HINT_RE.test(el.textContent || '')) {
+          el.dataset.katexDone = '1';
+          continue;
+        }
+        // Hapus flag agar auto-render memproses ulang setelah innerHTML baru
+        delete el.dataset.katexDone;
+        renderMathInElement(el, KATEX_OPTS);
+        el.dataset.katexDone = '1';
+        el.dataset.mathEngine = 'katex';
+      } catch (err) {
+        console.warn('KaTeX render error', err);
+      }
+    }
+  }
+
+async function renderWithMathJax(targets) {
     const list = (targets || []).filter(Boolean);
     if (!list.length) return false;
     await queueMathJaxTypeset(list);
