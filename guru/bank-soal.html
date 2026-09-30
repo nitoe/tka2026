@@ -178,6 +178,103 @@
     display: grid; grid-template-columns: 1fr 110px; gap: 8px;
     margin-bottom: 6px; align-items: center;
   }
+
+  .btn-preview { background: #ecfdf5; color: #047857; margin-right: 4px; }
+  .aksi-cell { white-space: nowrap; }
+  .preview-backdrop {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 320;
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 1.25rem 1rem; overflow-y: auto;
+  }
+  .preview-backdrop.show { display: flex; }
+  .preview-shell {
+    background: #f0f4ff; border-radius: 14px; max-width: 640px; width: 100%;
+    margin: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    border: 1px solid #d1d5db; overflow: hidden;
+  }
+  .preview-top {
+    background: linear-gradient(135deg, #12296b, #1a56db); color: #fff;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .preview-top strong { font-size: 0.9rem; font-weight: 800; }
+  .preview-top span { font-size: 0.72rem; opacity: 0.9; font-weight: 600; }
+  .preview-body { padding: 16px 16px 20px; }
+  .preview-card {
+    background: #fff; border-radius: 14px; padding: 18px 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e5e7eb;
+  }
+  .preview-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .preview-nomor {
+    background: #ebf5ff; color: #12296b; font-weight: 800; font-size: 0.78rem;
+    padding: 4px 12px; border-radius: 8px;
+  }
+  .preview-skor { font-size: 0.72rem; font-weight: 700; color: #6b7280; }
+  .preview-stimulus {
+    font-size: 0.88rem; line-height: 1.6; margin-bottom: 14px; padding: 12px;
+    background: #f8fafc; border-radius: 10px; border: 1px solid #d1d5db;
+    white-space: pre-wrap;
+  }
+  .preview-stimulus img,
+  .preview-img-wrap img {
+    display: block; max-width: 100%; max-height: 260px;
+    width: auto; height: auto; object-fit: contain;
+    margin: 0 auto; border-radius: 8px; background: #fff;
+  }
+  .preview-img-wrap {
+    display: flex; align-items: center; justify-content: center;
+    max-width: min(100%, 420px); min-height: 80px; max-height: 260px;
+    margin: 0 auto 10px; padding: 6px;
+    border-radius: 10px; background: #fff;
+    border: 1px solid #d1d5db;
+    overflow: hidden;
+    contain: layout paint;
+  }
+  .preview-img-wrap.is-loading {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: preview-shimmer 1.1s ease-in-out infinite;
+  }
+  .preview-img-wrap.is-error {
+    min-height: 48px; color: #b91c1c; font-size: 0.78rem; font-weight: 700;
+    border-color: #fecaca; background: #fef2f2;
+  }
+  @keyframes preview-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .thumb-cell {
+    display: inline-flex; width: 56px; height: 40px;
+    align-items: center; justify-content: center;
+    border-radius: 6px; border: 1px solid var(--line, #e2e8f0);
+    background: #fff; overflow: hidden; contain: strict;
+  }
+  .thumb-cell img {
+    max-width: 56px; max-height: 40px; width: auto; height: auto;
+    object-fit: contain; display: block;
+  }
+  .preview-q { font-weight: 800; font-size: 0.98rem; margin-bottom: 14px; line-height: 1.5; }
+  .preview-opsi {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 11px 13px; border: 1.5px solid #d1d5db; border-radius: 10px;
+    margin-bottom: 8px; font-size: 0.88rem; font-weight: 700;
+  }
+  .preview-opsi .ltr { color: #1a56db; min-width: 1.2em; }
+  .preview-warn {
+    background: #fef3c7; border: 1px solid #fbbf24; color: #92400e;
+    font-size: 0.78rem; font-weight: 700; padding: 8px 12px; border-radius: 8px;
+    margin-bottom: 12px; line-height: 1.4;
+  }
+  .preview-meta {
+    font-size: 0.72rem; font-weight: 600; color: #6b7280; margin-top: 14px;
+    padding-top: 10px; border-top: 1px solid #e5e7eb; line-height: 1.5;
+  }
+  .preview-actions { padding: 0 16px 16px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  table.preview-cat { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  table.preview-cat th, table.preview-cat td {
+    border: 1px solid #d1d5db; padding: 8px; text-align: center;
+  }
+  table.preview-cat th { background: #f1f5f9; font-weight: 800; font-size: 0.74rem; }
+  table.preview-cat td:first-child { text-align: left; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -304,6 +401,26 @@
     <div class="edit-actions">
       <button type="button" class="btn btn-secondary" id="edit-batal">Batal</button>
       <button type="button" class="btn btn-primary" id="edit-simpan">Simpan Soal</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="preview-backdrop" class="preview-backdrop" role="dialog" aria-modal="true">
+  <div class="preview-shell">
+    <div class="preview-top">
+      <div>
+        <strong>Preview tampilan kuis</strong><br>
+        <span id="preview-sub">Bagaimana soal ini terlihat oleh siswa</span>
+      </div>
+      <button type="button" class="btn-sm" id="preview-tutup-x" style="background:rgba(255,255,255,.2);color:#fff;">Tutup</button>
+    </div>
+    <div class="preview-body">
+      <div class="preview-card" id="preview-card">—</div>
+    </div>
+    <div class="preview-actions">
+      <button type="button" class="btn btn-secondary" id="preview-tutup">Tutup</button>
+      <button type="button" class="btn btn-primary" id="preview-ke-edit" style="display:none;">Edit soal ini</button>
     </div>
   </div>
 </div>
@@ -783,11 +900,15 @@
       tbody.innerHTML = filtered.map(s => {
         const miss = !(s.stimulus || s.bacaan || s.stimulusImage);
         const thumb = s.stimulusImage
-          ? `<span class="thumb-cell"><img src="${s.stimulusImage}" alt=""></span>`
+          ? `<span class="thumb-cell"><img src="${s.stimulusImage}" alt="" loading="lazy" decoding="async" width="56" height="40"></span>`
           : (miss ? '<span class="chip-miss">tanpa media</span>' : '—');
-        const aksi = canEdit
+        const editBtn = canEdit
           ? `<button type="button" class="btn-sm btn-edit" data-edit="${s.id}">Edit</button>`
-          : '—';
+          : '';
+        const aksi = `<span class="aksi-cell">
+          <button type="button" class="btn-sm btn-preview" data-preview="${s.id}">Preview</button>
+          ${editBtn}
+        </span>`;
         return `<tr>
           <td>${thumb}</td>
           <td>${s.subjectId || '-'}</td>
@@ -801,6 +922,9 @@
       }).join('');
       tbody.querySelectorAll('[data-edit]').forEach(btn => {
         btn.addEventListener('click', () => openEditSoal(btn.getAttribute('data-edit')));
+      });
+      tbody.querySelectorAll('[data-preview]').forEach(btn => {
+        btn.addEventListener('click', () => openPreviewSoal(btn.getAttribute('data-preview')));
       });
     }
 
@@ -1036,7 +1160,133 @@
 
     let editState = { id: null, stimulusImage: null, removeImage: false };
 
-    function openEditSoal(id) {
+    
+    function escapePreview(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function openPreviewSoal(id) {
+      const s = allSoal.find(x => x.id === id);
+      if (!s) return;
+      const card = document.getElementById('preview-card');
+      const sub = document.getElementById('preview-sub');
+      const backdrop = document.getElementById('preview-backdrop');
+      const btnEdit = document.getElementById('preview-ke-edit');
+      if (!card || !backdrop) {
+        alert('Preview tidak tersedia. Muat ulang halaman setelah upload bank-soal terbaru.');
+        return;
+      }
+      if (sub) {
+        sub.textContent = (s.subjectId || '—') + ' · ' + (s.tipe || '—') + ' · ' + (s.kompleksitas || '—');
+      }
+      const canEdit = currentStaff && (currentStaff.peran === 'admin' || currentStaff.peran === 'guru');
+      if (btnEdit) {
+        btnEdit.style.display = canEdit ? '' : 'none';
+        btnEdit.onclick = () => {
+          closePreviewSoal();
+          openEditSoal(id);
+        };
+      }
+
+      const tipe = s.tipe || 'pg';
+      const stimText = s.stimulus || s.bacaan || '';
+      const stimImg = s.stimulusImage || s.ilustrasi || s.gambar || '';
+      const hasMed = !!(stimText || (stimImg && String(stimImg).startsWith('data:image')) || (stimImg && /^https?:\/\//i.test(String(stimImg))));
+
+      let html = '';
+      if (!hasMed) {
+        html += '<div class="preview-warn">⚠️ Soal ini belum punya stimulus teks atau gambar. Siswa hanya melihat pertanyaan &amp; opsi — pertimbangkan menambah bacaan/ilustrasi.</div>';
+      }
+      html += '<div class="preview-head"><span class="preview-nomor">Preview</span>';
+      html += '<span class="preview-skor">Skor: ' + escapePreview(s.skor ?? '—') + '</span></div>';
+
+      if (stimImg || stimText) {
+        html += '<div class="preview-stimulus">';
+        if (stimImg && (String(stimImg).startsWith('data:image') || /^https?:\/\//i.test(String(stimImg)))) {
+          const src = String(stimImg).startsWith('data:image') ? stimImg : escapePreview(stimImg);
+          html += '<div class="preview-img-wrap is-loading" id="preview-img-wrap">' +
+            '<img id="preview-stim-img" alt="Gambar soal" decoding="async" fetchpriority="high" ' +
+            'style="opacity:0;transition:opacity .15s ease" src="' + src + '">' +
+            '</div>';
+        }
+        if (stimText) html += '<div>' + escapePreview(stimText) + '</div>';
+        html += '</div>';
+      }
+
+      html += '<div class="preview-q">' + escapePreview(s.pertanyaan || s.teks || '') + '</div>';
+
+      if (tipe === 'pgk-cat') {
+        const rows = Array.isArray(s.rows) ? s.rows : [];
+        const cols = Array.isArray(s.cols) && s.cols.length ? s.cols : ['Benar', 'Salah'];
+        html += '<table class="preview-cat"><thead><tr><th></th>';
+        cols.forEach(c => { html += '<th>' + escapePreview(c) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        rows.forEach(r => {
+          html += '<tr><td>' + escapePreview(r) + '</td>';
+          cols.forEach(() => { html += '<td>○</td>'; });
+          html += '</tr>';
+        });
+        if (!rows.length) html += '<tr><td colspan="' + (cols.length + 1) + '"><em>Belum ada pernyataan</em></td></tr>';
+        html += '</tbody></table>';
+      } else {
+        let opsi = Array.isArray(s.opsi) ? s.opsi : [];
+        if (!opsi.length && s.opsi && typeof s.opsi === 'object') {
+          opsi = Object.keys(s.opsi).sort().map(k => s.opsi[k]);
+        }
+        if (!opsi.length) {
+          html += '<div class="preview-warn">Belum ada pilihan jawaban.</div>';
+        } else {
+          opsi.forEach((text, i) => {
+            const letter = String.fromCharCode(65 + i);
+            html += '<div class="preview-opsi"><span class="ltr">' + letter + '.</span><span>' + escapePreview(text) + '</span></div>';
+          });
+        }
+      }
+
+      // meta for teacher (kunci only if staff loaded from questionPool)
+      const kunci = s.kunciJawaban;
+      let kunciStr = '—';
+      if (Array.isArray(kunci)) kunciStr = kunci.join(' · ');
+      else if (kunci != null && kunci !== '') kunciStr = String(kunci);
+      html += '<div class="preview-meta">';
+      html += '<div><b>Tipe materi:</b> ' + escapePreview(s.tipeMateri || '—') + '</div>';
+      html += '<div><b>ID:</b> ' + escapePreview(s.id) + '</div>';
+      if (kunciStr !== '—') {
+        html += '<div style="margin-top:6px;"><b>Kunci (hanya guru):</b> ' + escapePreview(kunciStr) + '</div>';
+      }
+      html += '</div>';
+
+      card.innerHTML = html;
+      const wrap = document.getElementById('preview-img-wrap');
+      const img = document.getElementById('preview-stim-img');
+      if (img && wrap) {
+        const show = () => {
+          wrap.classList.remove('is-loading');
+          img.style.opacity = '1';
+        };
+        const fail = () => {
+          wrap.classList.remove('is-loading');
+          wrap.classList.add('is-error');
+          wrap.textContent = 'Gambar gagal dimuat';
+        };
+        if (img.complete && img.naturalWidth) show();
+        else {
+          img.addEventListener('load', show, { once: true });
+          img.addEventListener('error', fail, { once: true });
+        }
+      }
+      backdrop.classList.add('show');
+    }
+
+    function closePreviewSoal() {
+      document.getElementById('preview-backdrop')?.classList.remove('show');
+    }
+
+function openEditSoal(id) {
       const s = allSoal.find(x => x.id === id);
       if (!s) return;
       const backdrop = document.getElementById('edit-backdrop');
@@ -1195,6 +1445,11 @@
     }
 
     document.getElementById('edit-batal')?.addEventListener('click', closeEditSoal);
+    document.getElementById('preview-tutup')?.addEventListener('click', closePreviewSoal);
+    document.getElementById('preview-tutup-x')?.addEventListener('click', closePreviewSoal);
+    document.getElementById('preview-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'preview-backdrop') closePreviewSoal();
+    });
     document.getElementById('edit-backdrop')?.addEventListener('click', (e) => {
       if (e.target.id === 'edit-backdrop') closeEditSoal();
     });
