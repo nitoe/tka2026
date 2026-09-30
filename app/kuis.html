@@ -420,7 +420,8 @@ function formatRichHtml(raw) {
     if (/<[a-z][\s\S]*>/i.test(s)) return sanitizeHtml(s);
     return plainTextToHtml(s);
   }
-      const KATEX_DELIMS = [
+      
+  const KATEX_DELIMS = [
     { left: '$$', right: '$$', display: true },
     { left: '\\[', right: '\\]', display: true },
     { left: '$', right: '$', display: false },
@@ -431,19 +432,17 @@ function formatRichHtml(raw) {
     '\\NN': '\\mathbb{N}',
     '\\ZZ': '\\mathbb{Z}',
     '\\QQ': '\\mathbb{Q}',
-    '\\abs': '\\left|#1\\right|',
-  };
-  const KATEX_OPTS = {
-    delimiters: KATEX_DELIMS,
-    macros: KATEX_MACROS,
-    throwOnError: false,
-    strict: 'ignore',
-    trust: false,
-    ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
-    ignoredClasses: ['no-katex', 'no-mathjax'],
   };
   const MATH_HINT_RE = /\$|\\\(|\\\[|\\begin\{|\\ce\{/;
   const MATH_TARGET_SEL = '.soal-stim-text, .soal-pertanyaan, .opsi-rich, .opsi-text, .kuis-lightbox-caption';
+  const KATEX_CDN_JS = [
+    'https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js',
+    'https://unpkg.com/katex@0.16.21/dist/katex.min.js',
+  ];
+  const KATEX_CDN_AUTO = [
+    'https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js',
+    'https://unpkg.com/katex@0.16.21/dist/contrib/auto-render.min.js',
+  ];
   const MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js';
 
   function preferredMathEngine() {
@@ -452,33 +451,63 @@ function formatRichHtml(raw) {
     return 'auto';
   }
 
-  function katexReady() {
-    return typeof katex !== 'undefined' && typeof renderMathInElement === 'function';
+  function katexCoreReady() {
+    return typeof katex !== 'undefined' && typeof katex.render === 'function';
   }
-
+  function katexAutoReady() {
+    return typeof renderMathInElement === 'function';
+  }
+  function katexReady() {
+    return katexCoreReady();
+  }
   function mathjaxReady() {
     return !!(window.MathJax && typeof MathJax.typesetPromise === 'function');
   }
 
-  let _katexWaitPromise = null;
-  function waitForKatex(timeoutMs = 5000) {
-    if (katexReady()) return Promise.resolve(true);
-    if (_katexWaitPromise) return _katexWaitPromise;
-    _katexWaitPromise = new Promise((resolve) => {
-      const t0 = Date.now();
-      let delay = 32;
-      const tick = () => {
-        if (katexReady()) { _katexWaitPromise = null; resolve(true); return; }
-        if (Date.now() - t0 > timeoutMs) { _katexWaitPromise = null; resolve(false); return; }
-        delay = Math.min(delay * 1.4, 200);
-        setTimeout(tick, delay);
-      };
-      setTimeout(tick, 0);
+  let _katexLoadPromise = null;
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[src="' + src + '"]');
+      if (existing) {
+        if (existing.dataset.loaded === '1') return resolve();
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', () => reject());
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+      s.onerror = () => reject(new Error('fail ' + src));
+      document.head.appendChild(s);
     });
-    return _katexWaitPromise;
   }
 
-    let _mathjaxLoadPromise = null;
+  async function ensureKatexLoaded() {
+    if (katexCoreReady()) return true;
+    if (_katexLoadPromise) return _katexLoadPromise;
+    _katexLoadPromise = (async () => {
+      for (const src of KATEX_CDN_JS) {
+        try {
+          await loadScript(src);
+          if (katexCoreReady()) break;
+        } catch (_) {}
+      }
+      if (!katexCoreReady()) return false;
+      if (!katexAutoReady()) {
+        for (const src of KATEX_CDN_AUTO) {
+          try {
+            await loadScript(src);
+            if (katexAutoReady()) break;
+          } catch (_) {}
+        }
+      }
+      return katexCoreReady();
+    })();
+    return _katexLoadPromise;
+  }
+
+  let _mathjaxLoadPromise = null;
   let _mjQueue = [];
   let _mjFlushTimer = null;
   let _mjChain = Promise.resolve();
@@ -513,6 +542,108 @@ function formatRichHtml(raw) {
       document.head.appendChild(s);
     });
     return _mathjaxLoadPromise;
+  }
+
+  function nodeStillHasRawMath(el) {
+    if (!el) return false;
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    let n;
+    while ((n = walk.nextNode())) {
+      if (n.parentElement && n.parentElement.closest('.katex, .MathJax, mjx-container, .no-katex, .no-mathjax, script, style')) continue;
+      if (MATH_HINT_RE.test(n.nodeValue || '')) return true;
+    }
+    return false;
+  }
+
+  function collectMathTargets(container) {
+    if (!container) return [];
+    const list = [];
+    if (container.nodeType === 1) {
+      if (container.matches?.(MATH_TARGET_SEL)) list.push(container);
+      container.querySelectorAll?.(MATH_TARGET_SEL)?.forEach((el) => list.push(el));
+    }
+    if (!list.length && container.nodeType === 1) list.push(container);
+    return [...new Set(list)];
+  }
+
+  /** Render LaTeX dengan katex.render langsung (tidak bergantung auto-render) */
+  function renderLatexManual(el) {
+    if (!el || !katexCoreReady()) return false;
+    const src = el.innerHTML;
+    if (!MATH_HINT_RE.test(el.textContent || '')) return false;
+
+    // Urutan: display dulu, lalu inline
+    const rules = [
+      { re: /\$\$([\s\S]+?)\$\$/g, display: true },
+      { re: /\\\[([\s\S]+?)\\\]/g, display: true },
+      { re: /\\\(([\s\S]+?)\\\)/g, display: false },
+      { re: /\$([^$\n]+?)\$/g, display: false },
+    ];
+
+    let html = src;
+    let changed = false;
+    for (const rule of rules) {
+      html = html.replace(rule.re, (match, tex) => {
+        // Skip jika sudah di dalam placeholder
+        try {
+          const out = katex.renderToString(tex, {
+            displayMode: rule.display,
+            throwOnError: false,
+            strict: 'ignore',
+            trust: false,
+            macros: KATEX_MACROS,
+          });
+          changed = true;
+          return out;
+        } catch (_) {
+          return match;
+        }
+      });
+    }
+    if (changed) {
+      el.innerHTML = html;
+      el.dataset.katexDone = '1';
+      el.dataset.mathEngine = 'katex';
+    }
+    return changed;
+  }
+
+  function renderWithKatex(targets) {
+    let any = false;
+    for (const el of targets || []) {
+      if (!el) continue;
+      try {
+        if (el.dataset.katexDone === '1' && !nodeStillHasRawMath(el)) {
+          any = true;
+          continue;
+        }
+        if (!MATH_HINT_RE.test(el.textContent || '')) {
+          el.dataset.katexDone = '1';
+          continue;
+        }
+        // Prefer auto-render bila ada; fallback manual
+        if (katexAutoReady()) {
+          renderMathInElement(el, {
+            delimiters: KATEX_DELIMS,
+            macros: KATEX_MACROS,
+            throwOnError: false,
+            strict: 'ignore',
+            trust: false,
+            ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+            ignoredClasses: ['no-katex', 'no-mathjax'],
+          });
+          el.dataset.katexDone = '1';
+          el.dataset.mathEngine = 'katex';
+          any = true;
+        } else if (renderLatexManual(el)) {
+          any = true;
+        }
+      } catch (err) {
+        console.warn('KaTeX error', err);
+        try { if (renderLatexManual(el)) any = true; } catch (_) {}
+      }
+    }
+    return any;
   }
 
   function queueMathJaxTypeset(elements) {
@@ -551,28 +682,7 @@ function formatRichHtml(raw) {
     return _mjChain;
   }
 
-    function renderWithKatex(targets) {
-    if (!katexReady()) return;
-    for (const el of targets || []) {
-      if (!el) continue;
-      try {
-        if (el.dataset.katexDone === '1' && !nodeStillHasRawMath(el)) continue;
-        if (!MATH_HINT_RE.test(el.textContent || '')) {
-          el.dataset.katexDone = '1';
-          continue;
-        }
-        // Hapus flag agar auto-render memproses ulang setelah innerHTML baru
-        delete el.dataset.katexDone;
-        renderMathInElement(el, KATEX_OPTS);
-        el.dataset.katexDone = '1';
-        el.dataset.mathEngine = 'katex';
-      } catch (err) {
-        console.warn('KaTeX render error', err);
-      }
-    }
-  }
-
-async function renderWithMathJax(targets) {
+  async function renderWithMathJax(targets) {
     const list = (targets || []).filter(Boolean);
     if (!list.length) return false;
     await queueMathJaxTypeset(list);
@@ -582,43 +692,42 @@ async function renderWithMathJax(targets) {
 
   function renderRichMath(container) {
     if (!container) return;
-    if (container.__katexRaf) cancelAnimationFrame(container.__katexRaf);
-    container.__katexRaf = requestAnimationFrame(() => {
-      const targets = collectMathTargets(container);
-      if (!targets.length) return;
-      // Skip cepat jika tidak ada hint rumus sama sekali
-      if (!targets.some((el) => MATH_HINT_RE.test(el.textContent || ''))) {
-        targets.forEach((el) => { el.dataset.katexDone = '1'; });
+    const targets = collectMathTargets(container);
+    if (!targets.length) return;
+    if (!targets.some((el) => MATH_HINT_RE.test(el.textContent || ''))) {
+      targets.forEach((el) => { el.dataset.katexDone = '1'; });
+      return;
+    }
+
+    const eng = preferredMathEngine();
+    const run = async () => {
+      if (eng === 'mathjax') {
+        await renderWithMathJax(targets);
         return;
       }
-      const eng = preferredMathEngine();
-      const run = async () => {
-        if (eng === 'mathjax') {
+      // katex or auto
+      let ok = await ensureKatexLoaded();
+      if (ok) {
+        renderWithKatex(targets);
+        // Jika masih ada raw math, coba manual sekali lagi
+        if (targets.some(nodeStillHasRawMath)) {
+          targets.forEach((el) => { try { renderLatexManual(el); } catch (_) {} });
+        }
+        if (eng === 'katex') return;
+        // auto: fallback MathJax hanya jika masih gagal
+        if (targets.some(nodeStillHasRawMath)) {
           await renderWithMathJax(targets);
-          return;
         }
-        if (eng === 'katex') {
-          if (katexReady()) renderWithKatex(targets);
-          else {
-            const ok = await waitForKatex(5000);
-            if (ok) renderWithKatex(targets);
-          }
-          return;
-        }
-        // auto: KaTeX → MathJax fallback
-        if (katexReady()) {
-          renderWithKatex(targets);
-          return;
-        }
-        const ok = await waitForKatex(2500);
-        if (ok) {
-          renderWithKatex(targets);
-          return;
-        }
-        await renderWithMathJax(targets);
-      };
-      run();
-    });
+        return;
+      }
+      // KaTeX gagal total → MathJax
+      if (eng !== 'katex') await renderWithMathJax(targets);
+    };
+
+    // Jalankan sekarang + retry (CDN lambat)
+    run();
+    setTimeout(run, 400);
+    setTimeout(run, 1200);
   }
 
   function opsiEntries(opsi) {
@@ -987,7 +1096,7 @@ function renderSoal(idx) {
         stimHtml += `<div class="soal-stim-img-box"><img class="soal-stimulus-img" src="${src}" alt="Ilustrasi soal" loading="lazy" decoding="async"></div>`;
         stimHtml += `<button type="button" class="btn-stim-zoom" data-stim-zoom="1">🔍 Lihat lebih besar</button>`;
       }
-      if (stimText) stimHtml += `<div class="soal-stim-text">${formatRichHtml(stimText)}</div>`;
+      if (stimText) stimHtml += `<div class="soal-stim-text" data-raw="${escapeHtml(stimText)}">${formatRichHtml(stimText)}</div>`;
       body += `<div class="soal-stimulus">${stimHtml}</div>`;
     }
     body += `<div class="soal-pertanyaan rich">${formatRichHtml(s.pertanyaan || s.teks || '')}</div>`;
@@ -1026,7 +1135,7 @@ function renderSoal(idx) {
       stimZoomBtn.addEventListener('click', () => {
         openKuisLightbox({
           imgSrc: imgEl ? imgEl.getAttribute('src') : '',
-          text: textEl ? textEl.textContent : '',
+          text: textEl ? (textEl.getAttribute('data-raw') || textEl.textContent) : '',
         });
       });
     }
