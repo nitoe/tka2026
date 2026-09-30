@@ -69,6 +69,53 @@
   .log-row:last-child { border-bottom: none; }
   .empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-2); font-weight: 500; font-size: 0.88rem; }
   .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-weight: 600; font-size: 0.9rem; }
+
+  .btn-sm {
+    border: none; border-radius: 8px; padding: 0.35rem 0.55rem;
+    font: 700 0.72rem var(--font); cursor: pointer;
+  }
+  .btn-edit { background: var(--brand-soft, #dbeafe); color: var(--brand, #1a56db); }
+  .thumb-cell img {
+    max-width: 56px; max-height: 40px; object-fit: contain;
+    border-radius: 6px; border: 1px solid var(--line); background: #fff;
+  }
+  .edit-backdrop {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 300;
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 1.5rem 1rem; overflow-y: auto;
+  }
+  .edit-backdrop.show { display: flex; }
+  .edit-modal {
+    background: var(--surface, #fff); border-radius: var(--radius, 14px);
+    box-shadow: var(--shadow); max-width: 560px; width: 100%;
+    padding: 1.25rem 1.2rem 1.35rem; margin: auto;
+    border: 1px solid var(--line);
+  }
+  .edit-modal h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.35rem; }
+  .edit-modal .meta-id { font-size: 0.72rem; color: var(--text-3); font-weight: 600; margin-bottom: 0.85rem; word-break: break-all; }
+  .edit-modal label.fld {
+    display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+    color: var(--text-3); margin: 0.65rem 0 0.3rem;
+  }
+  .edit-modal input[type=text], .edit-modal input[type=number], .edit-modal select, .edit-modal textarea {
+    width: 100%; font: 600 0.88rem var(--font); padding: 0.55rem 0.7rem;
+    border-radius: 8px; border: 1px solid var(--line-strong); background: #fff;
+  }
+  .edit-modal textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
+  .edit-img-preview {
+    margin-top: 0.5rem; background: #f8fafc; border: 1px dashed var(--line);
+    border-radius: 10px; padding: 0.75rem; text-align: center; min-height: 80px;
+  }
+  .edit-img-preview img {
+    max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px;
+  }
+  .edit-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+  .edit-status { font-size: 0.8rem; font-weight: 700; margin-top: 0.5rem; color: var(--text-2); }
+  .chip-miss {
+    display: inline-block; font-size: 0.65rem; font-weight: 700;
+    padding: 0.12rem 0.4rem; border-radius: 6px; background: #fef3c7; color: #92400e;
+  }
+
   code { font-size: 0.85em; background: var(--bg-elev); padding: 0.1em 0.35em; border-radius: 4px; }
 </style>
 </head>
@@ -131,7 +178,7 @@
       </div>
       <div class="preview-wrap">
         <table>
-          <thead><tr><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe</th><th>Pertanyaan</th><th>Skor</th></tr></thead>
+          <thead><tr><th></th><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe</th><th>Pertanyaan</th><th>Skor</th><th>Aksi</th></tr></thead>
           <tbody id="soal-tbody"></tbody>
         </table>
       </div>
@@ -575,15 +622,29 @@
       const emptyState = document.getElementById('empty-state');
       if (!filtered.length) { tbody.innerHTML = ''; emptyState.style.display = 'block'; return; }
       emptyState.style.display = 'none';
-      tbody.innerHTML = filtered.map(s => `
-        <tr>
+      const canEdit = currentStaff && (currentStaff.peran === 'admin' || currentStaff.peran === 'guru');
+      tbody.innerHTML = filtered.map(s => {
+        const miss = !(s.stimulus || s.bacaan || s.stimulusImage);
+        const thumb = s.stimulusImage
+          ? `<span class="thumb-cell"><img src="${s.stimulusImage}" alt=""></span>`
+          : (miss ? '<span class="chip-miss">tanpa media</span>' : '—');
+        const aksi = canEdit
+          ? `<button type="button" class="btn-sm btn-edit" data-edit="${s.id}">Edit</button>`
+          : '—';
+        return `<tr>
+          <td>${thumb}</td>
           <td>${s.subjectId || '-'}</td>
           <td>${s.tipeMateri || '-'}</td>
           <td>${s.kompleksitas || '-'}</td>
           <td>${s.tipe || '-'}</td>
-          <td>${(s.pertanyaan || '').slice(0, 80)}${(s.pertanyaan || '').length > 80 ? '…' : ''}</td>
+          <td>${(s.pertanyaan || '').slice(0, 70)}${(s.pertanyaan || '').length > 70 ? '…' : ''}</td>
           <td>${s.skor ?? '-'}</td>
-        </tr>`).join('');
+          <td>${aksi}</td>
+        </tr>`;
+      }).join('');
+      tbody.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => openEditSoal(btn.getAttribute('data-edit')));
+      });
     }
 
     document.getElementById('filter-mapel').addEventListener('change', () => {
@@ -778,6 +839,143 @@
         status.textContent = 'Gagal: ' + err.message;
       }
     });
+
+    // ── Kompres gambar client-side (JPEG) ──
+    async function compressImageFile(file, maxW = 900, quality = 0.72) {
+      if (!file || !file.type.startsWith('image/')) throw new Error('File bukan gambar');
+      if (file.size > 8 * 1024 * 1024) throw new Error('Gambar terlalu besar (maks 8 MB sebelum kompres)');
+      const bmp = await createImageBitmap(file);
+      let w = bmp.width, h = bmp.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(bmp, 0, 0, w, h);
+      bmp.close && bmp.close();
+      let q = quality;
+      let dataUrl = canvas.toDataURL('image/jpeg', q);
+      // Turunkan kualitas jika masih besar (~550KB base64 ~ aman untuk doc Firestore)
+      while (dataUrl.length > 550000 && q > 0.45) {
+        q -= 0.08;
+        dataUrl = canvas.toDataURL('image/jpeg', q);
+      }
+      if (dataUrl.length > 900000) throw new Error('Gambar masih terlalu besar setelah kompres. Coba foto yang lebih sederhana.');
+      return dataUrl;
+    }
+
+    let editState = { id: null, stimulusImage: null, removeImage: false };
+
+    function openEditSoal(id) {
+      const s = allSoal.find(x => x.id === id);
+      if (!s) return;
+      editState = { id, stimulusImage: s.stimulusImage || null, removeImage: false };
+      document.getElementById('edit-id').textContent = id + ' · ' + (s.subjectId || '');
+      document.getElementById('edit-pertanyaan').value = s.pertanyaan || '';
+      document.getElementById('edit-stimulus').value = s.stimulus || s.bacaan || '';
+      document.getElementById('edit-tipe-materi').value = s.tipeMateri || '';
+      document.getElementById('edit-kompleksitas').value = s.kompleksitas || 'L1-Pemahaman';
+      document.getElementById('edit-skor').value = s.skor || 1;
+      document.getElementById('edit-gambar').value = '';
+      document.getElementById('edit-status').textContent = '';
+      const prev = document.getElementById('edit-img-preview');
+      if (editState.stimulusImage) {
+        prev.innerHTML = '<img src="' + editState.stimulusImage + '" alt="Stimulus">';
+      } else {
+        prev.innerHTML = '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span>';
+      }
+      document.getElementById('edit-backdrop').classList.add('show');
+    }
+
+    function closeEditSoal() {
+      document.getElementById('edit-backdrop').classList.remove('show');
+      editState = { id: null, stimulusImage: null, removeImage: false };
+    }
+
+    document.getElementById('edit-batal')?.addEventListener('click', closeEditSoal);
+    document.getElementById('edit-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'edit-backdrop') closeEditSoal();
+    });
+    document.getElementById('edit-hapus-gambar')?.addEventListener('click', () => {
+      editState.stimulusImage = null;
+      editState.removeImage = true;
+      document.getElementById('edit-gambar').value = '';
+      document.getElementById('edit-img-preview').innerHTML =
+        '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Gambar akan dihapus saat disimpan</span>';
+    });
+    document.getElementById('edit-gambar')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const st = document.getElementById('edit-status');
+      st.textContent = 'Mengompres gambar…';
+      try {
+        const dataUrl = await compressImageFile(file);
+        editState.stimulusImage = dataUrl;
+        editState.removeImage = false;
+        document.getElementById('edit-img-preview').innerHTML = '<img src="' + dataUrl + '" alt="Preview">';
+        const kb = Math.round(dataUrl.length * 0.75 / 1024);
+        st.textContent = 'Gambar siap (~' + kb + ' KB terkompres).';
+      } catch (err) {
+        st.textContent = 'Gagal: ' + err.message;
+        e.target.value = '';
+      }
+    });
+
+    document.getElementById('edit-simpan')?.addEventListener('click', async () => {
+      if (!editState.id) return;
+      const st = document.getElementById('edit-status');
+      const btn = document.getElementById('edit-simpan');
+      const pertanyaan = document.getElementById('edit-pertanyaan').value.trim();
+      const stimulus = document.getElementById('edit-stimulus').value.trim();
+      const tipeMateri = document.getElementById('edit-tipe-materi').value.trim();
+      const kompleksitas = document.getElementById('edit-kompleksitas').value;
+      const skor = Number(document.getElementById('edit-skor').value);
+      if (!pertanyaan) { st.textContent = 'Pertanyaan wajib diisi.'; return; }
+      if (!tipeMateri) { st.textContent = 'Tipe materi wajib diisi.'; return; }
+      if (!skor || skor <= 0) { st.textContent = 'Skor harus > 0.'; return; }
+      btn.disabled = true;
+      st.textContent = 'Menyimpan…';
+      try {
+        const patch = {
+          pertanyaan,
+          stimulus,
+          bacaan: stimulus,
+          tipeMateri,
+          kompleksitas,
+          skor,
+          updatedAt: serverTimestamp(),
+        };
+        if (editState.removeImage) {
+          patch.stimulusImage = null;
+        } else if (editState.stimulusImage) {
+          patch.stimulusImage = editState.stimulusImage;
+        }
+        await updateDoc(doc(db, 'questionPool', editState.id), patch);
+        // Sinkron soalPublik (tanpa kunci)
+        const pubPatch = {
+          pertanyaan,
+          stimulus,
+          bacaan: stimulus,
+          tipeMateri,
+          kompleksitas,
+          skor,
+          updatedAt: serverTimestamp(),
+        };
+        if (editState.removeImage) pubPatch.stimulusImage = null;
+        else if (editState.stimulusImage) pubPatch.stimulusImage = editState.stimulusImage;
+        await setDoc(doc(db, 'soalPublik', editState.id), pubPatch, { merge: true });
+        st.textContent = 'Tersimpan. Memuat ulang daftar…';
+        closeEditSoal();
+        await loadSoal();
+      } catch (err) {
+        st.textContent = 'Gagal: ' + err.message;
+      }
+      btn.disabled = false;
+    });
+
+    // Tampilkan import/backfill untuk admin; edit tersedia admin+guru (rules harus izinkan staff write)
+
   }
 </script>
 </body>
