@@ -224,6 +224,49 @@
     </div>
   </main>
 </div>
+
+<div id="edit-backdrop" class="edit-backdrop" role="dialog" aria-modal="true">
+  <div class="edit-modal">
+    <h3>Edit Soal</h3>
+    <div class="meta-id" id="edit-id">—</div>
+    <label class="fld" for="edit-pertanyaan">Pertanyaan</label>
+    <textarea id="edit-pertanyaan"></textarea>
+    <label class="fld" for="edit-stimulus">Stimulus / teks bacaan (teks)</label>
+    <textarea id="edit-stimulus" placeholder="Teks bacaan atau stimulus tanpa gambar"></textarea>
+    <label class="fld" for="edit-gambar">Gambar stimulus (opsional)</label>
+    <input type="file" id="edit-gambar" accept="image/jpeg,image/png,image/webp,image/gif">
+    <div class="edit-img-preview" id="edit-img-preview"><span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span></div>
+    <div class="edit-actions" style="justify-content:flex-start;margin-top:0.35rem;">
+      <button type="button" class="btn btn-secondary btn-sm" id="edit-hapus-gambar">Hapus gambar</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+      <div>
+        <label class="fld" for="edit-tipe-materi">Tipe materi</label>
+        <input type="text" id="edit-tipe-materi">
+      </div>
+      <div>
+        <label class="fld" for="edit-kompleksitas">Kompleksitas</label>
+        <select id="edit-kompleksitas">
+          <option value="L1-Pemahaman">L1-Pemahaman</option>
+          <option value="L2-Aplikasi">L2-Aplikasi</option>
+          <option value="L3-Penalaran">L3-Penalaran</option>
+        </select>
+      </div>
+    </div>
+    <label class="fld" for="edit-skor">Skor</label>
+    <input type="number" id="edit-skor" min="1" step="1">
+    <p style="font-size:0.72rem;font-weight:600;color:var(--text-3);margin-top:0.65rem;line-height:1.4;">
+      Gambar dikompres otomatis (lebar maks ~900px, JPEG) agar muat di Firestore dan cepat di kuis.
+      Perubahan disimpan ke bank soal + versi publik siswa.
+    </p>
+    <div class="edit-status" id="edit-status"></div>
+    <div class="edit-actions">
+      <button type="button" class="btn btn-secondary" id="edit-batal">Batal</button>
+      <button type="button" class="btn btn-primary" id="edit-simpan">Simpan Soal</button>
+    </div>
+  </div>
+</div>
+
 <div id="not-configured" class="loading-screen" style="display:none;flex-direction:column;gap:10px;text-align:center;padding:20px;">
   <div>Firebase belum dikonfigurasi.</div>
   <a href="../index.html" style="color:#1a56db;font-weight:800;">← Kembali</a>
@@ -955,22 +998,37 @@
     function openEditSoal(id) {
       const s = allSoal.find(x => x.id === id);
       if (!s) return;
-      editState = { id, stimulusImage: s.stimulusImage || null, removeImage: false };
-      document.getElementById('edit-id').textContent = id + ' · ' + (s.subjectId || '');
-      document.getElementById('edit-pertanyaan').value = s.pertanyaan || '';
-      document.getElementById('edit-stimulus').value = s.stimulus || s.bacaan || '';
-      document.getElementById('edit-tipe-materi').value = s.tipeMateri || '';
-      document.getElementById('edit-kompleksitas').value = s.kompleksitas || 'L1-Pemahaman';
-      document.getElementById('edit-skor').value = s.skor || 1;
-      document.getElementById('edit-gambar').value = '';
-      document.getElementById('edit-status').textContent = '';
+      const backdrop = document.getElementById('edit-backdrop');
+      const elId = document.getElementById('edit-id');
+      const elQ = document.getElementById('edit-pertanyaan');
+      const elStim = document.getElementById('edit-stimulus');
+      const elMateri = document.getElementById('edit-tipe-materi');
+      const elKomp = document.getElementById('edit-kompleksitas');
+      const elSkor = document.getElementById('edit-skor');
+      const elGambar = document.getElementById('edit-gambar');
+      const elStatus = document.getElementById('edit-status');
       const prev = document.getElementById('edit-img-preview');
-      if (editState.stimulusImage) {
-        prev.innerHTML = '<img src="' + editState.stimulusImage + '" alt="Stimulus">';
-      } else {
-        prev.innerHTML = '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span>';
+      if (!backdrop || !elId || !elQ || !elStim || !elMateri || !elKomp || !elSkor) {
+        alert('Form edit tidak ditemukan. Muat ulang halaman (Ctrl+Shift+R) setelah upload bank-soal.html terbaru.');
+        return;
       }
-      document.getElementById('edit-backdrop').classList.add('show');
+      editState = { id, stimulusImage: s.stimulusImage || null, removeImage: false };
+      elId.textContent = id + ' · ' + (s.subjectId || '');
+      elQ.value = s.pertanyaan || '';
+      elStim.value = s.stimulus || s.bacaan || '';
+      elMateri.value = s.tipeMateri || '';
+      elKomp.value = s.kompleksitas || 'L1-Pemahaman';
+      elSkor.value = s.skor || 1;
+      if (elGambar) elGambar.value = '';
+      if (elStatus) elStatus.textContent = '';
+      if (prev) {
+        if (editState.stimulusImage) {
+          prev.innerHTML = '<img src="' + editState.stimulusImage + '" alt="Stimulus">';
+        } else {
+          prev.innerHTML = '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span>';
+        }
+      }
+      backdrop.classList.add('show');
     }
 
     function closeEditSoal() {
