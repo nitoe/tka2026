@@ -6,6 +6,18 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.11] — 2026-09-30
+
+### Added
+- **Rekap nilai per kelas** (`guru/rekap-kelas.html`): roster siswa kelas 6A/6B, nilai MTK & BI (persen terbaik), keterangan "tidak mengikuti", peringkat terbaik / MTK / BI.
+- Ekspor **PDF** landscape + blok pengesahan (Guru Kelas 6A/6B, Kepala Sekolah).
+- Menu sidebar **Rekap per Kelas**.
+
+### Tidak Berubah
+- Rekap try out per attempt, scoring, bank soal.
+
+---
+
 ## [0.18.10] — 2026-09-30
 
 ### Added
