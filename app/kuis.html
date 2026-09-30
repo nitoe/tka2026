@@ -473,8 +473,19 @@
     const s = soalList[idx];
     const card = document.getElementById('soal-card');
     let body = `<div class="soal-head"><span class="soal-nomor">Soal ${idx + 1} / ${soalList.length}</span><span class="skor-tag">Skor: ${s.skor ?? '-'}</span></div>`;
-    if (s.stimulus || s.bacaan) body += `<div class="soal-stimulus">${s.stimulus || s.bacaan || ''}</div>`;
-    body += `<div class="soal-pertanyaan">${s.pertanyaan || s.teks || ''}</div>`;
+    const stimText = s.stimulus || s.bacaan || '';
+    const stimImg = s.stimulusImage || s.ilustrasi || s.gambar || '';
+    if (stimImg || stimText) {
+      let stimHtml = '';
+      if (stimImg && String(stimImg).startsWith('data:image')) {
+        stimHtml += `<img class="soal-stimulus-img" src="${stimImg}" alt="Gambar soal" loading="lazy">`;
+      } else if (stimImg && /^https?:\/\//i.test(String(stimImg))) {
+        stimHtml += `<img class="soal-stimulus-img" src="${escapeHtml(stimImg)}" alt="Gambar soal" loading="lazy">`;
+      }
+      if (stimText) stimHtml += `<div>${escapeHtml(stimText)}</div>`;
+      body += `<div class="soal-stimulus">${stimHtml}</div>`;
+    }
+    body += `<div class="soal-pertanyaan">${escapeHtml(s.pertanyaan || s.teks || '')}</div>`;
     const qid = s.id;
     if (s.tipe === 'pg') {
       getOpsiEntries(s).forEach(e => {
