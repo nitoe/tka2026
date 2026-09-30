@@ -66,7 +66,7 @@
   .selected-stats { display: flex; gap: 10px; margin-bottom: 12px; }
   .selected-stats .num { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
   .selected-stats .label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-  .selected-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; }
+  .selected-list { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.8rem; background: #fff; }
   .selected-list .item { padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
   .field { margin-bottom: 12px; }
   .field label { display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
@@ -125,6 +125,36 @@
     border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; line-height: 1.4;
   }
   .edit-banner.show { display: block; }
+
+  .selected-list { max-height: 280px; overflow-y: auto; margin-top: 10px; }
+  .selected-item {
+    display: flex; gap: 10px; align-items: flex-start; justify-content: space-between;
+    padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem;
+  }
+  .selected-item:last-child { border-bottom: none; }
+  .selected-item .si-body { flex: 1; min-width: 0; }
+  .selected-item .si-id { font-weight: 800; color: var(--primary-dark); font-size: 0.72rem; word-break: break-all; }
+  .selected-item .si-q { font-weight: 700; margin: 3px 0; line-height: 1.35; }
+  .selected-item .si-meta { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+  .selected-item .si-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .selected-item .si-actions button, .selected-item .si-actions a {
+    font-family: inherit; font-size: 0.68rem; font-weight: 800; padding: 5px 8px;
+    border-radius: 7px; border: 1.5px solid var(--border); cursor: pointer; text-align: center;
+    text-decoration: none; color: inherit; background: #fff;
+  }
+  .selected-item .si-actions .btn-edit-soal {
+    background: #dbeafe; color: #1a56db; border-color: #93c5fd;
+  }
+  .selected-item .si-actions .btn-hapus-soal {
+    background: #fee2e2; color: #b91c1c; border-color: #fecaca;
+  }
+  .paket-soal-tools {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px;
+  }
+  .paket-soal-tools label {
+    font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -161,6 +191,10 @@
           <div class="selected-stats">
             <div><div class="num" id="selected-count">0</div><div class="label">Soal Dipilih</div></div>
             <div><div class="num" id="selected-skor">0</div><div class="label">Total Skor</div></div>
+          </div>
+          <div class="paket-soal-tools">
+            <label><input type="checkbox" id="filter-hanya-paket"> Tampilkan hanya soal dalam paket</label>
+            <button type="button" class="btn-secondary" id="btn-buka-bank-paket" style="font-size:0.72rem;padding:6px 10px;">Kelola di Bank Soal</button>
           </div>
           <div class="selected-list" id="selected-list">
             <div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>
@@ -302,7 +336,19 @@
       page.style.display = 'block';
       mountGuruShell({ active: 'susun', staff: currentStaff });
       await loadSoal();
-      await loadPaket();
+      await 
+  document.getElementById('filter-hanya-paket')?.addEventListener('change', () => renderSoalList());
+  document.getElementById('btn-buka-bank-paket')?.addEventListener('click', () => {
+    const ids = Object.keys(selected);
+    if (!ids.length) {
+      window.open('bank-soal.html', '_blank', 'noopener');
+      return;
+    }
+    // Buka bank dengan fokus soal pertama; guru bisa navigasi dari sana
+    window.open(bankEditUrl(ids[0]), '_blank', 'noopener');
+  });
+
+  loadPaket();
     });
   }
 
@@ -353,8 +399,10 @@
     const tipe = document.getElementById('filter-tipe').value;
     const materi = document.getElementById('filter-materi').value;
     const komp = document.getElementById('filter-kompleksitas').value;
+    const hanyaPaket = document.getElementById('filter-hanya-paket')?.checked;
     const list = document.getElementById('soal-list');
     let filtered = allSoal;
+    if (hanyaPaket) filtered = filtered.filter(s => !!selected[s.id]);
     if (mapel) filtered = filtered.filter(s => s.subjectId === mapel || s.mapel === mapel);
     if (tipe) filtered = filtered.filter(s => s.tipe === tipe);
     if (materi) filtered = filtered.filter(s => s.tipeMateri === materi);
@@ -391,15 +439,55 @@
     document.getElementById(id).addEventListener('change', renderSoalList);
   });
 
+  function escapeMini(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function bankEditUrl(soalId) {
+    // Path relatif dari guru/susun-paket.html → guru/bank-soal.html
+    return 'bank-soal.html?edit=' + encodeURIComponent(soalId);
+  }
+
   function updateSelected() {
     const ids = Object.keys(selected);
     document.getElementById('selected-count').textContent = ids.length;
-    document.getElementById('selected-skor').textContent = ids.reduce((s, id) => s + (selected[id].skor || 0), 0);
+    document.getElementById('selected-skor').textContent = ids.reduce((s, id) => s + (Number(selected[id].skor) || 0), 0);
     const list = document.getElementById('selected-list');
     if (!ids.length) {
-      list.innerHTML = '<div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>';
+      list.innerHTML = '<div class="empty-state" style="padding:14px;">Belum ada soal dipilih. Centang soal di daftar kiri, atau edit paket yang sudah ada.</div>';
     } else {
-      list.innerHTML = ids.map(id => `<div class="item">${id} · ${selected[id].tipeMateri || '-'} · ${selected[id].kompleksitas || '-'} · skor ${selected[id].skor ?? '-'}</div>`).join('');
+      list.innerHTML = ids.map((id, idx) => {
+        const s = selected[id] || {};
+        const q = (s.pertanyaan || s.teks || '(tanpa teks pertanyaan)').slice(0, 140);
+        const more = (s.pertanyaan || s.teks || '').length > 140 ? '…' : '';
+        const meta = [s.tipe || '-', s.tipeMateri || '-', s.kompleksitas || '-', 'skor ' + (s.skor ?? '-')].join(' · ');
+        const hasMedia = !!(s.stimulus || s.bacaan || s.stimulusImage);
+        const media = hasMedia ? '' : ' · <span style="color:#b45309;font-weight:800;">tanpa media</span>';
+        return `<div class="selected-item" data-sid="${escapeMini(id)}">
+          <div class="si-body">
+            <div class="si-id">#${idx + 1} · ${escapeMini(id)}</div>
+            <div class="si-q">${escapeMini(q)}${more}</div>
+            <div class="si-meta">${escapeMini(meta)}${media}</div>
+          </div>
+          <div class="si-actions">
+            <a class="btn-edit-soal" href="${bankEditUrl(id)}" target="_blank" rel="noopener" title="Edit soal di Bank Soal">Edit soal</a>
+            <button type="button" class="btn-hapus-soal" data-remove="${escapeMini(id)}" title="Keluarkan dari paket">Keluarkan</button>
+          </div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-remove');
+          delete selected[id];
+          const cb = document.querySelector(`#soal-list input[value="${CSS.escape(id)}"]`);
+          if (cb) {
+            cb.checked = false;
+            cb.closest('.soal-item')?.classList.remove('selected');
+          }
+          updateSelected();
+          renderSoalList();
+        });
+      });
     }
     document.getElementById('btn-simpan-paket').disabled = ids.length === 0;
   }

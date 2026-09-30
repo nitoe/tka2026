@@ -1968,6 +1968,29 @@ function openPreviewSoal(id) {
         renderRichMath(qPrev);
       }
     }
+
+    function openEditFromQuery() {
+      try {
+        const q = new URLSearchParams(location.search);
+        const id = q.get('edit') || q.get('soal') || '';
+        if (!id) return;
+        const tryOpen = () => {
+          const s = allSoal.find(x => x.id === id);
+          if (s) {
+            openEditSoal(id);
+            return true;
+          }
+          return false;
+        };
+        if (tryOpen()) return;
+        // tunggu loadSoal selesai sebentar
+        let n = 0;
+        const iv = setInterval(() => {
+          n++;
+          if (tryOpen() || n > 40) clearInterval(iv);
+        }, 100);
+      } catch (_) {}
+    }
 function openEditSoal(id) {
       const s = allSoal.find(x => x.id === id);
       if (!s) return;
