@@ -148,6 +148,36 @@
     font-size: 0.78rem; font-weight: 700; color: var(--text-muted, #6b7280);
     margin: -4px 0 10px;
   }
+
+  .edit-opsi-block {
+    margin-top: 0.75rem; padding: 0.75rem;
+    background: #f8fafc; border: 1px solid var(--line, #e2e8f0);
+    border-radius: 10px;
+  }
+  .edit-opsi-block h4 {
+    font-size: 0.78rem; font-weight: 800; text-transform: uppercase;
+    color: var(--text-3, #64748b); margin: 0 0 0.5rem;
+  }
+  .edit-opsi-row {
+    display: grid; grid-template-columns: 28px 1fr; gap: 8px;
+    align-items: center; margin-bottom: 6px;
+  }
+  .edit-opsi-row .letter {
+    font-weight: 800; font-size: 0.85rem; color: var(--brand, #1a56db);
+    text-align: center;
+  }
+  .edit-opsi-row input[type=text] {
+    width: 100%; font: 600 0.85rem inherit; padding: 0.45rem 0.6rem;
+    border-radius: 8px; border: 1px solid var(--line-strong, #cbd5e1);
+  }
+  .edit-kunci-hint {
+    font-size: 0.72rem; font-weight: 600; color: var(--text-3);
+    margin: 0.35rem 0 0.5rem; line-height: 1.4;
+  }
+  .edit-cat-row {
+    display: grid; grid-template-columns: 1fr 110px; gap: 8px;
+    margin-bottom: 6px; align-items: center;
+  }
 </style>
 </head>
 <body>
@@ -251,6 +281,17 @@
           <option value="L2-Aplikasi">L2-Aplikasi</option>
           <option value="L3-Penalaran">L3-Penalaran</option>
         </select>
+      </div>
+    </div>
+    <div class="edit-opsi-block" id="edit-opsi-block">
+      <h4>Pilihan &amp; kunci jawaban</h4>
+      <div class="edit-kunci-hint" id="edit-tipe-label">Tipe: —</div>
+      <div id="edit-opsi-fields"></div>
+      <label class="fld" for="edit-kunci" id="edit-kunci-label">Kunci jawaban</label>
+      <input type="text" id="edit-kunci" placeholder="Teks opsi yang benar (pg) atau pisah ; untuk pgk">
+      <div class="edit-kunci-hint" id="edit-kunci-hint">
+        pg: isi teks opsi yang benar (sama persis). pgk: beberapa teks dipisah titik koma (;).
+        pgk-cat: kunci per baris di kolom kanan (Benar/Salah).
       </div>
     </div>
     <label class="fld" for="edit-skor">Skor</label>
@@ -1012,8 +1053,18 @@
         alert('Form edit tidak ditemukan. Muat ulang halaman (Ctrl+Shift+R) setelah upload bank-soal.html terbaru.');
         return;
       }
-      editState = { id, stimulusImage: s.stimulusImage || null, removeImage: false };
-      elId.textContent = id + ' · ' + (s.subjectId || '');
+      const tipe = s.tipe || s.tipeSoal || 'pg';
+      editState = {
+        id,
+        tipe,
+        stimulusImage: s.stimulusImage || null,
+        removeImage: false,
+        opsi: Array.isArray(s.opsi) ? s.opsi.slice() : [],
+        rows: Array.isArray(s.rows) ? s.rows.slice() : [],
+        cols: Array.isArray(s.cols) ? s.cols.slice() : (tipe === 'pgk-cat' ? ['Benar', 'Salah'] : []),
+        kunciJawaban: s.kunciJawaban,
+      };
+      elId.textContent = id + ' · ' + (s.subjectId || '') + ' · ' + tipe;
       elQ.value = s.pertanyaan || '';
       elStim.value = s.stimulus || s.bacaan || '';
       elMateri.value = s.tipeMateri || '';
@@ -1028,7 +1079,114 @@
           prev.innerHTML = '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span>';
         }
       }
+      fillEditOpsiFields(s);
       backdrop.classList.add('show');
+    }
+
+    function fillEditOpsiFields(s) {
+      const tipe = editState.tipe || 'pg';
+      const box = document.getElementById('edit-opsi-fields');
+      const kunciInput = document.getElementById('edit-kunci');
+      const kunciLabel = document.getElementById('edit-kunci-label');
+      const tipeLabel = document.getElementById('edit-tipe-label');
+      const kunciHint = document.getElementById('edit-kunci-hint');
+      if (!box) return;
+      if (tipeLabel) tipeLabel.textContent = 'Tipe soal: ' + tipe;
+      box.innerHTML = '';
+
+      if (tipe === 'pgk-cat') {
+        const rows = editState.rows.length ? editState.rows : ['', '', '', ''];
+        while (rows.length < 2) rows.push('');
+        const kunciArr = Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban : [];
+        if (kunciInput) { kunciInput.style.display = 'none'; }
+        if (kunciLabel) kunciLabel.style.display = 'none';
+        if (kunciHint) kunciHint.textContent = 'Isi pernyataan di kiri; kunci Benar/Salah di kanan. Urutan harus sejajar.';
+        rows.forEach((row, i) => {
+          const div = document.createElement('div');
+          div.className = 'edit-cat-row';
+          const kunciVal = kunciArr[i] || 'Benar';
+          div.innerHTML =
+            '<input type="text" data-cat-row="' + i + '" value="' + escapeAttr(row) + '" placeholder="Pernyataan ' + (i + 1) + '">' +
+            '<select data-cat-kunci="' + i + '">' +
+            '<option value="Benar"' + (kunciVal === 'Benar' ? ' selected' : '') + '>Benar</option>' +
+            '<option value="Salah"' + (kunciVal === 'Salah' ? ' selected' : '') + '>Salah</option>' +
+            '</select>';
+          box.appendChild(div);
+        });
+        // up to 4 rows
+        for (let i = rows.length; i < 4; i++) {
+          const div = document.createElement('div');
+          div.className = 'edit-cat-row';
+          div.innerHTML =
+            '<input type="text" data-cat-row="' + i + '" value="" placeholder="Pernyataan ' + (i + 1) + ' (opsional)">' +
+            '<select data-cat-kunci="' + i + '"><option value="Benar">Benar</option><option value="Salah">Salah</option></select>';
+          box.appendChild(div);
+        }
+        return;
+      }
+
+      // pg / pgk — opsi A–D
+      if (kunciInput) kunciInput.style.display = '';
+      if (kunciLabel) kunciLabel.style.display = '';
+      const opsi = editState.opsi.length ? editState.opsi.slice() : ['', '', '', ''];
+      while (opsi.length < 4) opsi.push('');
+      opsi.slice(0, 4).forEach((text, i) => {
+        const letter = String.fromCharCode(65 + i);
+        const div = document.createElement('div');
+        div.className = 'edit-opsi-row';
+        div.innerHTML =
+          '<span class="letter">' + letter + '</span>' +
+          '<input type="text" data-opsi="' + i + '" value="' + escapeAttr(text) + '" placeholder="Opsi ' + letter + '">';
+        box.appendChild(div);
+      });
+      if (tipe === 'pg') {
+        const k = typeof editState.kunciJawaban === 'string' ? editState.kunciJawaban : (Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban[0] : '');
+        if (kunciInput) kunciInput.value = k || '';
+        if (kunciHint) kunciHint.textContent = 'Kunci = teks opsi yang benar, harus sama persis dengan salah satu opsi (bukan huruf A/B/C/D).';
+      } else {
+        const arr = Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban : (editState.kunciJawaban ? [editState.kunciJawaban] : []);
+        if (kunciInput) kunciInput.value = arr.join('; ');
+        if (kunciHint) kunciHint.textContent = 'pgk: beberapa jawaban benar, pisahkan dengan titik koma (;). Teks harus sama persis dengan opsi.';
+      }
+    }
+
+    function escapeAttr(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function readEditOpsiKunci() {
+      const tipe = editState.tipe || 'pg';
+      if (tipe === 'pgk-cat') {
+        const rows = [];
+        const kunci = [];
+        document.querySelectorAll('[data-cat-row]').forEach(inp => {
+          const i = Number(inp.getAttribute('data-cat-row'));
+          const text = inp.value.trim();
+          const sel = document.querySelector('[data-cat-kunci="' + i + '"]');
+          if (text) {
+            rows.push(text);
+            kunci.push(sel ? sel.value : 'Benar');
+          }
+        });
+        return { opsi: [], rows, cols: ['Benar', 'Salah'], kunciJawaban: kunci };
+      }
+      const opsi = [];
+      document.querySelectorAll('[data-opsi]').forEach(inp => {
+        const v = inp.value.trim();
+        if (v) opsi.push(v);
+      });
+      const raw = (document.getElementById('edit-kunci')?.value || '').trim();
+      let kunciJawaban;
+      if (tipe === 'pg') {
+        kunciJawaban = raw;
+      } else {
+        kunciJawaban = raw.split(';').map(x => x.trim()).filter(Boolean);
+      }
+      return { opsi, rows: [], cols: [], kunciJawaban };
     }
 
     function closeEditSoal() {
@@ -1077,9 +1235,37 @@
       if (!pertanyaan) { st.textContent = 'Pertanyaan wajib diisi.'; return; }
       if (!tipeMateri) { st.textContent = 'Tipe materi wajib diisi.'; return; }
       if (!skor || skor <= 0) { st.textContent = 'Skor harus > 0.'; return; }
+
+      const parsed = readEditOpsiKunci();
+      const tipe = editState.tipe || 'pg';
+      if (tipe === 'pg' || tipe === 'pgk') {
+        if (parsed.opsi.length < 2) { st.textContent = 'Minimal 2 opsi terisi.'; return; }
+        if (tipe === 'pg') {
+          if (!parsed.kunciJawaban) { st.textContent = 'Kunci jawaban wajib.'; return; }
+          if (!parsed.opsi.includes(parsed.kunciJawaban)) {
+            st.textContent = 'Kunci harus sama persis salah satu teks opsi.';
+            return;
+          }
+        } else {
+          if (!parsed.kunciJawaban.length) { st.textContent = 'Kunci pgk wajib (pisah ;).'; return; }
+          const inv = parsed.kunciJawaban.filter(k => !parsed.opsi.includes(k));
+          if (inv.length) { st.textContent = 'Kunci tidak cocok opsi: ' + inv.join(', '); return; }
+        }
+      } else if (tipe === 'pgk-cat') {
+        if (!parsed.rows.length) { st.textContent = 'Minimal 1 pernyataan.'; return; }
+      }
+
       btn.disabled = true;
       st.textContent = 'Menyimpan…';
       try {
+        let kunciHash = null;
+        try {
+          kunciHash = await computeKunciHash(tipe, parsed.kunciJawaban);
+        } catch (hashErr) {
+          st.textContent = 'Gagal hash kunci: ' + hashErr.message;
+          btn.disabled = false;
+          return;
+        }
         const patch = {
           pertanyaan,
           stimulus,
@@ -1087,6 +1273,11 @@
           tipeMateri,
           kompleksitas,
           skor,
+          tipe,
+          opsi: parsed.opsi,
+          rows: parsed.rows,
+          cols: parsed.cols,
+          kunciJawaban: parsed.kunciJawaban,
           updatedAt: serverTimestamp(),
         };
         if (editState.removeImage) {
@@ -1095,7 +1286,6 @@
           patch.stimulusImage = editState.stimulusImage;
         }
         await updateDoc(doc(db, 'questionPool', editState.id), patch);
-        // Sinkron soalPublik (tanpa kunci)
         const pubPatch = {
           pertanyaan,
           stimulus,
@@ -1103,10 +1293,17 @@
           tipeMateri,
           kompleksitas,
           skor,
+          tipe,
+          opsi: parsed.opsi,
+          rows: parsed.rows,
+          cols: parsed.cols,
+          kunciHash,
           updatedAt: serverTimestamp(),
         };
         if (editState.removeImage) pubPatch.stimulusImage = null;
         else if (editState.stimulusImage) pubPatch.stimulusImage = editState.stimulusImage;
+        // hapus kunci plaintext di publik jika pernah tertinggal
+        pubPatch.kunciJawaban = null;
         await setDoc(doc(db, 'soalPublik', editState.id), pubPatch, { merge: true });
         st.textContent = 'Tersimpan. Memuat ulang daftar…';
         closeEditSoal();
