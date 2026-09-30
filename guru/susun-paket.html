@@ -445,7 +445,8 @@
 
   function bankEditUrl(soalId) {
     // Path relatif dari guru/susun-paket.html → guru/bank-soal.html
-    return 'bank-soal.html?edit=' + encodeURIComponent(soalId);
+    const id = String(soalId || '').trim();
+    return 'bank-soal.html?edit=' + encodeURIComponent(id);
   }
 
   function updateSelected() {

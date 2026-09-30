@@ -425,6 +425,14 @@
     color: #64748b; margin-top: 6px;
   }
   .edit-math-preview .katex { font-size: 1.05em; }
+
+  .edit-opsi-row { grid-template-columns: 28px 1fr auto; }
+  .edit-kunci-pick {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.68rem; font-weight: 800; color: #047857;
+    white-space: nowrap;
+  }
+  .edit-kunci-pick input { width: 16px; height: 16px; accent-color: #047857; }
 </style>
 </head>
 <body>
@@ -971,6 +979,7 @@
       page.style.display = 'block';
       mountGuruShell({ active: 'bank', staff: currentStaff });
       await loadSoal();
+      openEditFromQuery();
     });
 
     async function loadSoal() {
@@ -979,6 +988,10 @@
       renderStats();
       populateFilters();
       renderTable();
+      // Deep-link dari susun paket: ?edit=<id>
+      if (new URLSearchParams(location.search).get('edit') || new URLSearchParams(location.search).get('soal')) {
+        openEditFromQuery();
+      }
     }
 
     function renderStats() {
@@ -1971,25 +1984,60 @@ function openPreviewSoal(id) {
 
     function openEditFromQuery() {
       try {
+        if (window.__tkaEditQueryDone) return;
         const q = new URLSearchParams(location.search);
-        const id = q.get('edit') || q.get('soal') || '';
+        let id = (q.get('edit') || q.get('soal') || '').trim();
         if (!id) return;
-        const tryOpen = () => {
-          const s = allSoal.find(x => x.id === id);
-          if (s) {
-            openEditSoal(id);
-            return true;
-          }
-          return false;
+        try { id = decodeURIComponent(id); } catch (_) {}
+
+        const findSoal = () => {
+          if (!Array.isArray(allSoal) || !allSoal.length) return null;
+          return allSoal.find(x => x.id === id)
+            || allSoal.find(x => String(x.id) === String(id))
+            || allSoal.find(x => String(x.id).toLowerCase() === String(id).toLowerCase())
+            || null;
         };
+
+        const tryOpen = () => {
+          const s = findSoal();
+          if (!s) return false;
+          // Bantu guru menemukan baris di tabel
+          const searchEl = document.getElementById('filter-search');
+          if (searchEl) {
+            searchEl.value = s.id;
+            searchEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          // Pastikan filter mapel tidak menyembunyikan soal
+          const mapelSel = document.getElementById('filter-mapel');
+          if (mapelSel && mapelSel.value && s.subjectId && mapelSel.value !== s.subjectId) {
+            mapelSel.value = '';
+            mapelSel.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          window.__tkaEditQueryDone = true;
+          openEditSoal(s.id);
+          // Scroll ke baris tabel bila ada
+          setTimeout(() => {
+            const rowBtn = document.querySelector('[data-edit="' + CSS.escape(s.id) + '"]');
+            rowBtn?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }, 200);
+          return true;
+        };
+
         if (tryOpen()) return;
-        // tunggu loadSoal selesai sebentar
         let n = 0;
         const iv = setInterval(() => {
-          n++;
-          if (tryOpen() || n > 40) clearInterval(iv);
-        }, 100);
-      } catch (_) {}
+          n += 1;
+          if (tryOpen() || n > 50) {
+            clearInterval(iv);
+            if (n > 50 && !findSoal()) {
+              console.warn('Soal untuk edit tidak ditemukan di bank:', id);
+              alert('Soal tidak ditemukan di bank soal.\nID: ' + id + '\nPastikan soal masih ada di questionPool.');
+            }
+          }
+        }, 120);
+      } catch (err) {
+        console.warn('openEditFromQuery', err);
+      }
     }
 function openEditSoal(id) {
       const s = allSoal.find(x => x.id === id);
@@ -2081,28 +2129,50 @@ function openEditSoal(id) {
         return;
       }
 
-      // pg / pgk — opsi A–D
-      if (kunciInput) kunciInput.style.display = '';
-      if (kunciLabel) kunciLabel.style.display = '';
+      // pg / pgk — opsi A–D + penanda kunci (radio / checkbox), bukan baris titik koma
+      if (kunciInput) {
+        kunciInput.style.display = 'none';
+        kunciInput.value = '';
+      }
+      if (kunciLabel) kunciLabel.style.display = 'none';
       const opsi = editState.opsi.length ? editState.opsi.slice() : ['', '', '', ''];
       while (opsi.length < 4) opsi.push('');
+      let kunciList = [];
+      if (tipe === 'pg') {
+        const k = typeof editState.kunciJawaban === 'string'
+          ? editState.kunciJawaban
+          : (Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban[0] : '');
+        if (k) kunciList = [k];
+      } else {
+        kunciList = Array.isArray(editState.kunciJawaban)
+          ? editState.kunciJawaban.slice()
+          : (editState.kunciJawaban ? [editState.kunciJawaban] : []);
+      }
+      const kunciNorm = kunciList.map(k => String(k ?? '').trim().toLowerCase().replace(/\s+/g, ' '));
       opsi.slice(0, 4).forEach((text, i) => {
         const letter = String.fromCharCode(65 + i);
         const div = document.createElement('div');
         div.className = 'edit-opsi-row';
+        const textNorm = String(text ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const isKey = text && kunciNorm.includes(textNorm);
+        let pick = '';
+        if (tipe === 'pg') {
+          pick = '<label class="edit-kunci-pick"><input type="radio" name="edit-kunci-pg" data-kunci-pg value="' + i + '"' +
+            (isKey ? ' checked' : '') + '> Kunci</label>';
+        } else {
+          pick = '<label class="edit-kunci-pick"><input type="checkbox" data-kunci-pgk value="' + i + '"' +
+            (isKey ? ' checked' : '') + '> Benar</label>';
+        }
         div.innerHTML =
           '<span class="letter">' + letter + '</span>' +
-          '<input type="text" data-opsi="' + i + '" value="' + escapeAttr(text) + '" placeholder="Opsi ' + letter + '">';
+          '<input type="text" data-opsi="' + i + '" value="' + escapeAttr(text) + '" placeholder="Opsi ' + letter + '">' +
+          pick;
         box.appendChild(div);
       });
-      if (tipe === 'pg') {
-        const k = typeof editState.kunciJawaban === 'string' ? editState.kunciJawaban : (Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban[0] : '');
-        if (kunciInput) kunciInput.value = k || '';
-        if (kunciHint) kunciHint.textContent = 'Kunci = teks opsi yang benar, harus sama persis dengan salah satu opsi (bukan huruf A/B/C/D).';
-      } else {
-        const arr = Array.isArray(editState.kunciJawaban) ? editState.kunciJawaban : (editState.kunciJawaban ? [editState.kunciJawaban] : []);
-        if (kunciInput) kunciInput.value = arr.join('; ');
-        if (kunciHint) kunciHint.textContent = 'pgk: beberapa jawaban benar, pisahkan dengan titik koma (;). Teks harus sama persis dengan opsi.';
+      if (kunciHint) {
+        kunciHint.textContent = tipe === 'pg'
+          ? 'Centang "Kunci" pada satu opsi yang benar. Penilaian memakai teks opsi (dinormalisasi), bukan huruf A/B/C/D.'
+          : 'Centang "Benar" pada SEMUA opsi yang merupakan kunci (pgk). Urutan centang tidak penting — sistem mengurutkan sebelum hash. Jangan ubah teks opsi kecuali memang ingin mengganti kunci.';
       }
     }
 
@@ -2130,17 +2200,37 @@ function openEditSoal(id) {
         });
         return { opsi: [], rows, cols: ['Benar', 'Salah'], kunciJawaban: kunci };
       }
-      const opsi = [];
+      const entries = [];
       document.querySelectorAll('[data-opsi]').forEach(inp => {
-        const v = inp.value.trim();
-        if (v) opsi.push(v);
+        entries.push({
+          i: Number(inp.getAttribute('data-opsi')),
+          text: (inp.value || '').trim(),
+        });
       });
-      const raw = (document.getElementById('edit-kunci')?.value || '').trim();
+      const opsi = entries.filter(e => e.text).map(e => e.text);
       let kunciJawaban;
       if (tipe === 'pg') {
-        kunciJawaban = raw;
+        const radio = document.querySelector('[data-kunci-pg]:checked');
+        if (radio) {
+          const idx = Number(radio.value);
+          kunciJawaban = entries.find(e => e.i === idx)?.text || '';
+        } else {
+          // fallback field lama (jika masih terlihat)
+          kunciJawaban = (document.getElementById('edit-kunci')?.value || '').trim();
+        }
       } else {
-        kunciJawaban = raw.split(';').map(x => x.trim()).filter(Boolean);
+        // pgk: kumpulkan teks opsi yang dicentang "Benar"
+        kunciJawaban = [];
+        document.querySelectorAll('[data-kunci-pgk]:checked').forEach(cb => {
+          const idx = Number(cb.value);
+          const text = entries.find(e => e.i === idx)?.text || '';
+          if (text) kunciJawaban.push(text);
+        });
+        // fallback parse titik koma jika tidak ada checkbox (UI lama ter-cache)
+        if (!kunciJawaban.length) {
+          const raw = (document.getElementById('edit-kunci')?.value || '').trim();
+          if (raw) kunciJawaban = raw.split(';').map(x => x.trim()).filter(Boolean);
+        }
       }
       return { opsi, rows: [], cols: [], kunciJawaban };
     }
