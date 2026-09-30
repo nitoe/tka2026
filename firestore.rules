@@ -42,24 +42,25 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Bank soal: staff (admin & guru) boleh edit stimulus/gambar agar perbaikan cepat
     match /questionPool/{questionId} {
       allow read: if isStaff();
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /soalPublik/{questionId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /bacaanPool/{bacaanId} {
       allow read: if isStaff();
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /ilustrasiSoal/{ilustrasiId} {
       allow read: if isStaff();
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /packages/{packageId} {
@@ -67,10 +68,6 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // HASIL PENGERJAAN
-    // Siswa create attempt sendiri; tidak bisa update/delete sendiri.
-    // Staff boleh DELETE (reset try out di guru/rekap-tryout.html).
-    // Update tetap ditolak — skor tidak boleh diedit manual.
     match /attempts/{attemptId} {
       allow create: if isSignedIn() &&
         request.resource.data.studentId == request.auth.uid;
