@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rekap Nilai per Kelas – Portal Latihan TKA 2026</title>
+<link rel="stylesheet" href="../assets/theme.css">
+<style>
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 0 48px; }
+  .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.02em; }
+  .page-subtitle { color: var(--text-2); font-weight: 500; font-size: 0.88rem; margin-bottom: 1.25rem; }
+  .card {
+    background: var(--surface, #fff); border-radius: var(--radius, 14px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+    padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line, #e2e8f0);
+  }
+  .card h3 { font-size: 0.95rem; font-weight: 750; margin-bottom: 0.75rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .filters select, .filters button {
+    font-family: var(--font, inherit); font-size: 0.82rem; font-weight: 600;
+    padding: 0.55rem 0.75rem; border-radius: 8px;
+    border: 1px solid var(--line-strong, #cbd5e1); background: #fff; color: var(--text);
+  }
+  .filters button.btn-primary {
+    background: var(--brand, #1a56db); color: #fff; border-color: var(--brand, #1a56db);
+    cursor: pointer; font-weight: 800;
+  }
+  .filters button.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .filters button.btn-secondary {
+    background: #f1f5f9; cursor: pointer; font-weight: 750;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+  .stat-box {
+    flex: 1 1 120px; background: #f8fafc; border: 1px solid var(--line, #e2e8f0);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .stat-box .num { font-size: 1.25rem; font-weight: 800; color: var(--brand-ink, #0f172a); }
+  .stat-box .label { font-size: 0.68rem; font-weight: 700; color: var(--text-2, #64748b); text-transform: uppercase; }
+  table.rekap {
+    width: 100%; border-collapse: collapse; font-size: 0.8rem;
+  }
+  table.rekap th, table.rekap td {
+    border: 1px solid var(--line, #e2e8f0); padding: 8px 10px; text-align: left;
+  }
+  table.rekap th {
+    background: #f1f5f9; font-weight: 800; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
+  }
+  table.rekap td.num, table.rekap th.num { text-align: center; }
+  table.rekap tr:nth-child(even) td { background: #fafbfc; }
+  table.rekap .nama { font-weight: 750; }
+  table.rekap .miss { color: #b45309; font-weight: 700; font-style: italic; }
+  table.rekap .rank-top { color: #047857; font-weight: 800; }
+  .hint { font-size: 0.78rem; color: var(--text-2, #64748b); font-weight: 600; margin-top: 8px; }
+  .ttd-preview {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line, #e2e8f0);
+  }
+  @media (max-width: 700px) { .ttd-preview { grid-template-columns: 1fr; } }
+  .ttd-box { text-align: center; font-size: 0.82rem; line-height: 1.45; }
+  .ttd-box .role { font-weight: 800; margin-bottom: 48px; }
+  .ttd-box .name { font-weight: 800; text-decoration: underline; }
+  .ttd-box .nbm { font-size: 0.75rem; font-weight: 600; color: var(--text-2, #64748b); }
+  .loading-screen {
+    min-height: 60vh; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: var(--text-2, #64748b);
+  }
+  .table-wrap { overflow-x: auto; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+<div id="loading" class="loading-screen">Memeriksa sesi masuk…</div>
+<div id="not-configured" class="loading-screen" style="display:none;">Firebase belum dikonfigurasi.</div>
+<div id="page" style="display:none;">
+  <div class="container">
+    <h1 class="page-title">Rekap Nilai per Kelas</h1>
+    <p class="page-subtitle">Try out per kelas — peringkat terbaik, Matematika, dan Bahasa Indonesia. Siswa yang tidak mengikuti ditandai.</p>
+
+    <div class="card">
+      <h3>Filter</h3>
+      <div class="filters">
+        <select id="filter-kelas">
+          <option value="6A">Kelas 6A</option>
+          <option value="6B">Kelas 6B</option>
+        </select>
+        <select id="filter-jenis">
+          <option value="tryout">Try Out</option>
+          <option value="">Semua jenis paket</option>
+          <option value="latihan">Latihan</option>
+        </select>
+        <button type="button" class="btn-primary" id="btn-muat">Muat Data</button>
+        <button type="button" class="btn-secondary" id="btn-pdf" disabled>Unduh PDF</button>
+      </div>
+      <p class="hint" id="query-hint">Pilih kelas lalu klik Muat Data.</p>
+    </div>
+
+    <div class="card">
+      <div class="stats">
+        <div class="stat-box"><div class="num" id="stat-siswa">0</div><div class="label">Siswa di kelas</div></div>
+        <div class="stat-box"><div class="num" id="stat-ikut">0</div><div class="label">Mengikuti (≥1 mapel)</div></div>
+        <div class="stat-box"><div class="num" id="stat-mtk">0</div><div class="label">Ikut Matematika</div></div>
+        <div class="stat-box"><div class="num" id="stat-bi">0</div><div class="label">Ikut B. Indonesia</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 id="judul-tabel">Tabel rekap</h3>
+      <div class="table-wrap">
+        <table class="rekap" id="tabel-rekap">
+          <thead>
+            <tr>
+              <th class="num">No</th>
+              <th>Nama Siswa</th>
+              <th class="num">Nilai MTK</th>
+              <th class="num">Nilai BI</th>
+              <th class="num">Rata-rata</th>
+              <th class="num">Peringkat Terbaik</th>
+              <th class="num">Peringkat MTK</th>
+              <th class="num">Peringkat BI</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="9" style="text-align:center;padding:18px;color:#64748b;">Belum ada data. Klik Muat Data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ttd-preview" id="ttd-preview" style="display:none;">
+        <div class="ttd-box" id="ttd-guru">
+          <div class="role">Guru Kelas</div>
+          <div class="name">—</div>
+          <div class="nbm">—</div>
+        </div>
+        <div class="ttd-box">
+          <div class="role">Kepala Sekolah</div>
+          <div class="name">Mudzakkir Walad, S.Pd.</div>
+          <div class="nbm">NBM. 1167327</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, isConfigured, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { mountGuruShell } from '../assets/guru-shell.js';
+  import {
+    collection, getDocs, query, where, limit,
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+  const QUERY_LIMIT = 1000;
+
+  /** Data pengesahan per kelas */
+  const TTD = {
+    '6A': { guru: 'Ratih Yuniati, S.Pd.', nbm: 'NBM. 1309237', label: 'Guru Kelas 6A' },
+    '6B': { guru: 'Asuroh Susanti, S.Pd.', nbm: 'NBM. 1493824', label: 'Guru Kelas 6B' },
+    ks: { guru: 'Mudzakkir Walad, S.Pd.', nbm: 'NBM. 1167327', label: 'Kepala Sekolah' },
+  };
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  /** @type {Array<{id:string,nama:string,kelas:string}>} */
+  let roster = [];
+  /** @type {Array<object>} */
+  let attempts = [];
+  /** @type {Array<object>} */
+  let rows = [];
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.href = '../index.html'; return; }
+      const staff = await getStaffDoc(user.uid);
+      if (!staff) { await signOut(auth); location.href = '../index.html'; return; }
+      loading.style.display = 'none';
+      page.style.display = 'block';
+      mountGuruShell({ active: 'rekap-kelas', staff });
+    });
+  }
+
+  function pct(skor, maks) {
+    const s = Number(skor);
+    const m = Number(maks);
+    if (!m || m <= 0 || Number.isNaN(s)) return null;
+    return Math.round((s / m) * 100);
+  }
+
+  function normalizeKelas(k) {
+    return String(k ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  }
+
+  /** Ambil attempt terbaik per siswa per mapel (skor % tertinggi). */
+  function bestAttemptMap(list) {
+    const map = new Map(); // key: studentId|subjectId
+    for (const a of list) {
+      const sid = a.studentId || a.id;
+      const sub = a.subjectId || '';
+      if (!sid || !sub) continue;
+      const p = pct(a.skorAkhir, a.skorMaksimal);
+      if (p == null) continue;
+      const key = sid + '|' + sub;
+      const prev = map.get(key);
+      if (!prev || p > prev.persen) {
+        map.set(key, { persen: p, attempt: a });
+      }
+    }
+    return map;
+  }
+
+  /** Ranking: nilai lebih tinggi = peringkat lebih kecil. null tidak ikut ranking. */
+  function assignRanks(items, valueFn) {
+    const ranked = items
+      .map((item, idx) => ({ idx, v: valueFn(item) }))
+      .filter(x => x.v != null && !Number.isNaN(x.v));
+    ranked.sort((a, b) => b.v - a.v || a.idx - b.idx);
+    const ranks = new Map();
+    let i = 0;
+    while (i < ranked.length) {
+      let j = i;
+      while (j < ranked.length && ranked[j].v === ranked[i].v) j++;
+      const rank = i + 1;
+      for (let k = i; k < j; k++) ranks.set(ranked[k].idx, rank);
+      i = j;
+    }
+    return ranks;
+  }
+
+  function buildRows(kelasNorm, students, attemptList) {
+    const best = bestAttemptMap(attemptList);
+    const base = students.map(st => {
+      const mtk = best.get(st.id + '|matematika')?.persen ?? null;
+      const bi = best.get(st.id + '|bahasa-indonesia')?.persen ?? null;
+      const parts = [mtk, bi].filter(v => v != null);
+      const rata = parts.length ? Math.round(parts.reduce((s, x) => s + x, 0) / parts.length) : null;
+      let ket = '';
+      if (mtk == null && bi == null) ket = 'Tidak mengikuti';
+      else if (mtk == null) ket = 'Tidak mengikuti Matematika';
+      else if (bi == null) ket = 'Tidak mengikuti Bahasa Indonesia';
+      else ket = 'Mengikuti';
+      return {
+        studentId: st.id,
+        nama: st.nama || st.id,
+        kelas: st.kelas,
+        mtk,
+        bi,
+        rata,
+        ket,
+        rankBest: null,
+        rankMtk: null,
+        rankBi: null,
+      };
+    });
+
+    const rBest = assignRanks(base, r => r.rata);
+    const rMtk = assignRanks(base, r => r.mtk);
+    const rBi = assignRanks(base, r => r.bi);
+    base.forEach((r, idx) => {
+      r.rankBest = rBest.get(idx) ?? null;
+      r.rankMtk = rMtk.get(idx) ?? null;
+      r.rankBi = rBi.get(idx) ?? null;
+    });
+
+    // Tampil: yang ikut diurut peringkat terbaik, lalu tidak mengikuti (nama)
+    base.sort((a, b) => {
+      const ar = a.rankBest ?? 9999;
+      const br = b.rankBest ?? 9999;
+      if (ar !== br) return ar - br;
+      return String(a.nama).localeCompare(String(b.nama), 'id');
+    });
+    return base;
+  }
+
+  function fmtNilai(v) {
+    return v == null ? '' : String(v);
+  }
+  function fmtRank(v) {
+    return v == null ? '—' : String(v);
+  }
+
+  function updateTtd(kelas) {
+    const meta = TTD[kelas] || TTD['6A'];
+    const box = document.getElementById('ttd-guru');
+    box.innerHTML = `
+      <div class="role">${meta.label}</div>
+      <div class="name">${meta.guru}</div>
+      <div class="nbm">${meta.nbm}</div>`;
+    document.getElementById('ttd-preview').style.display = 'grid';
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tbody');
+    const kelas = document.getElementById('filter-kelas').value;
+    document.getElementById('judul-tabel').textContent =
+      'Rekap Try Out — Kelas ' + kelas;
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:18px;color:#64748b;">Tidak ada siswa untuk kelas ini.</td></tr>';
+      document.getElementById('btn-pdf').disabled = true;
+      return;
+    }
+
+    tbody.innerHTML = rows.map((r, i) => {
+      const missAll = r.mtk == null && r.bi == null;
+      const ketCls = missAll || r.ket.startsWith('Tidak') ? 'miss' : '';
+      return `<tr>
+        <td class="num">${i + 1}</td>
+        <td class="nama">${escapeHtml(r.nama)}</td>
+        <td class="num">${r.mtk == null ? '<span class="miss">tidak mengikuti</span>' : escapeHtml(fmtNilai(r.mtk))}</td>
+        <td class="num">${r.bi == null ? '<span class="miss">tidak mengikuti</span>' : escapeHtml(fmtNilai(r.bi))}</td>
+        <td class="num">${r.rata == null ? '' : escapeHtml(fmtNilai(r.rata))}</td>
+        <td class="num ${r.rankBest && r.rankBest <= 3 ? 'rank-top' : ''}">${fmtRank(r.rankBest)}</td>
+        <td class="num">${fmtRank(r.rankMtk)}</td>
+        <td class="num">${fmtRank(r.rankBi)}</td>
+        <td class="${ketCls}">${escapeHtml(r.ket)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('btn-pdf').disabled = false;
+    updateTtd(kelas);
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function loadRoster() {
+    const snap = await getDocs(collection(db, 'students'));
+    return snap.docs.map(d => {
+      const data = d.data() || {};
+      return {
+        id: d.id,
+        nama: data.nama || data.name || d.id,
+        kelas: normalizeKelas(data.kelas || data.kelasSiswa || ''),
+      };
+    });
+  }
+
+  async function loadAttempts(jenis) {
+    const col = collection(db, 'attempts');
+    const constraints = [];
+    if (jenis) constraints.push(where('jenisPaket', '==', jenis));
+    constraints.push(limit(QUERY_LIMIT));
+    const q = query(col, ...constraints);
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async function muatData() {
+    const btn = document.getElementById('btn-muat');
+    const hint = document.getElementById('query-hint');
+    const kelas = normalizeKelas(document.getElementById('filter-kelas').value);
+    const jenis = document.getElementById('filter-jenis').value;
+    btn.disabled = true;
+    hint.textContent = 'Memuat roster siswa & attempt…';
+    try {
+      const [allStudents, allAttempts] = await Promise.all([
+        loadRoster(),
+        loadAttempts(jenis),
+      ]);
+      roster = allStudents.filter(s => s.kelas === kelas);
+      // Sertakan siswa yang punya attempt di kelas ini tapi belum di roster
+      const rosterIds = new Set(roster.map(s => s.id));
+      for (const a of allAttempts) {
+        const k = normalizeKelas(a.kelasSiswa);
+        if (k !== kelas) continue;
+        const sid = a.studentId;
+        if (sid && !rosterIds.has(sid)) {
+          roster.push({
+            id: sid,
+            nama: a.namaSiswa || sid,
+            kelas: k,
+          });
+          rosterIds.add(sid);
+        }
+      }
+      attempts = allAttempts.filter(a => normalizeKelas(a.kelasSiswa) === kelas);
+      rows = buildRows(kelas, roster, attempts);
+
+      const ikut = rows.filter(r => r.mtk != null || r.bi != null).length;
+      const ikutMtk = rows.filter(r => r.mtk != null).length;
+      const ikutBi = rows.filter(r => r.bi != null).length;
+      document.getElementById('stat-siswa').textContent = rows.length;
+      document.getElementById('stat-ikut').textContent = ikut;
+      document.getElementById('stat-mtk').textContent = ikutMtk;
+      document.getElementById('stat-bi').textContent = ikutBi;
+      hint.textContent = `Kelas ${kelas}: ${rows.length} siswa, ${attempts.length} attempt (jenis: ${jenis || 'semua'}). Nilai = persen terbaik per mapel.`;
+      renderTable();
+    } catch (err) {
+      console.error(err);
+      hint.textContent = 'Gagal memuat: ' + err.message;
+      document.getElementById('tbody').innerHTML =
+        `<tr><td colspan="9" style="text-align:center;color:#b91c1c;padding:18px;">${escapeHtml(err.message)}</td></tr>`;
+      document.getElementById('btn-pdf').disabled = true;
+    }
+    btn.disabled = false;
+  }
+
+  function unduhPdf() {
+    const kelas = document.getElementById('filter-kelas').value;
+    if (!rows.length) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const margin = 12;
+    let y = 14;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Rekap Nilai Try Out per Kelas', margin, y);
+    y += 6;
+    doc.setFontSize(11);
+    doc.text('Kelas ' + kelas + ' — Portal Latihan TKA 2026', margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), margin, y);
+    y += 4;
+
+    const body = rows.map((r, i) => [
+      i + 1,
+      r.nama,
+      r.mtk == null ? 'tidak mengikuti' : String(r.mtk),
+      r.bi == null ? 'tidak mengikuti' : String(r.bi),
+      r.rata == null ? '' : String(r.rata),
+      r.rankBest == null ? '—' : String(r.rankBest),
+      r.rankMtk == null ? '—' : String(r.rankMtk),
+      r.rankBi == null ? '—' : String(r.rankBi),
+      r.ket,
+    ]);
+
+    doc.autoTable({
+      startY: y + 2,
+      head: [[
+        'No', 'Nama Siswa', 'Nilai MTK', 'Nilai BI', 'Rata-rata',
+        'Peringkat Terbaik', 'Peringkat MTK', 'Peringkat BI', 'Keterangan',
+      ]],
+      body,
+      styles: { fontSize: 8, cellPadding: 1.6 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: {halign: 'center' },
+        5: {halign: 'center' },
+        6: {halign: 'center' },
+        7: {halign: 'center' },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    let ty = (doc.lastAutoTable?.finalY || y) + 16;
+    const meta = TTD[kelas] || TTD['6A'];
+    const pageW = doc.internal.pageSize.getWidth();
+    const colW = (pageW - margin * 2) / 2;
+
+    if (ty > 180) {
+      doc.addPage();
+      ty = 20;
+    }
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    // Guru kelas (kiri)
+    doc.text(meta.label, margin + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.label, margin + colW + colW / 2, ty, { align: 'center' });
+    ty += 22;
+    doc.setFont('helvetica', 'bold');
+    doc.text(meta.guru, margin + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.guru, margin + colW + colW / 2, ty, { align: 'center' });
+    ty += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(meta.nbm, margin + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.nbm, margin + colW + colW / 2, ty, { align: 'center' });
+
+    doc.save(`rekap-kelas-${kelas}-tryout.pdf`);
+  }
+
+  document.getElementById('btn-muat').addEventListener('click', muatData);
+  document.getElementById('btn-pdf').addEventListener('click', unduhPdf);
+  document.getElementById('filter-kelas').addEventListener('change', () => {
+    document.getElementById('btn-pdf').disabled = true;
+    document.getElementById('ttd-preview').style.display = 'none';
+  });
+</script>
+</body>
+</html>
