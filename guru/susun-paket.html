@@ -151,6 +151,25 @@
   .paket-soal-tools {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px;
   }
+  .paket-action-btns { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; margin-top: 6px; }
+  .paket-action-btns .btn {
+    margin-top: 0; flex: 1 1 auto; min-width: 140px;
+    padding: 10px 14px; font-size: 0.8rem; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .btn-pdf {
+    background: linear-gradient(135deg, #1a56db, #1e429f) !important;
+    color: #fff !important;
+  }
+  .btn-pdf:hover { filter: brightness(1.06); }
+  .btn-selesai {
+    background: linear-gradient(135deg, #d97706, #b45309) !important;
+    color: #fff !important;
+  }
+  .btn-selesai:hover { filter: brightness(1.06); }
+  .btn-selesai.is-inactive {
+    background: linear-gradient(135deg, #057a55, #046c4e) !important;
+  }
   .paket-soal-tools label {
     font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 6px;
     cursor: pointer;
@@ -194,11 +213,12 @@
           </div>
           <div class="paket-soal-tools">
             <label><input type="checkbox" id="filter-hanya-paket"> Tampilkan hanya soal dalam paket</label>
-            <button type="button" class="btn-secondary" id="btn-buka-bank-paket" style="font-size:0.72rem;padding:6px 10px;">Kelola di Bank Soal</button>
-            <button type="button" class="btn-secondary" id="btn-pdf-paket" style="font-size:0.72rem;padding:6px 10px;">PDF / Cetak paket</button>
-            <button type="button" class="btn-secondary" id="btn-tandai-selesai" style="font-size:0.72rem;padding:6px 10px;display:none;">Tandai selesai</button>
+            <div class="paket-action-btns">
+              <button type="button" class="btn btn-pdf" id="btn-pdf-paket" title="Unduh PDF paket soal (A4)">📄 Unduh PDF paket</button>
+              <button type="button" class="btn btn-selesai" id="btn-tandai-selesai" style="display:none;" title="Nonaktifkan atau aktifkan kembali paket">✓ Tandai selesai</button>
+            </div>
           </div>
-          <p id="composition-lock-note" style="display:none;font-size:0.75rem;font-weight:700;color:#b45309;margin:6px 0 0;">Paket sudah punya nilai attempt — komposisi soal dikunci (tidak bisa tambah/hapus). Narasi & kunci tetap bisa diedit di Bank Soal.</p>
+          <p id="composition-lock-note" style="display:none;font-size:0.75rem;font-weight:700;color:#b45309;margin:6px 0 0;">Paket sudah punya nilai attempt — komposisi soal dikunci (tidak bisa tambah/hapus). Narasi &amp; kunci tetap bisa diedit di Bank Soal (tombol Edit soal).</p>
           <div class="selected-list" id="selected-list">
             <div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>
           </div>
@@ -271,6 +291,7 @@
   <div>Firebase belum dikonfigurasi.<br>Isi <code>firebase-config.js</code> terlebih dahulu.</div>
   <a href="../index.html" style="color:#1a56db; font-weight:800;">← Kembali ke halaman masuk</a>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
@@ -349,15 +370,6 @@
       await loadSoal();
       await 
   document.getElementById('filter-hanya-paket')?.addEventListener('change', () => renderSoalList());
-  document.getElementById('btn-buka-bank-paket')?.addEventListener('click', () => {
-    const ids = Object.keys(selected);
-    if (!ids.length) {
-      window.open('bank-soal.html', '_blank', 'noopener');
-      return;
-    }
-    // Buka bank dengan fokus soal pertama; guru bisa navigasi dari sana
-    window.open(bankEditUrl(ids[0]), '_blank', 'noopener');
-  });
 
   loadPaket();
     });
@@ -595,7 +607,8 @@
     if (lockNote) lockNote.style.display = 'none';
     if (btnSelesai) {
       btnSelesai.style.display = (p.jenis === 'tryout') ? 'inline-block' : 'none';
-      btnSelesai.textContent = p.aktif === true ? 'Tandai selesai (nonaktifkan)' : 'Aktifkan kembali';
+      btnSelesai.textContent = p.aktif === true ? '✓ Tandai selesai' : '↺ Aktifkan kembali';
+      btnSelesai.classList.toggle('is-inactive', p.aktif !== true);
     }
     try {
       const q = query(collection(db, 'attempts'), where('packageId', '==', p.id), limit(1));
@@ -731,18 +744,43 @@
     return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
   }
 
+  async function ensureJsPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+    if (window.jsPDF) return window.jsPDF;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Gagal memuat library PDF (jsPDF). Cek koneksi internet.'));
+      document.head.appendChild(s);
+    });
+    if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+    if (window.jsPDF) return window.jsPDF;
+    throw new Error('jsPDF tidak tersedia setelah dimuat.');
+  }
+
   async function cetakPdfPaket() {
+    const btn = document.getElementById('btn-pdf-paket');
     if (!editingId && !Object.keys(selected).length) {
       alert('Pilih atau edit paket terlebih dahulu.');
       return;
     }
     const ids = Object.keys(selected);
     if (!ids.length) {
-      alert('Paket belum punya soal.');
+      alert('Paket belum punya soal. Centang soal atau buka Edit paket yang sudah punya soal.');
       return;
     }
     const nama = document.getElementById('nama-paket')?.value || 'Paket Soal';
-    const { jsPDF } = window.jspdf;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyiapkan PDF…'; }
+    let jsPDF;
+    try {
+      jsPDF = await ensureJsPdf();
+    } catch (err) {
+      alert(err.message || String(err));
+      if (btn) { btn.disabled = false; btn.textContent = '📄 Unduh PDF paket'; }
+      return;
+    }
+    try {
     const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = docPdf.internal.pageSize.getWidth();  // 210
     const pageH = docPdf.internal.pageSize.getHeight(); // 297
@@ -936,12 +974,18 @@
     footer();
     const safeName = String(nama || 'paket').replace(/[^\w\-]+/g, '-').slice(0, 40);
     docPdf.save('paket-soal-' + safeName + '.pdf');
+    } catch (err) {
+      console.error(err);
+      alert('Gagal membuat PDF: ' + (err.message || err));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '📄 Unduh PDF paket'; }
+    }
   }
 
 
 
   document.getElementById('btn-tandai-selesai')?.addEventListener('click', () => { tandaiSelesaiToggle(); });
-  document.getElementById('btn-pdf-paket')?.addEventListener('click', () => { cetakPdfPaket(); });
+  document.getElementById('btn-pdf-paket')?.addEventListener('click', (e) => { e.preventDefault(); cetakPdfPaket(); });
 
 </script>
 </body>
