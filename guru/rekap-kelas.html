@@ -821,99 +821,179 @@ function normalizeKelas(k) {
     if (!rows.length) return;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const margin = 12;
-    let y = 14;
+    // A4 landscape 297×210 mm — margin cetak aman
+    const margin = { l: 12, r: 12, t: 12, b: 14 };
+    let y = margin.t;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('Rekap Nilai Try Out per Kelas', margin, y);
-    y += 6;
-    doc.setFontSize(11);
-    doc.text('Kelas ' + kelas + ' — Portal Latihan TKA 2026', margin, y);
-    y += 5;
+    doc.setFontSize(13);
+    doc.text('Rekap Nilai Try Out per Kelas', margin.l, y);
+    y += 5.5;
+    doc.setFontSize(10);
+    doc.text('Kelas ' + kelas + ' — Portal Latihan TKA 2026', margin.l, y);
+    y += 4.5;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), margin, y);
-    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), margin.l, y);
+    y += 4;
+    doc.setTextColor(0);
 
     const st = window.__lastClassStats || computeStats(rows);
-    doc.setFontSize(8);
-    doc.text(
-      `Statistik — MTK mean ${round1(st.mtk.mean)} (n=${st.nMtk}, tuntas ${st.mtk.tuntas}); ` +
-      `BI mean ${round1(st.bi.mean)} (n=${st.nBi}, tuntas ${st.bi.tuntas}); ` +
-      `Rata-rata mean ${round1(st.rata.mean)} (n=${st.nRata}).`,
-      margin, y
-    );
-    y += 4;
+    doc.setFontSize(7.5);
+    const statLine =
+      'Statistik — MTK mean ' + round1(st.mtk.mean) + ' (n=' + st.nMtk + ', tuntas ' + st.mtk.tuntas + '); ' +
+      'BI mean ' + round1(st.bi.mean) + ' (n=' + st.nBi + ', tuntas ' + st.bi.tuntas + '); ' +
+      'Rata-rata mean ' + round1(st.rata.mean) + ' (n=' + st.nRata + ').';
+    const statLines = doc.splitTextToSize(statLine, 297 - margin.l - margin.r);
+    doc.text(statLines, margin.l, y);
+    y += statLines.length * 3.4 + 1;
     const reg = window.__lastRegression;
     if (reg && reg.n >= 2) {
       const fmtR = (v) => (Math.round(v * 1000) / 1000).toFixed(3);
-      doc.text(
-        `Regresi BI~MTK (n=${reg.n}): BI ≈ ${fmtR(reg.a)} + ${fmtR(reg.b)}×MTK; r=${fmtR(reg.r)}; R²=${fmtR(reg.r2)}.`,
-        margin, y
-      );
+      const regLine =
+        'Regresi BI~MTK (n=' + reg.n + '): BI ≈ ' + fmtR(reg.a) + ' + ' + fmtR(reg.b) +
+        '×MTK; r=' + fmtR(reg.r) + '; R²=' + fmtR(reg.r2) + '.';
+      doc.text(doc.splitTextToSize(regLine, 297 - margin.l - margin.r), margin.l, y);
       y += 4;
     }
 
+    // Singkat label kolom agar muat; nilai kosong / tidak ikut tetap jelas
     const body = rows.map((r, i) => [
       i + 1,
       r.nama,
-      r.mtk == null ? 'tidak mengikuti' : String(r.mtk),
-      r.bi == null ? 'tidak mengikuti' : String(r.bi),
-      r.rata == null ? '' : String(r.rata),
+      r.mtk == null ? '—' : String(r.mtk),
+      r.bi == null ? '—' : String(r.bi),
+      r.rata == null ? '—' : String(r.rata),
       r.rankBest == null ? '—' : String(r.rankBest),
       r.rankMtk == null ? '—' : String(r.rankMtk),
       r.rankBi == null ? '—' : String(r.rankBi),
-      r.ket,
+      r.ket === 'Tidak mengikuti' ? 'Tidak ikut' : (r.ket || ''),
     ]);
 
     doc.autoTable({
-      startY: y + 2,
+      startY: y + 1.5,
       head: [[
-        'No', 'Nama Siswa', 'Nilai MTK', 'Nilai BI', 'Rata-rata',
-        'Peringkat Terbaik', 'Peringkat MTK', 'Peringkat BI', 'Keterangan',
+        'No', 'Nama Siswa', 'MTK', 'BI', 'Rata',
+        'Rank', 'R.MTK', 'R.BI', 'Keterangan',
       ]],
       body,
-      styles: { fontSize: 8, cellPadding: 1.6 },
-      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        2: { halign: 'center' },
-        3: { halign: 'center' },
-        4: {halign: 'center' },
-        5: {halign: 'center' },
-        6: {halign: 'center' },
-        7: {halign: 'center' },
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 7.5,
+        cellPadding: { top: 1.4, right: 1.2, bottom: 1.4, left: 1.2 },
+        overflow: 'linebreak',
+        valign: 'middle',
+        lineColor: [203, 213, 225],
+        lineWidth: 0.15,
+        textColor: [30, 41, 59],
       },
-      margin: { left: margin, right: margin },
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 7.5,
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: { top: 1.8, right: 1.2, bottom: 1.8, left: 1.2 },
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 9 },
+        1: { halign: 'left', cellWidth: 52 },
+        2: {halign: 'center', cellWidth: 16 },
+        3: {halign: 'center', cellWidth: 16 },
+        4: {halign: 'center', cellWidth: 14 },
+        5: {halign: 'center', cellWidth: 14 },
+        6: {halign: 'center', cellWidth: 14 },
+        7: {halign: 'center', cellWidth: 14 },
+        8: {halign: 'left', cellWidth: 'auto' },
+      },
+      margin: { left: margin.l, right: margin.r, bottom: margin.b + 2 },
+      tableWidth: 'auto',
+      // Header kolom diulang di setiap halaman (penting saat tabel panjang)
+      showHead: 'everyPage',
+      // Hindari baris terpotong di batas halaman (header tetap jelas di atas blok)
+      rowPageBreak: 'avoid',
+      // Jangan ulang seluruh head HTML ganda — cukup headStyles konsisten
+      didParseCell(data) {
+        if (data.section === 'head') {
+          data.cell.styles.minCellHeight = 7;
+          data.cell.styles.valign = 'middle';
+        }
+        // Nilai "tidak ikut" / strip: abu-abu miring
+        if (data.section === 'body' && (data.column.index === 2 || data.column.index === 3 || data.column.index === 4)) {
+          if (data.cell.raw === '—' || data.cell.raw === '') {
+            data.cell.styles.textColor = [148, 163, 184];
+            data.cell.styles.fontStyle = 'italic';
+          }
+        }
+        if (data.section === 'body' && data.column.index === 8) {
+          const v = String(data.cell.raw || '');
+          if (v.indexOf('Tidak') === 0) {
+            data.cell.styles.textColor = [180, 83, 9];
+            data.cell.styles.fontStyle = 'italic';
+          }
+        }
+      },
+      didDrawPage(data) {
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        // Label konteks di atas tabel pada halaman lanjutan (header kolom sudah diulang autoTable)
+        if (data.pageNumber > 1) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100);
+          const topY = (data.settings.margin.top || margin.t) - 3;
+          // Hanya jika ada ruang di atas area tabel
+          if (topY > 6) {
+            doc.text(
+              'Kelas ' + kelas + ' · lanjutan (header kolom diulang)',
+              margin.l,
+              Math.max(8, topY)
+            );
+          }
+          doc.setTextColor(0);
+        }
+        // Footer
+        doc.setFontSize(7);
+        doc.setTextColor(120);
+        doc.text('Kelas ' + kelas + ' · Rekap try out', margin.l, pageH - 6);
+        doc.text('Hal. ' + data.pageNumber, pageW - margin.r, pageH - 6, { align: 'right' });
+        doc.setTextColor(0);
+      },
     });
 
-    let ty = (doc.lastAutoTable?.finalY || y) + 16;
+    let ty = (doc.lastAutoTable?.finalY || y) + 14;
     const meta = TTD[kelas] || TTD['6A'];
     const pageW = doc.internal.pageSize.getWidth();
-    const colW = (pageW - margin * 2) / 2;
+    const pageH = doc.internal.pageSize.getHeight();
+    const colW = (pageW - margin.l - margin.r) / 2;
 
-    if (ty > 180) {
+    if (ty + 36 > pageH - margin.b) {
       doc.addPage();
-      ty = 20;
+      ty = margin.t + 8;
     }
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    // Guru kelas (kiri)
-    doc.text(meta.label, margin + colW / 2, ty, { align: 'center' });
-    doc.text(TTD.ks.label, margin + colW + colW / 2, ty, { align: 'center' });
-    ty += 22;
+    doc.setTextColor(0);
+    doc.text(meta.label, margin.l + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.label, margin.l + colW + colW / 2, ty, { align: 'center' });
+    ty += 20;
     doc.setFont('helvetica', 'bold');
-    doc.text(meta.guru, margin + colW / 2, ty, { align: 'center' });
-    doc.text(TTD.ks.guru, margin + colW + colW / 2, ty, { align: 'center' });
+    doc.text(meta.guru, margin.l + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.guru, margin.l + colW + colW / 2, ty, { align: 'center' });
     ty += 5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(meta.nbm, margin + colW / 2, ty, { align: 'center' });
-    doc.text(TTD.ks.nbm, margin + colW + colW / 2, ty, { align: 'center' });
+    doc.setTextColor(80);
+    doc.text(meta.nbm, margin.l + colW / 2, ty, { align: 'center' });
+    doc.text(TTD.ks.nbm, margin.l + colW + colW / 2, ty, { align: 'center' });
+    doc.setTextColor(0);
 
-    doc.save(`rekap-kelas-${kelas}-tryout.pdf`);
+    doc.save('rekap-kelas-' + kelas + '-tryout.pdf');
   }
 
   document.getElementById('btn-muat').addEventListener('click', muatData);
