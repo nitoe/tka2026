@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://www.gstatic.com">
 <title>Mengerjakan Kuis – Portal Latihan TKA 2026</title>
 
 
@@ -48,9 +51,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/mhchem.min.js" crossorigin="anonymous"></script>
+<!-- KaTeX JS dimuat on-demand (ensureKatexLoaded) agar loading kuis tidak diblokir -->
 
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -119,6 +120,15 @@
     color: var(--text);
     line-height: 1.65;
   }
+  .soal-stim-text .stim-block { margin: 0; }
+  .soal-stim-text h2, .soal-pertanyaan.rich h2 {
+    font-size: 1.05rem; font-weight: 800; color: var(--primary-dark, #12296b);
+    border-bottom: 2px solid #93c5fd; padding-bottom: 6px; margin: 0 0 0.75em;
+  }
+  .soal-stim-text h3, .soal-pertanyaan.rich h3 {
+    font-size: 0.95rem; font-weight: 800; color: var(--primary-mid, #1e429f); margin: 0.85em 0 0.4em;
+  }
+  .soal-stim-text li, .soal-pertanyaan.rich li { margin-bottom: 0.35em; }
   .soal-stim-text p, .soal-pertanyaan.rich p { margin: 0 0 0.65em; }
   .soal-stim-text p:last-child, .soal-pertanyaan.rich p:last-child { margin-bottom: 0; }
   .soal-stim-text ul, .soal-stim-text ol,
@@ -219,7 +229,10 @@
   .opsi-row:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
   .opsi-row input { margin-top: 3px; width: 17px; height: 17px; }
   .opsi-text { font-size: 0.88rem; font-weight: 700; }
-  table.cat-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  table.cat-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 8px; }
+  table.cat-table td.cat-row-text { text-align: left; font-weight: 600; line-height: 1.45; }
+  table.cat-table label.cat-radio { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+  table.cat-table label.cat-radio input { width: 18px; height: 18px; accent-color: var(--primary, #1a56db); }
   table.cat-table th, table.cat-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
   table.cat-table th { background: var(--slate-light); font-weight: 800; font-size: 0.74rem; }
   table.cat-table td:first-child { text-align: left; font-weight: 700; }
@@ -265,6 +278,8 @@
   .soal-card table.cat-table { font-size: calc(0.84rem * var(--kuis-fs)); }
   .soal-card .opsi-row { padding: calc(11px * var(--kuis-fs)) calc(13px * var(--kuis-fs)); }
   .soal-card .opsi-row input { width: calc(17px * min(var(--kuis-fs), 1.25)); height: calc(17px * min(var(--kuis-fs), 1.25)); }
+  #timer-pill.timer-warn { background: #fef3c7; color: #b45309; font-weight: 800; }
+  #timer-pill.timer-ended { background: #fee2e2; color: #b91c1c; }
 </style>
 </head>
 <body>
@@ -345,7 +360,7 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
   import { hashJawabanSiswa } from '../assets/scoring.js';
-  import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { documentId, doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -358,12 +373,67 @@
     errorBox.style.display = 'flex';
     errorBox.innerHTML = `<div>⚠️ ${msg}</div><a href="./index.html" style="color:#1a56db;font-weight:800;">← Kembali</a>`;
   }
-  function parseWaktu(val) {
-    if (!val) return null;
-    if (typeof val.toDate === 'function') return val.toDate();
-    const d = new Date(val);
+
+  /** Parser waktu tahan Timestamp Firestore, angka epoch, dan string lokal tanpa Z. */
+  
+  /** Muat soalPublik ber-batch (max 30 id / query) — lebih sedikit round-trip daripada getDoc per soal. */
+  async function loadSoalPublikBatched(questionIds) {
+    const ids = (questionIds || []).map(String);
+    const byId = new Map();
+    const chunkSize = 30;
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += chunkSize) chunks.push(ids.slice(i, i + chunkSize));
+
+    await Promise.all(chunks.map(async (chunk) => {
+      try {
+        const q = query(collection(db, 'soalPublik'), where(documentId(), 'in', chunk));
+        const snap = await getDocs(q);
+        snap.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+      } catch (err) {
+        // Fallback: getDoc paralel per chunk jika 'in' + documentId ditolak rules/index
+        console.warn('Batch soalPublik gagal, fallback getDoc:', err);
+        const docs = await Promise.all(chunk.map((id) => getDoc(doc(db, 'soalPublik', id))));
+        docs.forEach((s) => {
+          if (s.exists()) byId.set(s.id, { id: s.id, ...s.data() });
+        });
+      }
+    }));
+
+    const ordered = [];
+    const missing = [];
+    ids.forEach((id) => {
+      const s = byId.get(id);
+      if (s) ordered.push(s);
+      else missing.push(id);
+    });
+    return { soalList: ordered, missing };
+  }
+
+function parseWaktu(val) {
+    if (val == null || val === '') return null;
+    if (typeof val.toDate === 'function') {
+      try { return val.toDate(); } catch (_) {}
+    }
+    if (typeof val === 'object') {
+      if (typeof val.seconds === 'number') return new Date(val.seconds * 1000);
+      if (typeof val._seconds === 'number') return new Date(val._seconds * 1000);
+    }
+    if (typeof val === 'number' && Number.isFinite(val)) {
+      const d = new Date(val < 1e12 ? val * 1000 : val);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    let s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:/.test(s)) s = s.replace(' ', 'T');
+    // Tanpa zona waktu → interpretasi lokal eksplisit (hindari beda Chrome/Safari)
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+    if (m) {
+      const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
   }
+
   function formatWaktu(d) {
     if (!d) return '—';
     return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
@@ -372,7 +442,7 @@
   function escapeHtml(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-  const RICH_ALLOWED = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TFOOT','TR','TD','TH','H1','H2','H3','H4','H5','SPAN','SUB','SUP','BLOCKQUOTE','HR','DIV','PRE','CODE']);
+  const RICH_ALLOWED = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TFOOT','TR','TD','TH','H1','H2','H3','H4','H5','H6','SPAN','SUB','SUP','BLOCKQUOTE','HR','DIV','PRE','CODE','ARTICLE','SECTION','ASIDE','FIGURE','FIGCAPTION','SMALL','LABEL']);
   function sanitizeHtml(html) {
     const doc = new DOMParser().parseFromString('<div id="root">' + String(html ?? '') + '</div>', 'text/html');
     const root = doc.getElementById('root') || doc.body;
@@ -381,6 +451,15 @@
       for (const child of children) {
         if (child.nodeType === 8) { child.remove(); continue; }
         if (child.nodeType !== 1) continue;
+        // article/section → div agar struktur tetap + CSS stimulus bisa menata
+        if (child.tagName === 'ARTICLE' || child.tagName === 'SECTION' || child.tagName === 'ASIDE') {
+          const div = child.ownerDocument.createElement('div');
+          div.className = 'stim-block stim-' + child.tagName.toLowerCase();
+          while (child.firstChild) div.appendChild(child.firstChild);
+          node.replaceChild(div, child);
+          walk(div);
+          continue;
+        }
         if (!RICH_ALLOWED.has(child.tagName)) {
           while (child.firstChild) node.insertBefore(child.firstChild, child);
           child.remove();
@@ -417,6 +496,13 @@
 function formatRichHtml(raw) {
     let s = normalizeLatexDelimiters(String(raw ?? ''));
     if (!s.trim()) return '';
+    if (!/<[a-z][\s\S]*>/i.test(s) && /&lt;[a-z]/i.test(s)) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.innerHTML = s;
+        s = ta.value;
+      } catch (_) {}
+    }
     if (/<[a-z][\s\S]*>/i.test(s)) return sanitizeHtml(s);
     return plainTextToHtml(s);
   }
@@ -881,41 +967,63 @@ function formatRichHtml(raw) {
     else {
       onAuthStateChanged(auth, async (user) => {
         if (!user) { location.href = '../index.html'; return; }
-        siswa = await getStudentDoc(user.uid);
-        if (!siswa) { await signOut(auth); location.href = '../index.html'; return; }
         uid = user.uid;
         try {
-          const paketSnap = await getDoc(doc(db, 'packages', paketId));
+          // Paralel: profil siswa + metadata paket
+          const [siswaDoc, paketSnap] = await Promise.all([
+            getStudentDoc(uid),
+            getDoc(doc(db, 'packages', paketId)),
+          ]);
+          if (!siswaDoc) { await signOut(auth); location.href = '../index.html'; return; }
+          siswa = siswaDoc;
           if (!paketSnap.exists()) { showError('Paket tidak ditemukan.'); return; }
           paket = { id: paketSnap.id, ...paketSnap.data() };
           const questionIds = paket.questionIds || [];
           if (!questionIds.length) { showError('Paket ini belum punya soal.'); return; }
           const maks = paket.maksPercobaan;
           if (maks != null && maks > 0) {
-            const q = query(collection(db, 'attempts'), where('studentId', '==', uid), where('packageId', '==', paketId));
-            const snap = await getDocs(q);
-            if (snap.size >= maks) { showError(`Sudah selesai (${snap.size}/${maks} kali).`); return; }
+            try {
+              const q = query(collection(db, 'attempts'), where('studentId', '==', uid), where('packageId', '==', paketId));
+              const snap = await getDocs(q);
+              if (snap.size >= maks) { showError(`Sudah selesai (${snap.size}/${maks} kali).`); return; }
+            } catch (attemptErr) {
+              // Jangan gagalkan seluruh ujian jika index/rules bermasalah — hanya catat
+              console.warn('Cek maksPercobaan gagal (lanjut ujian):', attemptErr);
+            }
           }
+          // Toleransi jam perangkat siswa ±3 menit (beberapa HP melenceng)
+          const CLOCK_GRACE_MS = 3 * 60 * 1000;
           const now = new Date();
           const buka = parseWaktu(paket.bukaPada), tutup = parseWaktu(paket.tutupPada);
-          if (buka && now < buka) { showGateBlocked(`Belum dibuka.<br>${formatWaktu(buka)}`); return; }
-          if (tutup && now > tutup) { showGateBlocked(`Sudah ditutup.<br>${formatWaktu(tutup)}`); return; }
-          const docs = await Promise.all(questionIds.map(id => getDoc(doc(db, 'soalPublik', id))));
-          const missing = [];
-          soalList = [];
-          docs.forEach((s, i) => {
-            if (s.exists()) soalList.push({ id: s.id, ...s.data() });
-            else missing.push(questionIds[i]);
-          });
-          if (!soalList.length) { showError('Soal tidak ditemukan (perlu backfill Soal Publik).'); return; }
-          if (missing.length) {
-            console.warn('Soal hilang dari soalPublik:', missing);
+          if (buka && now.getTime() + CLOCK_GRACE_MS < buka.getTime()) {
+            showGateBlocked(`Belum dibuka.<br>${formatWaktu(buka)}`);
+            return;
           }
-          // Nomor soal stabil = urutan di package.questionIds (1-based), bukan urutan setelah acak
+          if (tutup && now.getTime() > tutup.getTime() + CLOCK_GRACE_MS) {
+            showGateBlocked(`Sudah ditutup.<br>${formatWaktu(tutup)}`);
+            return;
+          }
+          // Nomor soal stabil = urutan di package.questionIds (1-based)
           window.__noSoalAsliById = {};
           questionIds.forEach((id, idx) => { window.__noSoalAsliById[id] = idx + 1; });
+
+          // Mulai unduh soal segera (batch); jangan tunggu token selesai diketik
+          const soalPromise = loadSoalPublikBatched(questionIds).then((res) => {
+            soalList = res.soalList;
+            if (res.missing.length) console.warn('Soal hilang dari soalPublik:', res.missing);
+            return res;
+          });
+          window.__soalPromise = soalPromise;
+
           const butuhToken = paket.jenis === 'tryout' && paket.token && String(paket.token).trim();
-          if (butuhToken) showTokenGate(buka, tutup); else startKuis();
+          if (butuhToken) {
+            showTokenGate(buka, tutup);
+            // Prefetch di belakang layar saat siswa input token
+          } else {
+            const res = await soalPromise;
+            if (!res.soalList.length) { showError('Soal tidak ditemukan (perlu backfill Soal Publik).'); return; }
+            startKuis();
+          }
         } catch (err) { showError('Gagal memuat: ' + err.message); }
       });
     }
@@ -936,11 +1044,29 @@ function formatRichHtml(raw) {
     if (buka) meta += `<br>Dibuka: ${formatWaktu(buka)}`;
     if (tutup) meta += `<br>Ditutup: ${formatWaktu(tutup)}`;
     document.getElementById('gate-meta').innerHTML = meta;
-    document.getElementById('btn-gate').onclick = () => {
+    document.getElementById('btn-gate').onclick = async () => {
       if (document.getElementById('token-input').value.trim() !== String(paket.token || '').trim()) {
         document.getElementById('gate-err').classList.add('show'); return;
       }
-      startKuis();
+      const btn = document.getElementById('btn-gate');
+      const prev = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Menyiapkan soal…';
+      try {
+        const res = window.__soalPromise
+          ? await window.__soalPromise
+          : await loadSoalPublikBatched(paket.questionIds || []);
+        if (res && res.soalList) soalList = res.soalList;
+        if (!soalList || !soalList.length) {
+          showError('Soal tidak ditemukan (perlu backfill Soal Publik).');
+          return;
+        }
+        startKuis();
+      } catch (err) {
+        showError('Gagal memuat soal: ' + (err.message || err));
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
     };
   }
   function startKuis() {
@@ -966,15 +1092,49 @@ function formatRichHtml(raw) {
   }
   function startTimer(seconds) {
     const pill = document.getElementById('timer-pill');
+    if (!pill) return;
     pill.style.display = 'block';
-    let left = seconds;
-    const tick = () => {
-      const m = Math.floor(left / 60), s = left % 60;
-      pill.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      if (left <= 0) { clearInterval(timerInterval); submitKuis('waktu_habis'); return; }
-      left--;
+    // Basis deadline (wall clock) — tahan terhadap throttle setInterval di tab background / HP hemat daya
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const endAt = Date.now() + total * 1000;
+    window.__kuisTimerEndAt = endAt;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    const render = (leftSec) => {
+      const m = Math.floor(leftSec / 60);
+      const s = leftSec % 60;
+      pill.textContent = `⏱ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      pill.classList.toggle('timer-warn', leftSec <= 60 && leftSec > 0);
+      pill.classList.toggle('timer-ended', leftSec <= 0);
     };
-    tick(); timerInterval = setInterval(tick, 1000);
+    const tick = () => {
+      if (submitted) {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+        return;
+      }
+      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      render(left);
+      if (left <= 0) {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+        submitKuis('waktu_habis');
+      }
+    };
+    tick();
+    // Interval 500ms: UI lebih responsif; sisa waktu tetap dihitung dari endAt
+    timerInterval = setInterval(tick, 500);
+    // Saat tab kembali aktif, segarkan segera (browser sering menahan timer di background)
+    if (!window.__kuisTimerVisBound) {
+      window.__kuisTimerVisBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && window.__kuisTimerEndAt && !submitted) {
+          tick();
+        }
+      });
+    }
   }
   function isAnswered(s) {
     const j = jawaban[s.id];
@@ -1113,18 +1273,29 @@ function renderSoal(idx) {
         body += `<label class="opsi-row"><input type="checkbox" name="q_${qid}" value="${escapeHtml(e.value)}" ${checked}><span class="opsi-text"><strong>${e.letter}.</strong> <span class="opsi-rich">${escapeHtml(e.label)}</span></span></label>`;
       });
     } else if (s.tipe === 'pgk-cat') {
-      const rows = s.rows || [], cols = s.cols || s.opsiKolom || ['Benar', 'Salah'];
+      let rows = Array.isArray(s.rows) ? s.rows.filter(r => String(r ?? '').trim()) : [];
+      if (!rows.length && Array.isArray(s.pernyataan)) rows = s.pernyataan.filter(r => String(r ?? '').trim());
+      if (!rows.length && Array.isArray(s.statements)) rows = s.statements.filter(r => String(r ?? '').trim());
+      if (!rows.length && Array.isArray(s.opsi) && s.opsi.length) rows = s.opsi.filter(r => String(r ?? '').trim());
+      let cols = s.cols || s.opsiKolom || ['Benar', 'Salah'];
+      if (!Array.isArray(cols) || !cols.length) cols = ['Benar', 'Salah'];
+      cols = cols.map(c => (typeof c === 'string' ? c : (c.value || c.label || String(c))));
       const current = Array.isArray(jawaban[qid]) ? jawaban[qid] : new Array(rows.length).fill(null);
-      body += `<table class="cat-table"><thead><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
-      rows.forEach((row, ri) => {
-        body += `<tr><td>${row}</td>`;
-        cols.forEach(c => {
-          const val = typeof c === 'string' ? c : (c.value || c.label);
-          body += `<td><input type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${current[ri] === val ? 'checked' : ''}></td>`;
+      if (!rows.length) {
+        body += `<div style="margin-top:8px;padding:10px;border-radius:8px;background:#fef3c7;color:#b45309;font-weight:700;font-size:0.84rem;">Soal kategori belum punya daftar pernyataan (rows). Edit di Bank Soal.</div>`;
+      } else {
+        body += `<table class="cat-table"><thead><tr><th>Pernyataan</th>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>`;
+        rows.forEach((row, ri) => {
+          const rowText = typeof row === 'string' ? row : (row.text || row.label || String(row));
+          body += `<tr><td class="cat-row-text">${formatRichHtml(rowText)}</td>`;
+          cols.forEach(val => {
+            const checked = current[ri] === val ? 'checked' : '';
+            body += `<td><label class="cat-radio"><input type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${checked}><span>${escapeHtml(val)}</span></label></td>`;
+          });
+          body += `</tr>`;
         });
-        body += `</tr>`;
-      });
-      body += `</tbody></table>`;
+        body += `</tbody></table>`;
+      }
     }
     card.innerHTML = body;
     renderRichMath(card);
@@ -1151,14 +1322,18 @@ function renderSoal(idx) {
       };
     });
     if (s.tipe === 'pgk-cat') {
-      (s.rows || []).forEach((_, ri) => {
+      const nRows = card.querySelectorAll('table.cat-table tbody tr').length;
+      for (let ri = 0; ri < nRows; ri++) {
         card.querySelectorAll(`input[name="q_${qid}_${ri}"]`).forEach(input => {
           input.onchange = () => {
-            const current = jawaban[qid] || new Array((s.rows || []).length).fill(null);
-            current[ri] = input.value; jawaban[qid] = current; updateNav(); scheduleAutosave();
+            const current = Array.isArray(jawaban[qid]) ? jawaban[qid].slice() : new Array(nRows).fill(null);
+            current[ri] = input.value;
+            jawaban[qid] = current;
+            updateNav();
+            scheduleAutosave();
           };
         });
-      });
+      }
     }
     updateNav();
     applyZoom(zoomIdx);
