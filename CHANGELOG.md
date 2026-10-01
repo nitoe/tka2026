@@ -6,6 +6,19 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.12] — 2026-10-01
+
+### Fixed
+- **Akses try out siswa**: parser waktu (`bukaPada`/`tutupPada`) diseragamkan (Timestamp, epoch, string lokal tanpa zona) di `kuis.html` & `pilih-paket.html`.
+- Toleransi jam perangkat ±3 menit agar HP yang melenceng tetap bisa masuk saat jendela ujian.
+- Cek `maksPercobaan` tidak lagi menggagalkan seluruh kuis jika query attempt error (index/rules).
+- **Pilih paket**: fallback filter `aktif` di klien jika index komposit Firestore belum siap.
+
+### Tidak Berubah
+- Syarat `aktif === true`, token try out, batas percobaan saat query berhasil.
+
+---
+
 ## [0.18.11] — 2026-09-30
 
 ### Added

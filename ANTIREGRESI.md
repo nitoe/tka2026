@@ -88,6 +88,14 @@ Untuk riwayat lengkap pelajaran dari v0.4–v0.10, lihat commit history. Ringkas
 
 ---
 
+## 18. Gate waktu & daftar paket (v0.18.12)
+
+- `bukaPada`/`tutupPada` disimpan ISO UTC dari datetime-local (lokal eksplisit → `toISOString`).
+- Parser siswa harus menangani Timestamp Firestore, `{seconds}`, epoch, dan string `YYYY-MM-DDTHH:mm` **tanpa** mengandalkan `new Date(string)` saja.
+- Jangan blokir kuis total jika query `attempts` (maks percobaan) gagal karena index — log + lanjut.
+- Daftar paket: `subjectId` + `aktif == true`; sediakan fallback filter klien.
+- Saat ujian berlangsung: ubah minimal, uji parser dengan string lokal & ISO Z.
+
 ## Definition of Done
 
 - [ ] Berfungsi di skenario normal & edge case relevan
