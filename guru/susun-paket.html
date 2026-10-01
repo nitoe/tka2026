@@ -978,8 +978,7 @@
       if (stim) {
         addPara('Stimulus / bacaan', 8.5, 'bold', { afterGap: 1 });
         // Pecah per paragraf agar tidak menempel & tidak memotong di tengah blok pendek
-        const paras = stim.split(/
-+/).map((p) => p.trim()).filter(Boolean);
+        const paras = stim.split(/\n+/).map((p) => p.trim()).filter(Boolean);
         paras.forEach((para, pi) => {
           addPara(para, 9, 'normal', {
             keepTogether: para.length < 350,
