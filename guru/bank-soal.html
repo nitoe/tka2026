@@ -433,6 +433,11 @@
     white-space: nowrap;
   }
   .edit-kunci-pick input { width: 16px; height: 16px; accent-color: #047857; }
+
+  .preview-stim h2, .soal-stim-text h2 { font-size: 1.05rem; font-weight: 800; border-bottom: 2px solid #93c5fd; padding-bottom: 6px; margin: 0 0 0.75em; }
+  .preview-stim h3, .soal-stim-text h3 { font-size: 0.95rem; font-weight: 800; margin: 0.85em 0 0.4em; }
+  .preview-stim ul, .preview-stim ol, .soal-stim-text ul, .soal-stim-text ol { margin: 0.4em 0 0.65em 1.25em; padding: 0; }
+  .preview-stim li, .soal-stim-text li { margin-bottom: 0.35em; }
 </style>
 </head>
 <body>
@@ -1352,7 +1357,7 @@
     function escapeHtmlBank(s) {
       return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
-    const RICH_ALLOWED = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TFOOT','TR','TD','TH','H1','H2','H3','H4','H5','SPAN','SUB','SUP','BLOCKQUOTE','HR','DIV','PRE','CODE']);
+    const RICH_ALLOWED = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TFOOT','TR','TD','TH','H1','H2','H3','H4','H5','H6','SPAN','SUB','SUP','BLOCKQUOTE','HR','DIV','PRE','CODE','ARTICLE','SECTION','ASIDE','FIGURE','FIGCAPTION','SMALL','LABEL']);
     function sanitizeHtml(html) {
       const doc = new DOMParser().parseFromString('<div id="root">' + String(html ?? '') + '</div>', 'text/html');
       const root = doc.getElementById('root') || doc.body;
@@ -1360,6 +1365,14 @@
         for (const child of [...node.childNodes]) {
           if (child.nodeType === 8) { child.remove(); continue; }
           if (child.nodeType !== 1) continue;
+          if (child.tagName === 'ARTICLE' || child.tagName === 'SECTION' || child.tagName === 'ASIDE') {
+            const div = child.ownerDocument.createElement('div');
+            div.className = 'stim-block stim-' + child.tagName.toLowerCase();
+            while (child.firstChild) div.appendChild(child.firstChild);
+            node.replaceChild(div, child);
+            walk(div);
+            continue;
+          }
           if (!RICH_ALLOWED.has(child.tagName)) {
             while (child.firstChild) node.insertBefore(child.firstChild, child);
             child.remove();
@@ -1392,6 +1405,13 @@
 function formatRichHtml(raw) {
       let s = normalizeLatexDelimiters(String(raw ?? ''));
       if (!s.trim()) return '';
+      if (!/<[a-z][\s\S]*>/i.test(s) && /&lt;[a-z]/i.test(s)) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.innerHTML = s;
+          s = ta.value;
+        } catch (_) {}
+      }
       if (/<[a-z][\s\S]*>/i.test(s)) return sanitizeHtml(s);
       return plainTextToHtml(s);
     }
