@@ -738,11 +738,51 @@
     }
   }
 
-  function stripHtml(html) {
-    const d = document.createElement('div');
-    d.innerHTML = String(html || '');
-    return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+  /** Ekstraksi teks aman untuk PDF: entitas HTML, paragraf, hilangkan artefak. */
+  function htmlToPdfText(html) {
+    let s = String(html ?? '');
+    if (!s) return '';
+    // Tag blok → baris baru agar narasi tidak menyatu
+    s = s.replace(/<\s*br\s*\/?\s*>/gi, '\n');
+    s = s.replace(/<\s*\/\s*(p|div|li|h[1-6]|tr|section|article)\s*>/gi, '\n');
+    s = s.replace(/<\s*(p|div|li|h[1-6]|section|article)(\s[^>]*)?>/gi, '\n');
+    s = s.replace(/<\s*li(\s[^>]*)?>/gi, '\n• ');
+    // Buang sisa tag
+    s = s.replace(/<[^>]+>/g, '');
+    // Decode entitas (&nbsp; &amp; …)
+    try {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = s;
+      s = ta.value;
+    } catch (_) {}
+    s = s
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    // Karakter kontrol / zero-width
+    s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u200B-\u200D\uFEFF]/g, '');
+    // Normalisasi spasi per baris, pertahankan paragraf
+    s = s.split(/\r\n|\r|\n/).map((line) => line.replace(/[ \t\f\v]+/g, ' ').trim()).join('\n');
+    s = s.replace(/\n{3,}/g, '\n\n').trim();
+    // Teks "ter-spasi per huruf" (T e k s → Teks) — sering dari HTML/OCR
+    s = s.replace(/\b(?:\S ){3,}\S\b/g, (m) => {
+      const parts = m.split(' ');
+      if (parts.length >= 4 && parts.every((p) => [...p].length === 1)) return parts.join('');
+      return m;
+    });
+    // Buang sisa artefak aneh di awal (mis. dari tag rusak)
+    s = s.replace(/^[^\w“”"'(0-9A-Za-zÀ-ÿ\u00C0-\u024F]+/u, '').trim();
+    return s;
   }
+  function stripHtml(html) {
+    // kompatibilitas pemanggil lama
+    return htmlToPdfText(html).replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
 
   async function ensureJsPdf() {
     if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
@@ -841,7 +881,19 @@
       const lineH = fontSize * 0.42;
       return { lines, lineH, height: lines.length * lineH + 1.5 };
     }
+    function sanitizeForHelvetica(text) {
+      return String(text ?? '')
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/[–—]/g, '-')
+        .replace(/…/g, '...')
+        .replace(/×/g, 'x')
+        .replace(/•/g, '-')
+        // buang karakter di luar Latin-1 yang sering jadi kotak/aneh di Helvetica
+        .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '');
+    }
     function addPara(text, fontSize = 10, style = 'normal', opts = {}) {
+      text = sanitizeForHelvetica(text);
       const { lines, lineH, height } = measurePara(text, fontSize);
       // Keep-together: jika blok pendek tidak muat, pindah halaman utuh
       if (opts.keepTogether && height < 40 && y + height > contentBottom) newPage();
@@ -899,8 +951,8 @@
 
     for (let qi = 0; qi < ids.length; qi++) {
       const s = selected[ids[qi]] || allSoal.find(x => x.id === ids[qi]) || {};
-      const stim = stripHtml(s.stimulus || s.bacaan || '');
-      const tanya = stripHtml(s.pertanyaan || s.teks || '(tanpa pertanyaan)');
+      const stim = htmlToPdfText(s.stimulus || s.bacaan || '');
+      const tanya = htmlToPdfText(s.pertanyaan || s.teks || '(tanpa pertanyaan)').replace(/\n+/g, ' ');
       const opsi = Array.isArray(s.opsi) ? s.opsi : [];
       const imgRaw = s.stimulusImage || s.ilustrasi || s.gambar || '';
       const hasImg = imgRaw && String(imgRaw).startsWith('data:image');
@@ -925,7 +977,15 @@
 
       if (stim) {
         addPara('Stimulus / bacaan', 8.5, 'bold', { afterGap: 1 });
-        addPara(stim, 9, 'normal', { keepTogether: stim.length < 400, afterGap: 2.5 });
+        // Pecah per paragraf agar tidak menempel & tidak memotong di tengah blok pendek
+        const paras = stim.split(/
++/).map((p) => p.trim()).filter(Boolean);
+        paras.forEach((para, pi) => {
+          addPara(para, 9, 'normal', {
+            keepTogether: para.length < 350,
+            afterGap: pi === paras.length - 1 ? 2.5 : 2,
+          });
+        });
       }
 
       if (imgInfo.ok) {
