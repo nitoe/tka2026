@@ -195,7 +195,10 @@
           <div class="paket-soal-tools">
             <label><input type="checkbox" id="filter-hanya-paket"> Tampilkan hanya soal dalam paket</label>
             <button type="button" class="btn-secondary" id="btn-buka-bank-paket" style="font-size:0.72rem;padding:6px 10px;">Kelola di Bank Soal</button>
+            <button type="button" class="btn-secondary" id="btn-pdf-paket" style="font-size:0.72rem;padding:6px 10px;">PDF / Cetak paket</button>
+            <button type="button" class="btn-secondary" id="btn-tandai-selesai" style="font-size:0.72rem;padding:6px 10px;display:none;">Tandai selesai</button>
           </div>
+          <p id="composition-lock-note" style="display:none;font-size:0.75rem;font-weight:700;color:#b45309;margin:6px 0 0;">Paket sudah punya nilai attempt — komposisi soal dikunci (tidak bisa tambah/hapus). Narasi & kunci tetap bisa diedit di Bank Soal.</p>
           <div class="selected-list" id="selected-list">
             <div class="empty-state" style="padding:14px;">Belum ada soal dipilih.</div>
           </div>
@@ -271,13 +274,14 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
-  import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, where, limit } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
   const notConfigured = document.getElementById('not-configured');
 
-  let allSoal = [], selected = {}, currentStaff = null, editingId = null;
+  let allSoal = [], selected = {}, currentStaff = null, let compositionLocked = false;
+  let editingId = null;
 
   function parseToDate(val) {
     if (val == null || val === '') return null;
@@ -297,7 +301,14 @@
   }
   function toIsoLocal(val) {
     if (!val) return null;
-    const d = new Date(val);
+    // datetime-local: "YYYY-MM-DDTHH:mm" → Date lokal eksplisit, lalu simpan ISO UTC
+    const m = String(val).trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    let d;
+    if (m) {
+      d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    } else {
+      d = new Date(val);
+    }
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
   function toDatetimeLocalValue(val) {
@@ -421,6 +432,17 @@
         <div class="soal-text">${teks}</div></div></label>`;
     }).join('');
     list.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      if (compositionLocked) {
+        // Kunci komposisi: centang hanya untuk soal yang sudah di paket
+        if (!selected[cb.dataset.id]) {
+          cb.disabled = true;
+          cb.checked = false;
+        } else {
+          cb.disabled = true; // tidak bisa uncheck
+          cb.checked = true;
+        }
+        return;
+      }
       cb.addEventListener('change', () => {
         const id = cb.dataset.id;
         if (cb.checked) selected[id] = allSoal.find(s => s.id === id);
@@ -477,6 +499,11 @@
         </div>`;
       }).join('');
       list.querySelectorAll('[data-remove]').forEach(btn => {
+        if (compositionLocked) {
+          btn.disabled = true;
+          btn.title = 'Komposisi dikunci karena sudah ada nilai';
+          return;
+        }
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-remove');
           delete selected[id];
@@ -535,7 +562,9 @@
         const badge = j === 'tryout' ? '<span class="badge-tryout">TRY OUT</span>' : '';
         const aktifBadge = p.aktif === true
           ? '<span style="display:inline-block;background:#def7ec;color:#057a55;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">AKTIF</span>'
-          : '<span style="display:inline-block;background:#f1f5f9;color:#64748b;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">NONAKTIF</span>';
+          : (j === 'tryout'
+            ? '<span style="display:inline-block;background:#fef3c7;color:#b45309;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">SELESAI</span>'
+            : '<span style="display:inline-block;background:#f1f5f9;color:#64748b;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:4px;">NONAKTIF</span>');
         return `<div class="item">
           <div>
             <div class="nama">${p.nama || p.id} ${badge}${aktifBadge}</div>
@@ -552,7 +581,7 @@
     }
   }
 
-  function startEdit(p) {
+  async function startEdit(p) {
     if (!p) return;
     editingId = p.id;
     selected = {};
@@ -560,6 +589,24 @@
       const s = allSoal.find(x => x.id === id);
       if (s) selected[id] = s;
     });
+    compositionLocked = false;
+    const lockNote = document.getElementById('composition-lock-note');
+    const btnSelesai = document.getElementById('btn-tandai-selesai');
+    if (lockNote) lockNote.style.display = 'none';
+    if (btnSelesai) {
+      btnSelesai.style.display = (p.jenis === 'tryout') ? 'inline-block' : 'none';
+      btnSelesai.textContent = p.aktif === true ? 'Tandai selesai (nonaktifkan)' : 'Aktifkan kembali';
+    }
+    try {
+      const q = query(collection(db, 'attempts'), where('packageId', '==', p.id), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        compositionLocked = true;
+        if (lockNote) lockNote.style.display = 'block';
+      }
+    } catch (err) {
+      console.warn('Cek attempt paket:', err);
+    }
     updateSelected();
     renderSoalList();
     document.getElementById('form-title').textContent = 'Edit Paket';
@@ -648,6 +695,254 @@
     }
     btn.disabled = false;
   });
+
+  async function tandaiSelesaiToggle() {
+    if (!editingId) {
+      alert('Buka edit paket try out terlebih dahulu.');
+      return;
+    }
+    const aktifEl = document.getElementById('paket-aktif');
+    const willAktif = !(aktifEl && aktifEl.checked);
+    // Tombol: jika sekarang aktif → nonaktifkan (selesai); jika nonaktif → aktifkan
+    const currentlyAktif = aktifEl && aktifEl.checked;
+    const nextAktif = !currentlyAktif;
+    const msg = nextAktif
+      ? 'Aktifkan kembali paket ini agar tampil di akun siswa?'
+      : 'Tandai paket SELESAI (nonaktif)? Siswa tidak akan melihat try out ini lagi. Nilai yang sudah ada tetap tersimpan.';
+    if (!confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, 'packages', editingId), {
+        aktif: nextAktif,
+        updatedAt: serverTimestamp(),
+      });
+      if (aktifEl) aktifEl.checked = nextAktif;
+      const btn = document.getElementById('btn-tandai-selesai');
+      if (btn) btn.textContent = nextAktif ? 'Tandai selesai (nonaktifkan)' : 'Aktifkan kembali';
+      await loadPaket();
+      alert(nextAktif ? 'Paket diaktifkan kembali.' : 'Paket ditandai selesai (nonaktif).');
+    } catch (err) {
+      alert('Gagal: ' + err.message);
+    }
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement('div');
+    d.innerHTML = String(html || '');
+    return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+  }
+
+  async function cetakPdfPaket() {
+    if (!editingId && !Object.keys(selected).length) {
+      alert('Pilih atau edit paket terlebih dahulu.');
+      return;
+    }
+    const ids = Object.keys(selected);
+    if (!ids.length) {
+      alert('Paket belum punya soal.');
+      return;
+    }
+    const nama = document.getElementById('nama-paket')?.value || 'Paket Soal';
+    const { jsPDF } = window.jspdf;
+    const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = docPdf.internal.pageSize.getWidth();  // 210
+    const pageH = docPdf.internal.pageSize.getHeight(); // 297
+    // Margin cetak aman (~printer non-printable area)
+    // Margin cetak A4 (mm) — aman untuk mayoritas printer inkjet/laser
+    // kiri/kanan ≥15mm, atas/bawah ≥18mm; zona footer terpisah dari konten
+    const M = { t: 18, r: 15, b: 18, l: 15 };
+    const FOOTER_BAND = 10; // ruang khusus nomor halaman di dalam margin bawah
+    const maxW = pageW - M.l - M.r;
+    const contentBottom = pageH - M.b - FOOTER_BAND; // konten tidak menabrak footer
+    const MAX_IMG_H = 55;
+    const MAX_IMG_W = maxW * 0.80;
+    const MIN_BLOCK_KEEP = 30;
+
+    let y = M.t;
+    let pageNo = 1;
+
+    function footer() {
+      const fy = pageH - (M.b * 0.45); // di tengah zona margin bawah
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(7.5);
+      docPdf.setTextColor(120);
+      // garis tipis pemisah footer
+      docPdf.setDrawColor(200);
+      docPdf.setLineWidth(0.2);
+      docPdf.line(M.l, fy - 3.5, pageW - M.r, fy - 3.5);
+      const label = ('Hal. ' + pageNo + ' · ' + nama).slice(0, 72);
+      docPdf.text(label, M.l, fy);
+      docPdf.text('Portal Latihan TKA 2026', pageW - M.r, fy, { align: 'right' });
+      docPdf.setTextColor(0);
+    }
+    function newPage() {
+      footer();
+      docPdf.addPage();
+      pageNo += 1;
+      y = M.t;
+      // running header
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(130);
+      docPdf.text(String(nama).slice(0, 70), M.l, y);
+      y += 5;
+      docPdf.setDrawColor(210);
+      docPdf.line(M.l, y, pageW - M.r, y);
+      y += 6;
+      docPdf.setTextColor(0);
+    }
+    function spaceLeft() {
+      return contentBottom - y;
+    }
+    function ensureSpace(h) {
+      if (y + h > contentBottom) newPage();
+    }
+    /** Tinggi paragraf (mm) tanpa menggambar */
+    function measurePara(text, fontSize) {
+      docPdf.setFontSize(fontSize);
+      const lines = docPdf.splitTextToSize(String(text || ''), maxW);
+      const lineH = fontSize * 0.42;
+      return { lines, lineH, height: lines.length * lineH + 1.5 };
+    }
+    function addPara(text, fontSize = 10, style = 'normal', opts = {}) {
+      const { lines, lineH, height } = measurePara(text, fontSize);
+      // Keep-together: jika blok pendek tidak muat, pindah halaman utuh
+      if (opts.keepTogether && height < 40 && y + height > contentBottom) newPage();
+      docPdf.setFont('helvetica', style);
+      docPdf.setFontSize(fontSize);
+      if (opts.color != null) docPdf.setTextColor(opts.color);
+      lines.forEach((ln) => {
+        if (y + lineH > contentBottom) newPage();
+        docPdf.text(ln, M.l, y);
+        y += lineH;
+      });
+      y += opts.afterGap != null ? opts.afterGap : 1.8;
+      docPdf.setTextColor(0);
+    }
+    function measureImage(imgData) {
+      try {
+        const props = docPdf.getImageProperties(imgData);
+        let iw = MAX_IMG_W;
+        let ih = (props.height * iw) / props.width;
+        if (ih > MAX_IMG_H) {
+          ih = MAX_IMG_H;
+          iw = (props.width * ih) / props.height;
+        }
+        // Batasi lebar minimum agar tidak terlalu kecil
+        if (iw < 40 && props.width > 0) {
+          iw = Math.min(MAX_IMG_W, 40);
+          ih = Math.min(MAX_IMG_H, (props.height * iw) / props.width);
+        }
+        const fmt = (props.fileType || '').toUpperCase() === 'PNG' ? 'PNG' : 'JPEG';
+        return { iw, ih, fmt, ok: true };
+      } catch (_) {
+        return { ok: false };
+      }
+    }
+
+    // —— Judul halaman 1 ——
+    docPdf.setFont('helvetica', 'bold');
+    docPdf.setFontSize(13);
+    const titleLines = docPdf.splitTextToSize(nama, maxW);
+    titleLines.forEach((ln) => { docPdf.text(ln, M.l, y); y += 5.5; });
+    y += 1;
+    docPdf.setFont('helvetica', 'normal');
+    docPdf.setFontSize(9);
+    docPdf.setTextColor(90);
+    docPdf.text('Cetak paket soal · kertas A4 · ' + ids.length + ' soal', M.l, y);
+    y += 4.5;
+    docPdf.text('Dicetak: ' + new Date().toLocaleString('id-ID'), M.l, y);
+    y += 5;
+    docPdf.setDrawColor(30, 40, 60);
+    docPdf.setLineWidth(0.4);
+    docPdf.line(M.l, y, pageW - M.r, y);
+    y += 7;
+    docPdf.setTextColor(0);
+    docPdf.setLineWidth(0.2);
+
+    for (let qi = 0; qi < ids.length; qi++) {
+      const s = selected[ids[qi]] || allSoal.find(x => x.id === ids[qi]) || {};
+      const stim = stripHtml(s.stimulus || s.bacaan || '');
+      const tanya = stripHtml(s.pertanyaan || s.teks || '(tanpa pertanyaan)');
+      const opsi = Array.isArray(s.opsi) ? s.opsi : [];
+      const imgRaw = s.stimulusImage || s.ilustrasi || s.gambar || '';
+      const hasImg = imgRaw && String(imgRaw).startsWith('data:image');
+      const imgInfo = hasImg ? measureImage(imgRaw) : { ok: false };
+
+      // Estimasi tinggi awal blok (judul + sedikit isi) — hindari orphan header
+      if (spaceLeft() < MIN_BLOCK_KEEP) newPage();
+
+      // Nomor soal
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(11);
+      docPdf.setTextColor(20, 40, 80);
+      docPdf.text('Soal ' + (qi + 1), M.l, y);
+      y += 4.5;
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(7.5);
+      docPdf.setTextColor(110);
+      const meta = [s.tipe || '-', s.tipeMateri || '-', s.kompleksitas || '-', 'skor ' + (s.skor ?? '-')].join(' · ');
+      docPdf.text(meta, M.l, y);
+      y += 5;
+      docPdf.setTextColor(0);
+
+      if (stim) {
+        addPara('Stimulus / bacaan', 8.5, 'bold', { afterGap: 1 });
+        addPara(stim, 9, 'normal', { keepTogether: stim.length < 400, afterGap: 2.5 });
+      }
+
+      if (imgInfo.ok) {
+        const need = imgInfo.ih + 4;
+        // Gambar utuh di satu halaman jika mungkin
+        if (y + need > contentBottom && imgInfo.ih < contentBottom - M.t - 20) newPage();
+        else ensureSpace(Math.min(need, 30));
+        try {
+          docPdf.addImage(imgRaw, imgInfo.fmt, M.l, y, imgInfo.iw, imgInfo.ih);
+          y += imgInfo.ih + 3.5;
+        } catch (_) {
+          addPara('[Gambar tidak dapat disematkan]', 8, 'italic');
+        }
+      }
+
+      addPara(tanya, 10, 'normal', { keepTogether: tanya.length < 280, afterGap: 2.5 });
+
+      // Opsi: jaga agar minimal 2 baris opsi tidak terpisah dari pertanyaan
+      if (opsi.length && spaceLeft() < 14) newPage();
+      opsi.forEach((o, oi) => {
+        const letter = String.fromCharCode(65 + oi);
+        addPara(letter + '. ' + stripHtml(o), 9, 'normal', { afterGap: 1.2 });
+      });
+
+      let kunciTxt = '';
+      if (Array.isArray(s.kunciJawaban)) kunciTxt = s.kunciJawaban.map(stripHtml).join('; ');
+      else if (s.kunciJawaban != null) kunciTxt = stripHtml(s.kunciJawaban);
+      if (kunciTxt) {
+        addPara('Kunci: ' + kunciTxt, 8, 'italic', { color: 60, afterGap: 2 });
+      }
+
+      // Pemisah antar soal (jangan di ujung halaman)
+      if (qi < ids.length - 1) {
+        y += 1;
+        if (spaceLeft() > 10) {
+          docPdf.setDrawColor(220);
+          docPdf.setLineWidth(0.15);
+          docPdf.line(M.l, y, pageW - M.r, y);
+          y += 5;
+        } else {
+          newPage();
+        }
+      }
+    }
+
+    footer();
+    const safeName = String(nama || 'paket').replace(/[^\w\-]+/g, '-').slice(0, 40);
+    docPdf.save('paket-soal-' + safeName + '.pdf');
+  }
+
+
+
+  document.getElementById('btn-tandai-selesai')?.addEventListener('click', () => { tandaiSelesaiToggle(); });
+  document.getElementById('btn-pdf-paket')?.addEventListener('click', () => { cetakPdfPaket(); });
+
 </script>
 </body>
 </html>

@@ -608,8 +608,8 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
-  import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-  import { computeKunciHash, toSoalPublik } from '../assets/scoring.js';
+  import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc, setDoc, query, where, limit, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { computeKunciHash, toSoalPublik, hashJawabanSiswa } from '../assets/scoring.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -2235,7 +2235,69 @@ function openEditSoal(id) {
       return { opsi, rows: [], cols: [], kunciJawaban };
     }
 
-    function closeEditSoal() {
+    
+    async function hitungUlangAttemptUntukSoal(soalId) {
+      // Ambil attempt (soft limit), filter yang menjawab soal ini, hitung ulang total dari kunciHash terkini
+      const snap = await getDocs(query(collection(db, 'attempts'), limit(1000)));
+      let updated = 0, scanned = 0;
+      for (const d of snap.docs) {
+        const a = d.data();
+        const jawaban = a.jawaban || {};
+        if (!Object.prototype.hasOwnProperty.call(jawaban, soalId)) continue;
+        scanned++;
+        const qids = Object.keys(jawaban);
+        // muat soalPublik untuk semua id di attempt
+        const hashes = {};
+        const meta = {};
+        await Promise.all(qids.map(async (qid) => {
+          try {
+            const s = await getDoc(doc(db, 'soalPublik', qid));
+            if (s.exists()) {
+              const data = s.data();
+              hashes[qid] = data.kunciHash;
+              meta[qid] = data;
+            }
+          } catch (_) {}
+        }));
+        let skorAkhir = 0, skorMaksimal = 0;
+        const perTipeMateri = {}, perKompleksitas = {};
+        for (const qid of qids) {
+          const s = meta[qid];
+          if (!s) continue;
+          const skorSoal = Number(s.skor) || 0;
+          skorMaksimal += skorSoal;
+          let benar = false;
+          if (jawaban[qid] != null && hashes[qid]) {
+            try {
+              const h = await hashJawabanSiswa(s.tipe, jawaban[qid]);
+              benar = h === hashes[qid];
+            } catch (_) { benar = false; }
+          }
+          if (benar) skorAkhir += skorSoal;
+          const tm = s.tipeMateri || 'Belum Dikategorikan';
+          const kp = s.kompleksitas || 'Belum Dikategorikan';
+          perTipeMateri[tm] = perTipeMateri[tm] || { benar: 0, total: 0, poinBenar: 0, poinMaks: 0 };
+          perTipeMateri[tm].total++;
+          perTipeMateri[tm].poinMaks += skorSoal;
+          if (benar) { perTipeMateri[tm].benar++; perTipeMateri[tm].poinBenar += skorSoal; }
+          perKompleksitas[kp] = perKompleksitas[kp] || { benar: 0, total: 0, poinBenar: 0, poinMaks: 0 };
+          perKompleksitas[kp].total++;
+          perKompleksitas[kp].poinMaks += skorSoal;
+          if (benar) { perKompleksitas[kp].benar++; perKompleksitas[kp].poinBenar += skorSoal; }
+        }
+        await updateDoc(doc(db, 'attempts', d.id), {
+          skorAkhir,
+          skorMaksimal,
+          skorPerTipeMateri: perTipeMateri,
+          skorPerKompleksitas: perKompleksitas,
+          dihitungUlangPada: serverTimestamp(),
+        });
+        updated++;
+      }
+      return { updated, scanned };
+    }
+
+function closeEditSoal() {
       document.getElementById('edit-backdrop').classList.remove('show');
       editState = { id: null, stimulusImage: null, removeImage: false };
     }
@@ -2371,7 +2433,23 @@ function openEditSoal(id) {
         // hapus kunci plaintext di publik jika pernah tertinggal
         pubPatch.kunciJawaban = null;
         await setDoc(doc(db, 'soalPublik', editState.id), pubPatch, { merge: true });
-        st.textContent = 'Tersimpan. Memuat ulang daftar…';
+        const soalIdSaved = editState.id;
+        st.textContent = 'Tersimpan.';
+        // Tawarkan hitung ulang nilai jika kunci berubah
+        const doRescore = confirm(
+          'Soal tersimpan.\n\nHitung ulang nilai attempt siswa yang memakai soal ini?\n' +
+          '(Disarankan setelah koreksi kunci. Butuh rules staff update attempts.)'
+        );
+        if (doRescore) {
+          st.textContent = 'Menghitung ulang nilai…';
+          try {
+            const r = await hitungUlangAttemptUntukSoal(soalIdSaved);
+            st.textContent = `Tersimpan. Dihitung ulang: ${r.updated} attempt (dari ${r.scanned} yang memakai soal ini).`;
+          } catch (reErr) {
+            st.textContent = 'Tersimpan, tetapi hitung ulang gagal: ' + reErr.message;
+            console.warn(reErr);
+          }
+        }
         closeEditSoal();
         await loadSoal();
       } catch (err) {
