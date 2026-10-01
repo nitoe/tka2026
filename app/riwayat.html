@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riwayat Nilai – Portal Latihan TKA 2026</title>
+<link rel="stylesheet" href="../assets/theme.css">
+<style>
+  .riwayat-list { display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
+  .riwayat-card {
+    background: var(--surface, #fff); border: 1px solid var(--line, #e2e8f0);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .riwayat-card .nama { font-weight: 800; font-size: 0.95rem; }
+  .riwayat-card .meta { font-size: 0.78rem; color: var(--text-2, #64748b); font-weight: 600; margin-top: 4px; }
+  .riwayat-card .skor {
+    margin-top: 8px; font-size: 1.35rem; font-weight: 800; color: var(--brand-ink, #0f172a);
+  }
+  .riwayat-card .skor span { font-size: 0.8rem; font-weight: 700; color: var(--text-2, #64748b); }
+  .badge-selesai {
+    display: inline-block; background: #fef3c7; color: #b45309;
+    font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;
+  }
+  .empty { text-align: center; padding: 2rem; color: var(--text-2, #64748b); font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen"><div class="spinner"></div><div>Memuat riwayat…</div></div>
+
+<div id="page" style="display:none;">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">TKA</div>
+      <div class="brand-text">
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="brand-sub">Riwayat nilai saya</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="./index.html" class="btn-ghost">← Beranda</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-kicker">Nilai pribadi</div>
+    <h1 class="page-title">Riwayat try out</h1>
+    <p class="page-desc">
+      Menampilkan nilai try out yang sudah <strong>diselesaikan / dinonaktifkan</strong> guru.
+      Nilai siswa lain tidak ditampilkan.
+    </p>
+    <div id="riwayat-list" class="riwayat-list"></div>
+    <div id="empty-state" class="empty" style="display:none;">
+      Belum ada try out selesai dengan nilai Anda.<br>
+      Riwayat muncul setelah guru menandai paket selesai (nonaktif).
+    </div>
+  </main>
+</div>
+
+<div id="not-configured" class="loading-screen" style="display:none;">
+  <div>Firebase belum dikonfigurasi.</div>
+  <a href="../index.html">← Kembali</a>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
+  import { collection, query, where, getDocs, limit } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  function pct(skor, maks) {
+    const s = Number(skor), m = Number(maks);
+    if (!m || m <= 0 || Number.isNaN(s)) return null;
+    return Math.round((s / m) * 100);
+  }
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.href = '../index.html'; return; }
+      const siswa = await getStudentDoc(user.uid);
+      if (!siswa) { await signOut(auth); location.href = '../index.html'; return; }
+
+      loading.style.display = 'none';
+      page.style.display = 'block';
+
+      try {
+        // Paket nonaktif (selesai)
+        const pkgSnap = await getDocs(query(collection(db, 'packages'), where('aktif', '==', false), limit(200)));
+        const selesaiIds = new Set();
+        const pkgMeta = new Map();
+        pkgSnap.docs.forEach((d) => {
+          const data = d.data();
+          // Hanya try out yang relevan untuk riwayat ujian
+          if ((data.jenis || '') === 'tryout' || true) {
+            selesaiIds.add(d.id);
+            pkgMeta.set(d.id, { id: d.id, ...data });
+          }
+        });
+
+        // Attempt milik siswa
+        const attSnap = await getDocs(
+          query(collection(db, 'attempts'), where('studentId', '==', user.uid), limit(200))
+        );
+        const rows = [];
+        attSnap.docs.forEach((d) => {
+          const a = d.data();
+          if (!selesaiIds.has(a.packageId)) return;
+          const p = pct(a.skorAkhir, a.skorMaksimal);
+          rows.push({
+            id: d.id,
+            nama: a.packageNama || pkgMeta.get(a.packageId)?.nama || a.packageId,
+            mapel: a.subjectId || pkgMeta.get(a.packageId)?.subjectId || '—',
+            persen: p,
+            skorAkhir: a.skorAkhir,
+            skorMaksimal: a.skorMaksimal,
+            waktu: a.waktuSelesai?.toDate?.() || a.createdAt?.toDate?.() || null,
+          });
+        });
+
+        rows.sort((a, b) => {
+          const ta = a.waktu ? a.waktu.getTime() : 0;
+          const tb = b.waktu ? b.waktu.getTime() : 0;
+          return tb - ta;
+        });
+
+        const list = document.getElementById('riwayat-list');
+        const empty = document.getElementById('empty-state');
+        if (!rows.length) {
+          empty.style.display = 'block';
+          return;
+        }
+        const mapelLabel = { matematika: 'Matematika', 'bahasa-indonesia': 'Bahasa Indonesia' };
+        list.innerHTML = rows.map((r) => {
+          const tgl = r.waktu
+            ? r.waktu.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+            : '—';
+          const skorTxt = r.persen != null
+            ? `${r.persen}<span> / 100</span>`
+            : '—';
+          return `<div class="riwayat-card">
+            <div class="nama">${escapeHtml(r.nama)} <span class="badge-selesai">SELESAI</span></div>
+            <div class="meta">${escapeHtml(mapelLabel[r.mapel] || r.mapel)} · ${escapeHtml(tgl)}</div>
+            <div class="skor">${skorTxt}</div>
+            <div class="meta">Poin: ${r.skorAkhir ?? '—'} / ${r.skorMaksimal ?? '—'}</div>
+          </div>`;
+        }).join('');
+      } catch (err) {
+        document.getElementById('empty-state').style.display = 'block';
+        document.getElementById('empty-state').textContent = 'Gagal memuat: ' + err.message;
+      }
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
