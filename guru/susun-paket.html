@@ -950,7 +950,18 @@
     docPdf.setLineWidth(0.2);
 
     for (let qi = 0; qi < ids.length; qi++) {
-      const s = selected[ids[qi]] || allSoal.find(x => x.id === ids[qi]) || {};
+      // Gabungkan data paket + bank agar opsi/rows tidak hilang
+      const fromSel = selected[ids[qi]] || {};
+      const fromBank = allSoal.find(x => x.id === ids[qi]) || {};
+      const s = {
+        ...fromBank,
+        ...fromSel,
+        opsi: (Array.isArray(fromSel.opsi) && fromSel.opsi.length) ? fromSel.opsi : fromBank.opsi,
+        rows: (Array.isArray(fromSel.rows) && fromSel.rows.length) ? fromSel.rows : fromBank.rows,
+        cols: (Array.isArray(fromSel.cols) && fromSel.cols.length) ? fromSel.cols : fromBank.cols,
+        kunciJawaban: fromSel.kunciJawaban != null ? fromSel.kunciJawaban : fromBank.kunciJawaban,
+        tipe: fromSel.tipe || fromBank.tipe,
+      };
       const stim = htmlToPdfText(s.stimulus || s.bacaan || '');
       const tanya = htmlToPdfText(s.pertanyaan || s.teks || '(tanpa pertanyaan)').replace(/\n+/g, ' ');
       const opsi = Array.isArray(s.opsi) ? s.opsi : [];
@@ -1002,16 +1013,73 @@
 
       addPara(tanya, 10, 'normal', { keepTogether: tanya.length < 280, afterGap: 2.5 });
 
-      // Opsi: jaga agar minimal 2 baris opsi tidak terpisah dari pertanyaan
-      if (opsi.length && spaceLeft() < 14) newPage();
-      opsi.forEach((o, oi) => {
-        const letter = String.fromCharCode(65 + oi);
-        addPara(letter + '. ' + stripHtml(o), 9, 'normal', { afterGap: 1.2 });
-      });
-
+      // —— Pilihan jawaban per tipe ——
+      const tipeSoal = String(s.tipe || 'pg').toLowerCase();
       let kunciTxt = '';
-      if (Array.isArray(s.kunciJawaban)) kunciTxt = s.kunciJawaban.map(stripHtml).join('; ');
-      else if (s.kunciJawaban != null) kunciTxt = stripHtml(s.kunciJawaban);
+
+      if (tipeSoal === 'pgk-cat') {
+        // Pernyataan di rows; kolom Benar/Salah
+        let rows = Array.isArray(s.rows) ? s.rows.filter(r => String(r ?? '').trim()) : [];
+        if (!rows.length && Array.isArray(s.pernyataan)) rows = s.pernyataan;
+        if (!rows.length && Array.isArray(s.statements)) rows = s.statements;
+        if (!rows.length && Array.isArray(s.opsi)) rows = s.opsi;
+        let cols = Array.isArray(s.cols) && s.cols.length ? s.cols : (s.opsiKolom || ['Benar', 'Salah']);
+        cols = cols.map(c => (typeof c === 'string' ? c : (c.value || c.label || String(c))));
+        const kunciArr = Array.isArray(s.kunciJawaban) ? s.kunciJawaban : [];
+
+        if (!rows.length) {
+          addPara('(Tidak ada pernyataan / pilihan kategori pada soal ini)', 8, 'italic', { color: 120, afterGap: 2 });
+        } else {
+          addPara('Pilihan (Benar / Salah tiap pernyataan):', 8.5, 'bold', { afterGap: 1.5 });
+          if (spaceLeft() < 16) newPage();
+          rows.forEach((row, ri) => {
+            const rowText = typeof row === 'string' ? row : (row.text || row.label || String(row));
+            const label = (ri + 1) + ') ' + htmlToPdfText(rowText).replace(/\n+/g, ' ');
+            addPara(label, 9, 'normal', { afterGap: 0.8 });
+            // kotak pilihan teks (cetak)
+            const pilihan = cols.map(c => '[ ] ' + String(c)).join('    ');
+            addPara('    ' + pilihan, 8.5, 'normal', { afterGap: 1.5 });
+          });
+          if (kunciArr.length) {
+            kunciTxt = rows.map((_, ri) => {
+              const k = kunciArr[ri] != null ? String(kunciArr[ri]) : '?';
+              return (ri + 1) + '=' + k;
+            }).join('; ');
+          }
+        }
+      } else {
+        // pg & pgk: opsi A–D (atau lebih)
+        let opsiList = Array.isArray(s.opsi) ? s.opsi.slice() : [];
+        // normalisasi objek → string
+        opsiList = opsiList.map(o => {
+          if (o == null) return '';
+          if (typeof o === 'string') return o;
+          return o.text || o.label || o.value || String(o);
+        }).filter(o => String(o).trim());
+
+        if (!opsiList.length) {
+          addPara('(Tidak ada pilihan jawaban pada data soal)', 8, 'italic', { color: 120, afterGap: 2 });
+        } else {
+          if (tipeSoal === 'pgk') {
+            addPara('Pilihan (lebih dari satu dapat benar):', 8.5, 'bold', { afterGap: 1.2 });
+          } else {
+            addPara('Pilihan jawaban:', 8.5, 'bold', { afterGap: 1.2 });
+          }
+          if (opsiList.length && spaceLeft() < 14) newPage();
+          opsiList.forEach((o, oi) => {
+            const letter = String.fromCharCode(65 + oi);
+            const mark = tipeSoal === 'pgk' ? '[ ] ' : '';
+            addPara(mark + letter + '. ' + htmlToPdfText(o).replace(/\n+/g, ' '), 9, 'normal', { afterGap: 1.2 });
+          });
+        }
+
+        if (Array.isArray(s.kunciJawaban)) {
+          kunciTxt = s.kunciJawaban.map(k => htmlToPdfText(String(k))).join('; ');
+        } else if (s.kunciJawaban != null) {
+          kunciTxt = htmlToPdfText(String(s.kunciJawaban));
+        }
+      }
+
       if (kunciTxt) {
         addPara('Kunci: ' + kunciTxt, 8, 'italic', { color: 60, afterGap: 2 });
       }
