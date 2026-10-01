@@ -2,6 +2,10 @@
  * Generator laporan PDF hasil try out / latihan.
  * Dipakai dari guru/rekap-tryout.html.
  * Bergantung pada window.jspdf (jsPDF UMD) + plugin autotable.
+ *
+ * Data attempt minimal: namaSiswa, kelasSiswa, packageNama, subjectId,
+ * skorAkhir, skorMaksimal, skorPerTipeMateri, skorPerKompleksitas, status.
+ * Versi v0.13+ menyimpan juga poinBenar, poinMaks, noSoal per kategori.
  */
 
 const LABEL_KOMPLEKSITAS = {
@@ -11,8 +15,6 @@ const LABEL_KOMPLEKSITAS = {
 };
 
 const ORDER_KOMPLEKSITAS = ['L1-Pemahaman', 'L2-Aplikasi', 'L3-Penalaran'];
-const ORDER_CAPAIAN_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
-const ORDER_CAPAIAN_MTK = ['Bilangan', 'Aljabar', 'Pengukuran', 'Geometri', 'Analisis Data dan Probabilitas', 'Data dan Ketidakpastian'];
 
 const SUBJECT_LABEL = {
   'matematika': 'Matematika',
@@ -25,6 +27,7 @@ function pct(n, d) {
 }
 
 function normalizeBucket(raw) {
+  // dukung format lama {benar,total} dan baru {benar,total,poinBenar,poinMaks,noSoal}
   const out = {};
   for (const [k, v] of Object.entries(raw || {})) {
     out[k] = {
@@ -46,6 +49,7 @@ function orderedEntries(map, preferredOrder) {
 }
 
 function drawBarChart(doc, x, y, width, height, items, title) {
+  // items: [{ label, value 0-100, color }]
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(18, 41, 107);
@@ -85,9 +89,9 @@ function drawBarChart(doc, x, y, width, height, items, title) {
 }
 
 /**
- * @param {object} attempt
+ * @param {object} attempt — dokumen attempts (+ id opsional)
  * @param {object} [opts]
- * @param {number} [opts.kkm=70]
+ * @param {number} [opts.kkm=70] — batas ketuntasan (%)
  */
 export function buatLaporanPdf(attempt, opts = {}) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -109,6 +113,7 @@ export function buatLaporanPdf(attempt, opts = {}) {
   const mapel = SUBJECT_LABEL[attempt.subjectId] || attempt.subjectId || '—';
   const jenis = (attempt.jenisPaket === 'tryout') ? 'Try Out' : 'Latihan';
 
+  // ── Header ──
   doc.setFillColor(18, 41, 107);
   doc.rect(0, 0, pageW, 28, 'F');
   doc.setTextColor(255, 255, 255);
@@ -129,6 +134,7 @@ export function buatLaporanPdf(attempt, opts = {}) {
 
   y = 36;
 
+  // ── Identitas ──
   doc.setTextColor(18, 41, 107);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -168,6 +174,7 @@ export function buatLaporanPdf(attempt, opts = {}) {
   });
   y += 28;
 
+  // ── Skor besar ──
   doc.setFillColor(tuntas ? 222 : 254, tuntas ? 247 : 226, tuntas ? 236 : 226);
   doc.roundedRect(margin, y, contentW, 18, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
@@ -175,15 +182,16 @@ export function buatLaporanPdf(attempt, opts = {}) {
   doc.setTextColor(tuntas ? 5 : 185, tuntas ? 122 : 28, tuntas ? 85 : 28);
   doc.text(tuntas ? 'Sudah mencapai ketuntasan' : 'Belum mencapai ketuntasan — perlu remedial', margin + 4, y + 7);
   doc.setFontSize(14);
-  doc.text(String(persen), pageW - margin - 28, y + 8, { align: 'right' });
+  doc.text(`${persen}`, pageW - margin - 28, y + 8, { align: 'right' });
   doc.setFontSize(8);
-  doc.text('/ 100', pageW - margin - 4, y + 8, { align: 'right' });
+  doc.text(`/ 100`, pageW - margin - 4, y + 8, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(55, 65, 81);
   doc.text(`Skor mentah: ${skorAkhir} / ${skorMaks}  ·  KKM ${kkm}%  ·  Status: ${attempt.status === 'waktu_habis' ? 'Waktu habis' : 'Selesai'}`, margin + 4, y + 14);
   y += 24;
 
+  // ── A. Kompleksitas (PISA-like) ──
   const perKomp = normalizeBucket(attempt.skorPerKompleksitas);
   const kompRows = orderedEntries(perKomp, ORDER_KOMPLEKSITAS);
 
@@ -200,15 +208,26 @@ export function buatLaporanPdf(attempt, opts = {}) {
     const persenKat = v.poinMaks > 0 ? pct(v.poinBenar, v.poinMaks)
       : (v.total > 0 ? pct(v.benar, v.total) : 0);
     const no = v.noSoal.length ? v.noSoal.join(', ') : '—';
-    return [String(idx + 1), label, no, String(v.total), String(v.benar), String(v.total - v.benar), `${pBenar} / ${pMaks}`, persenKat + '%'];
+    return [
+      String(idx + 1),
+      label,
+      no,
+      String(v.total),
+      String(v.benar),
+      String(v.total - v.benar),
+      `${pBenar} / ${pMaks}`,
+      persenKat + '%',
+    ];
   });
 
   doc.autoTable({
     startY: y,
     margin: { left: margin, right: margin },
     head: [['No', 'Tingkat', 'No. Soal', 'Jml', 'Benar', 'Salah', 'Poin', '%']],
-    body: tableKomp.length ? tableKomp : [['—', 'Tidak ada data', '—', '—', '—', '—', '—', '—']],
-    styles: { fontSize: 7.5, cellPadding: 1.6, textColor: [31, 42, 55] },
+    body: tableKomp,
+    showHead: 'everyPage',
+    rowPageBreak: 'avoid',
+    styles: { fontSize: 7.5, cellPadding: { top: 1.5, right: 1.2, bottom: 1.5, left: 1.2 }, textColor: [31, 42, 55], overflow: 'linebreak', valign: 'middle', lineColor: [203, 213, 225], lineWidth: 0.15 },
     headStyles: { fillColor: [18, 41, 107], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
@@ -232,13 +251,11 @@ export function buatLaporanPdf(attempt, opts = {}) {
   y = drawBarChart(doc, margin, y, contentW, 40, chartKomp, 'Diagram capaian per kompleksitas');
   y += 4;
 
+  // ── B. Tipe materi (capaian) ──
   if (y > 230) { doc.addPage(); y = 16; }
 
   const perTipe = normalizeBucket(attempt.skorPerTipeMateri);
-  const preferTipe = (attempt.subjectId === 'bahasa-indonesia')
-    ? ORDER_CAPAIAN_BI
-    : (attempt.subjectId === 'matematika' ? ORDER_CAPAIAN_MTK : []);
-  const tipeRows = orderedEntries(perTipe, preferTipe);
+  const tipeRows = orderedEntries(perTipe, []);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -252,7 +269,16 @@ export function buatLaporanPdf(attempt, opts = {}) {
     const pBenar = v.poinBenar != null ? v.poinBenar : '—';
     const pMaks = v.poinMaks != null ? v.poinMaks : '—';
     const no = v.noSoal.length ? v.noSoal.join(', ') : '—';
-    return [String(idx + 1), k, no, String(v.total), String(v.benar), String(v.total - v.benar), `${pBenar} / ${pMaks}`, persenKat + '%'];
+    return [
+      String(idx + 1),
+      k,
+      no,
+      String(v.total),
+      String(v.benar),
+      String(v.total - v.benar),
+      `${pBenar} / ${pMaks}`,
+      persenKat + '%',
+    ];
   });
 
   doc.autoTable({
@@ -260,7 +286,9 @@ export function buatLaporanPdf(attempt, opts = {}) {
     margin: { left: margin, right: margin },
     head: [['No', 'Capaian / Tipe Materi', 'No. Soal', 'Jml', 'Benar', 'Salah', 'Poin', '%']],
     body: tableTipe.length ? tableTipe : [['—', 'Tidak ada data kategori', '—', '—', '—', '—', '—', '—']],
-    styles: { fontSize: 7.5, cellPadding: 1.6, textColor: [31, 42, 55] },
+    showHead: 'everyPage',
+    rowPageBreak: 'avoid',
+    styles: { fontSize: 7.5, cellPadding: { top: 1.5, right: 1.2, bottom: 1.5, left: 1.2 }, textColor: [31, 42, 55], overflow: 'linebreak', valign: 'middle', lineColor: [203, 213, 225], lineWidth: 0.15 },
     headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
@@ -287,6 +315,7 @@ export function buatLaporanPdf(attempt, opts = {}) {
     y += 4;
   }
 
+  // ── Kesimpulan ──
   if (y > 255) { doc.addPage(); y = 16; }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -306,6 +335,7 @@ export function buatLaporanPdf(attempt, opts = {}) {
   const lines = doc.splitTextToSize(kesimpulan, contentW - 8);
   doc.text(lines, margin + 4, y + 6);
 
+  // Footer
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
