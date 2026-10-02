@@ -229,13 +229,49 @@
   .opsi-row:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
   .opsi-row input { margin-top: 3px; width: 17px; height: 17px; }
   .opsi-text { font-size: 0.88rem; font-weight: 700; }
-  table.cat-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 8px; }
-  table.cat-table td.cat-row-text { text-align: left; font-weight: 600; line-height: 1.45; }
-  table.cat-table label.cat-radio { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
-  table.cat-table label.cat-radio input { width: 18px; height: 18px; accent-color: var(--primary, #1a56db); }
-  table.cat-table th, table.cat-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
-  table.cat-table th { background: var(--slate-light); font-weight: 800; font-size: 0.74rem; }
-  table.cat-table td:first-child { text-align: left; font-weight: 700; }
+  table.cat-table-wrap {
+    margin-top: 10px; border: 1px solid var(--border, #e2e8f0); border-radius: 12px;
+    overflow: auto; -webkit-overflow-scrolling: touch; background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .cat-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 280px; }
+  table.cat-table th, table.cat-table td {
+    border-bottom: 1px solid var(--border, #e2e8f0); padding: 10px 12px; vertical-align: middle;
+  }
+  table.cat-table tr:last-child td { border-bottom: none; }
+  table.cat-table thead th {
+    background: #f1f5f9; font-weight: 800; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.02em; color: #334155; text-align: center; position: sticky; top: 0; z-index: 1;
+  }
+  table.cat-table thead th.cat-col-pernyataan { text-align: left; width: auto; }
+  table.cat-table thead th.cat-col-pilihan { width: 5.5rem; min-width: 5.2rem; }
+  table.cat-table td.cat-row-num {
+    width: 2rem; text-align: center; font-weight: 800; color: #64748b; font-size: 0.78rem;
+  }
+  table.cat-table td.cat-row-text {
+    text-align: left; font-weight: 600; line-height: 1.5; color: var(--text, #1f2a37);
+  }
+  table.cat-table td.cat-cell-pilihan { text-align: center; }
+  table.cat-table tbody tr:nth-child(even) { background: #f8fafc; }
+  table.cat-table tbody tr:hover { background: #eff6ff; }
+  table.cat-table label.cat-radio {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; min-width: 3.25rem; min-height: 3rem; padding: 6px 8px; border-radius: 10px;
+    font-size: 0.68rem; font-weight: 800; cursor: pointer; color: #475569;
+    border: 1.5px solid transparent; transition: background 0.15s, border-color 0.15s;
+  }
+  table.cat-table label.cat-radio:hover { background: #e0f2fe; border-color: #93c5fd; }
+  table.cat-table label.cat-radio:has(input:checked) {
+    background: #dbeafe; border-color: #3b82f6; color: #1e3a8a;
+  }
+  table.cat-table label.cat-radio input {
+    width: 20px; height: 20px; accent-color: var(--primary, #1a56db); margin: 0; cursor: pointer;
+  }
+  @media (max-width: 520px) {
+    table.cat-table thead th.cat-col-pilihan { width: 4.2rem; min-width: 4rem; font-size: 0.65rem; }
+    table.cat-table label.cat-radio { min-width: 2.75rem; padding: 4px; font-size: 0.62rem; }
+    table.cat-table td.cat-row-text { font-size: 0.8rem; }
+  }
   .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1px solid var(--border); padding: 10px 16px; z-index: 90; }
   .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .footer-nav { display: flex; gap: 8px; }
@@ -360,7 +396,7 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
   import { hashJawabanSiswa } from '../assets/scoring.js';
-  import { documentId, doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { documentId, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -904,6 +940,7 @@ function formatRichHtml(raw) {
 
   let soalList = [], jawaban = {}, currentIndex = 0, paket = null, uid = null, siswa = null;
   let waktuMulai = 0, timerInterval = null, submitted = false;
+  let liveHeartbeat = null;
   let autosaveTimer = null;
 
   function storageKey() {
@@ -923,6 +960,8 @@ function formatRichHtml(raw) {
           savedAt: Date.now(),
         }));
       } catch (_) {}
+      // Progres ke monitoring guru (throttle lewat debounce autosave)
+      pushLiveSession('mengerjakan');
     }, 400);
   }
   function loadDraft() {
@@ -1069,11 +1108,59 @@ function formatRichHtml(raw) {
       }
     };
   }
-  function startKuis() {
+  
+  function countTerjawab() {
+    if (!soalList || !soalList.length) return 0;
+    return soalList.filter(s => isAnswered(s)).length;
+  }
+
+  async function pushLiveSession(status) {
+    if (!uid || !paket || !siswa) return;
+    const sessionId = paket.id + '_' + uid;
+    const terjawab = countTerjawab();
+    const payload = {
+      studentId: uid,
+      namaSiswa: siswa.nama || '',
+      kelasSiswa: siswa.kelas || '',
+      packageId: paket.id,
+      packageNama: paket.nama || paket.id,
+      subjectId: paket.subjectId || '',
+      jenisPaket: paket.jenis || 'latihan',
+      status: status || 'mengerjakan',
+      totalSoal: soalList.length,
+      terjawab,
+      mulaiPada: waktuMulai || Date.now(),
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    try {
+      await setDoc(doc(db, 'liveSessions', sessionId), payload, { merge: true });
+    } catch (err) {
+      console.warn('liveSession', err);
+    }
+  }
+
+  function startLiveMonitor() {
+    stopLiveMonitor();
+    pushLiveSession('mengerjakan');
+    liveHeartbeat = setInterval(() => {
+      if (!submitted) pushLiveSession('mengerjakan');
+    }, 15000);
+  }
+
+  function stopLiveMonitor() {
+    if (liveHeartbeat) {
+      clearInterval(liveHeartbeat);
+      liveHeartbeat = null;
+    }
+  }
+
+function startKuis() {
     gatePage.style.display = 'none'; loading.style.display = 'none'; page.style.display = 'block';
     document.getElementById('paket-nama').textContent = paket.nama + (paket.jenis === 'tryout' ? ' (TRY OUT)' : '');
     initZoomControls();
     waktuMulai = Date.now();
+    startLiveMonitor();
     if (shouldAcakSoal() && soalList.length > 1) {
       soalList = shuffleInPlace(soalList.slice());
     }
@@ -1284,17 +1371,24 @@ function renderSoal(idx) {
       if (!rows.length) {
         body += `<div style="margin-top:8px;padding:10px;border-radius:8px;background:#fef3c7;color:#b45309;font-weight:700;font-size:0.84rem;">Soal kategori belum punya daftar pernyataan (rows). Edit di Bank Soal.</div>`;
       } else {
-        body += `<table class="cat-table"><thead><tr><th>Pernyataan</th>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>`;
+        body += `<div class="cat-table-wrap"><table class="cat-table" role="table" aria-label="Pilihan benar salah per pernyataan"><thead><tr>`;
+        body += `<th class="cat-col-num" scope="col" style="width:2.25rem">No</th>`;
+        body += `<th class="cat-col-pernyataan" scope="col">Pernyataan</th>`;
+        body += cols.map(c => `<th class="cat-col-pilihan" scope="col">${escapeHtml(c)}</th>`).join('');
+        body += `</tr></thead><tbody>`;
         rows.forEach((row, ri) => {
           const rowText = typeof row === 'string' ? row : (row.text || row.label || String(row));
-          body += `<tr><td class="cat-row-text">${formatRichHtml(rowText)}</td>`;
+          body += `<tr>`;
+          body += `<td class="cat-row-num">${ri + 1}</td>`;
+          body += `<td class="cat-row-text">${formatRichHtml(rowText)}</td>`;
           cols.forEach(val => {
             const checked = current[ri] === val ? 'checked' : '';
-            body += `<td><label class="cat-radio"><input type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${checked}><span>${escapeHtml(val)}</span></label></td>`;
+            const id = `q_${qid}_${ri}_${escapeHtml(val).replace(/\s+/g, '_')}`;
+            body += `<td class="cat-cell-pilihan"><label class="cat-radio" for="${id}"><input id="${id}" type="radio" name="q_${qid}_${ri}" value="${escapeHtml(val)}" ${checked}><span>${escapeHtml(val)}</span></label></td>`;
           });
           body += `</tr>`;
         });
-        body += `</tbody></table>`;
+        body += `</tbody></table></div>`;
       }
     }
     card.innerHTML = body;
@@ -1342,6 +1436,8 @@ function renderSoal(idx) {
   async function submitKuis(statusOverride) {
     if (submitted) return;
     submitted = true;
+    stopLiveMonitor();
+    pushLiveSession('selesai');
     if (timerInterval) clearInterval(timerInterval);
     const btn = document.getElementById('btn-submit');
     const terjawab = soalList.filter(isAnswered).length;

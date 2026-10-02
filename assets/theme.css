@@ -29,8 +29,6 @@
   --shadow-sm: 0 1px 2px rgba(15,23,42,.05);
   --header-h: 60px;
   --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --sidebar-w: 248px;
-  --topbar-h: 52px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -298,7 +296,7 @@ table.data tr:last-child td { border-bottom: none; }
   .tile-grid { grid-template-columns: 1fr; }
 }
 
-/* LMS / Kuis shell */
+/* —— LMS / Kuis shell —— */
 .lms-header {
   position: sticky; top: 0; z-index: 100;
   height: 56px; padding: 0 1rem;
@@ -496,12 +494,22 @@ table.data tr:last-child td { border-bottom: none; }
   border-radius: var(--radius-xs); padding: .55rem .9rem; font: 700 .8rem var(--font); cursor: pointer;
 }
 
-/* ═══ GURU LAYOUT — Sidebar shell ═══ */
+
+/* ═══════════════════════════════════════════════════
+   GURU LAYOUT — Sidebar shell
+   ═══════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 248px;
+  --topbar-h: 52px;
+}
+
 .guru-layout {
   display: flex;
   min-height: 100vh;
   background: var(--bg);
 }
+
+/* ── Sidebar ── */
 .guru-sidebar {
   position: fixed;
   top: 0; left: 0; bottom: 0;
@@ -514,6 +522,7 @@ table.data tr:last-child td { border-bottom: none; }
   border-right: 1px solid rgba(255,255,255,.06);
   transition: transform .22s ease;
 }
+
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -535,6 +544,7 @@ table.data tr:last-child td { border-bottom: none; }
 .sidebar-brand .brand-sub {
   font-size: .68rem; color: #94a3b8; font-weight: 500;
 }
+
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
@@ -566,6 +576,7 @@ table.data tr:last-child td { border-bottom: none; }
   box-shadow: inset 3px 0 0 var(--brand-2);
 }
 .sidebar-icon { font-size: 1.05rem; width: 1.35rem; text-align: center; flex-shrink: 0; }
+
 .sidebar-footer {
   padding: .9rem 1rem 1.15rem;
   border-top: 1px solid rgba(255,255,255,.06);
@@ -587,6 +598,8 @@ table.data tr:last-child td { border-bottom: none; }
   transition: background .15s;
 }
 .btn-logout:hover { background: rgba(255,255,255,.12); }
+
+/* ── Main column ── */
 .guru-main {
   flex: 1;
   margin-left: var(--sidebar-w);
@@ -595,6 +608,7 @@ table.data tr:last-child td { border-bottom: none; }
   flex-direction: column;
   min-height: 100vh;
 }
+
 .guru-topbar {
   position: sticky; top: 0; z-index: 40;
   height: var(--topbar-h);
@@ -614,6 +628,7 @@ table.data tr:last-child td { border-bottom: none; }
 .topbar-title {
   font-size: .95rem; font-weight: 750; letter-spacing: -.02em; color: var(--text);
 }
+
 .guru-content {
   flex: 1;
   padding: 1.5rem 1.35rem 2.5rem;
@@ -621,25 +636,43 @@ table.data tr:last-child td { border-bottom: none; }
   width: 100%;
   margin: 0 auto;
 }
+
+/* When page uses .container inside, reduce double padding */
 .guru-content > .container {
   padding: 0;
   max-width: none;
   width: 100%;
   margin: 0;
 }
+
+/* Backdrop for mobile */
 .sidebar-backdrop {
   display: none;
   position: fixed; inset: 0; z-index: 55;
   background: rgba(15,23,42,.4);
 }
 .sidebar-backdrop.show { display: block; }
+
+/* ── Mobile ── */
 @media (max-width: 900px) {
-  .guru-sidebar { transform: translateX(-100%); }
-  .guru-sidebar.open { transform: translateX(0); }
-  .guru-main { margin-left: 0; }
-  .btn-menu { display: inline-flex; }
-  .guru-content { padding: 1.15rem 1rem 2rem; }
+  .guru-sidebar {
+    transform: translateX(-100%);
+  }
+  .guru-sidebar.open {
+    transform: translateX(0);
+  }
+  .guru-main {
+    margin-left: 0;
+  }
+  .btn-menu {
+    display: inline-flex;
+  }
+  .guru-content {
+    padding: 1.15rem 1rem 2rem;
+  }
 }
+
+/* Hide old page headers when shell is active */
 .guru-page-ready > header.header,
 .guru-page-ready > header.app-header {
   display: none !important;

@@ -6,10 +6,13 @@
 <title>Rekap Try Out – Portal Latihan TKA 2026</title>
 <link rel="stylesheet" href="../assets/theme.css">
 <style>
-  .container { max-width: 1100px; margin: 0 auto; padding: 0 0 40px; }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 16px 56px; }
+  body { background: var(--bg, #f1f5f9); }
+  .page-header { margin: 8px 0 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+  .page-kicker { font-size: 0.7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brand-2, #2563eb); margin-bottom: 4px; }
   .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.02em; }
   .page-subtitle { color: var(--text-2); font-weight: 500; font-size: 0.88rem; margin-bottom: 1.25rem; }
-  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line); }
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.15rem 1.3rem; margin-bottom: 0.9rem; border: 1px solid var(--line); }
   .card h3 { font-size: 0.95rem; font-weight: 750; color: var(--text); margin-bottom: 0.75rem; letter-spacing: -.02em; }
   .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .filters select, .filters input {
@@ -20,7 +23,7 @@
   .filters input { min-width: 160px; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.65rem; margin-bottom: 1rem; }
   .stat-box {
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid var(--line); border-radius: 12px;
     padding: 0.9rem 1rem; text-align: center;
   }
   .stat-box .n { font-size: 1.4rem; font-weight: 800; color: var(--brand); letter-spacing: -.02em; }
@@ -121,8 +124,11 @@
 
 <div id="page" style="display:none;">
   <main class="container">
-    <div class="page-title">📊 Rekap Try Out & Latihan</div>
-    <div class="page-subtitle">Filter, grafik capaian, bandingkan antar paket, cetak PDF, dan reset attempt.</div>
+    <div class="page-header">
+      <div class="page-kicker">Portal Guru · Laporan</div>
+      <h1 class="page-title">Rekap Try Out &amp; Latihan</h1>
+      <p class="page-subtitle">Filter per kelas dan paket, grafik capaian, bandingkan paket, cetak PDF, serta kelola attempt.</p>
+    </div>
 
     <div class="tabs">
       <button type="button" class="tab-btn active" data-tab="rekap">Rekap</button>
@@ -466,7 +472,8 @@
   }
 
   function populateFilterOptions() {
-    const kelasSet = [...new Set(allAttempts.map(a => a.kelasSiswa).filter(Boolean))].sort();
+    const fromData = allAttempts.map(a => normalizeKelas(a.kelasSiswa || a.kelas)).filter(Boolean);
+    const kelasSet = [...new Set(['6A', '6B', ...fromData])].sort((a, b) => a.localeCompare(b, 'id'));
     const paketFromData = new Map(allAttempts.map(a => [a.packageId, a.packageNama || a.packageId]));
     packageMeta.forEach((p, id) => {
       if (!paketFromData.has(id)) paketFromData.set(id, p.nama);
@@ -505,6 +512,12 @@
     if (vb) b.value = vb;
   }
 
+  function normalizeKelas(k) {
+    const s = String(k ?? '').trim().toUpperCase().replace(/\s+/g, '');
+    const m = s.match(/6[AB]/);
+    return m ? m[0] : s;
+  }
+
   function filtered() {
     const jenis = document.getElementById('filter-jenis').value;
     const mapel = document.getElementById('filter-mapel').value;
@@ -515,7 +528,7 @@
       const j = a.jenisPaket || 'latihan';
       if (jenis && j !== jenis) return false;
       if (mapel && a.subjectId !== mapel) return false;
-      if (kelas && a.kelasSiswa !== kelas) return false;
+      if (kelas && normalizeKelas(a.kelasSiswa || a.kelas) !== normalizeKelas(kelas)) return false;
       if (paket && a.packageId !== paket) return false;
       if (cari && !(a.namaSiswa || '').toLowerCase().includes(cari)) return false;
       return true;
@@ -637,7 +650,7 @@
       const tSelesai = parseDate(a.waktuSelesai) || parseDate(a.createdAt);
       const durasi = a.durasiDetik != null ? Math.floor(a.durasiDetik / 60) + ' mnt' : '';
       return '<tr>' +
-        '<td><div class="nama">' + escapeHtml(a.namaSiswa || '—') + '</div><div class="meta">' + escapeHtml(a.kelasSiswa || '—') + '</div></td>' +
+        '<td><div class="nama">' + escapeHtml(a.namaSiswa || '—') + '</div><div class="meta">' + escapeHtml(normalizeKelas(a.kelasSiswa || a.kelas) || '—') + '</div></td>' +
         '<td><div>' + escapeHtml(a.packageNama || a.packageId || '—') + '</div><div class="meta">' +
         '<span class="badge ' + (j === 'tryout' ? 'badge-tryout' : 'badge-latihan') + '">' + (j === 'tryout' ? 'TRY OUT' : 'Latihan') + '</span>' +
         (a.subjectId ? ' · ' + escapeHtml(a.subjectId) : '') + '</div></td>' +
@@ -678,7 +691,7 @@
   function attemptsForPackage(packageId, kelas) {
     return allAttempts.filter(a => {
       if (a.packageId !== packageId) return false;
-      if (kelas && a.kelasSiswa !== kelas) return false;
+      if (kelas && normalizeKelas(a.kelasSiswa || a.kelas) !== normalizeKelas(kelas)) return false;
       return true;
     });
   }

@@ -6,87 +6,229 @@
 <title>Rekap Nilai per Kelas – Portal Latihan TKA 2026</title>
 <link rel="stylesheet" href="../assets/theme.css">
 <style>
-  .container { max-width: 1100px; margin: 0 auto; padding: 0 0 48px; }
-  .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.02em; }
-  .page-subtitle { color: var(--text-2); font-weight: 500; font-size: 0.88rem; margin-bottom: 1.25rem; }
-  .card {
-    background: var(--surface, #fff); border-radius: var(--radius, 14px);
-    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
-    padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line, #e2e8f0);
+  :root {
+    --rk-brand: var(--brand, #1e3a8a);
+    --rk-brand-2: var(--brand-2, #2563eb);
   }
-  .card h3 { font-size: 0.95rem; font-weight: 750; margin-bottom: 0.75rem; }
-  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-  .filters select, .filters button {
-    font-family: var(--font, inherit); font-size: 0.82rem; font-weight: 600;
-    padding: 0.55rem 0.75rem; border-radius: 8px;
-    border: 1px solid var(--line-strong, #cbd5e1); background: #fff; color: var(--text);
+  body { background: var(--bg, #f1f5f9); }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 16px 56px; }
+  .page-header {
+    margin: 8px 0 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+  }
+  .page-kicker {
+    font-size: 0.7rem; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--rk-brand-2); margin-bottom: 4px;
+  }
+  .page-title {
+    font-size: 1.4rem; font-weight: 800; color: var(--brand-ink, #0f172a);
+    margin: 0 0 4px; letter-spacing: -.025em; line-height: 1.25;
+  }
+  .page-subtitle {
+    color: var(--text-2, #475569); font-weight: 500; font-size: 0.88rem;
+    margin: 0; line-height: 1.5; max-width: 42rem;
+  }
+  .card {
+    background: var(--surface, #fff);
+    border-radius: var(--radius, 16px);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,.05));
+    padding: 1.15rem 1.3rem;
+    margin-bottom: 0.9rem;
+    border: 1px solid var(--line, #e2e8f0);
+  }
+  .card h3 {
+    font-size: 0.95rem; font-weight: 800; margin: 0 0 0.85rem;
+    color: var(--brand-ink, #0f172a); letter-spacing: -.02em;
+  }
+  .card h4 {
+    font-size: 0.82rem; font-weight: 800; margin: 0 0 0.55rem;
+    color: var(--text, #0f172a);
+  }
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+  }
+  .filters select, .filters button, .filters input {
+    font-family: inherit; font-size: 0.82rem; font-weight: 600;
+    padding: 0.58rem 0.85rem; border-radius: 10px;
+    border: 1px solid var(--line-strong, #cbd5e1);
+    background: #fff; color: var(--text, #0f172a);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .filters select:focus, .filters input:focus {
+    outline: none; border-color: var(--rk-brand-2);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
   .filters button.btn-primary {
-    background: var(--brand, #1a56db); color: #fff; border-color: var(--brand, #1a56db);
-    cursor: pointer; font-weight: 800;
+    background: linear-gradient(135deg, var(--rk-brand-2), var(--rk-brand));
+    color: #fff; border-color: transparent; cursor: pointer; font-weight: 800;
+    box-shadow: 0 1px 2px rgba(30, 58, 138, 0.25);
   }
-  .filters button.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .filters button.btn-primary:hover { filter: brightness(1.05); }
+  .filters button.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
   .filters button.btn-secondary {
-    background: #f1f5f9; cursor: pointer; font-weight: 750;
+    background: #f8fafc; cursor: pointer; font-weight: 750; color: var(--text);
   }
-  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+  .filters button.btn-secondary:hover { background: #f1f5f9; }
+  .hint {
+    font-size: 0.78rem; color: var(--text-2, #64748b); font-weight: 600;
+    margin: 10px 0 0; line-height: 1.45;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
   .stat-box {
-    flex: 1 1 120px; background: #f8fafc; border: 1px solid var(--line, #e2e8f0);
-    border-radius: 10px; padding: 10px 12px;
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 12px; padding: 12px 14px;
+    position: relative; overflow: hidden;
   }
-  .stat-box .num { font-size: 1.25rem; font-weight: 800; color: var(--brand-ink, #0f172a); }
-  .stat-box .label { font-size: 0.68rem; font-weight: 700; color: var(--text-2, #64748b); text-transform: uppercase; }
+  .stat-box::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--rk-brand-2); border-radius: 3px 0 0 3px; opacity: .85;
+  }
+  .stat-box .num {
+    font-size: 1.4rem; font-weight: 800; color: var(--brand-ink, #0f172a);
+    letter-spacing: -.03em; line-height: 1.2;
+  }
+  .stat-box .label {
+    font-size: 0.65rem; font-weight: 700; color: var(--text-3, #94a3b8);
+    text-transform: uppercase; letter-spacing: .04em; margin-top: 2px;
+  }
+
+  /* Tabs */
+  .tabs-bar {
+    display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; padding: 5px;
+    background: #e2e8f0; border-radius: 14px;
+  }
+  .tabs-bar button {
+    flex: 1 1 auto; min-width: 130px; border: none; cursor: pointer;
+    font-family: inherit; font-size: 0.8rem; font-weight: 800;
+    padding: 11px 14px; border-radius: 11px;
+    background: transparent; color: #64748b;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .tabs-bar button:hover { color: #0f172a; }
+  .tabs-bar button.active {
+    background: #fff; color: var(--rk-brand);
+    box-shadow: 0 1px 3px rgba(15,23,42,0.1);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Tables */
+  .table-wrap {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-radius: 12px; border: 1px solid var(--line, #e2e8f0);
+  }
   table.rekap {
-    width: 100%; border-collapse: collapse; font-size: 0.8rem;
+    width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0;
   }
   table.rekap th, table.rekap td {
-    border: 1px solid var(--line, #e2e8f0); padding: 8px 10px; text-align: left;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    border-right: none; border-left: none; border-top: none;
+    padding: 10px 12px; text-align: left; vertical-align: middle;
   }
   table.rekap th {
-    background: #f1f5f9; font-weight: 800; font-size: 0.72rem;
-    text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
+    background: #f1f5f9; font-weight: 800; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: .04em; color: #475569;
+    white-space: nowrap; position: sticky; top: 0; z-index: 1;
   }
-  table.rekap td.num, table.rekap th.num { text-align: center; }
-  table.rekap tr:nth-child(even) td { background: #fafbfc; }
-  table.rekap .nama { font-weight: 750; }
+  table.rekap td.num, table.rekap th.num { text-align: center; font-variant-numeric: tabular-nums; }
+  table.rekap tbody tr:last-child td { border-bottom: none; }
+  table.rekap tbody tr:nth-child(even) td { background: #f8fafc; }
+  table.rekap tbody tr:hover td { background: #eff6ff; }
+  table.rekap .nama { font-weight: 750; color: var(--brand-ink, #0f172a); }
   table.rekap .miss { color: #b45309; font-weight: 700; font-style: italic; }
   table.rekap .rank-top { color: #047857; font-weight: 800; }
-  .hint { font-size: 0.78rem; color: var(--text-2, #64748b); font-weight: 600; margin-top: 8px; }
-  .ttd-preview {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-    margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line, #e2e8f0);
-  }
-  @media (max-width: 700px) { .ttd-preview { grid-template-columns: 1fr; } }
-  .ttd-box { text-align: center; font-size: 0.82rem; line-height: 1.45; }
-  .ttd-box .role { font-weight: 800; margin-bottom: 48px; }
-  .ttd-box .name { font-weight: 800; text-decoration: underline; }
-  .ttd-box .nbm { font-size: 0.75rem; font-weight: 600; color: var(--text-2, #64748b); }
-  .loading-screen {
-    min-height: 60vh; display: flex; align-items: center; justify-content: center;
-    font-weight: 700; color: var(--text-2, #64748b);
-  }
-  .table-wrap { overflow-x: auto; }
 
+  /* Analisa */
   .analisa-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
   }
-  @media (max-width: 800px) { .analisa-grid { grid-template-columns: 1fr; } }
-  .analisa-block h4 {
-    font-size: 0.8rem; font-weight: 800; margin-bottom: 8px; color: var(--brand-ink, #0f172a);
+  @media (max-width: 800px) {
+    .analisa-grid { grid-template-columns: 1fr; }
   }
-  table.stat-tbl { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .analisa-block {
+    background: #f8fafc; border: 1px solid var(--line, #e2e8f0);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .chart-box {
+    position: relative; height: 220px; background: #fff;
+    border-radius: 10px; border: 1px solid #e2e8f0; padding: 8px;
+  }
+  table.stat-tbl {
+    width: 100%; border-collapse: collapse; font-size: 0.78rem;
+  }
   table.stat-tbl th, table.stat-tbl td {
-    border: 1px solid var(--line, #e2e8f0); padding: 6px 8px;
+    padding: 7px 8px; border-bottom: 1px solid #e2e8f0; text-align: left;
   }
-  table.stat-tbl th { background: #f1f5f9; font-weight: 800; font-size: 0.7rem; text-align: left; }
-  table.stat-tbl td.num { text-align: center; font-weight: 700; }
-  .chart-box { position: relative; height: 220px; }
+  table.stat-tbl th { font-weight: 700; color: #475569; width: 40%; }
+  table.stat-tbl td.num { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
   .insight {
     margin-top: 10px; padding: 10px 12px; border-radius: 10px;
     background: #eff6ff; border: 1px solid #bfdbfe;
-    font-size: 0.8rem; font-weight: 600; line-height: 1.5; color: #1e3a5f;
+    font-size: 0.8rem; font-weight: 600; line-height: 1.5; color: #1e3a8a;
   }
-  .insight strong { font-weight: 800; }
+
+  /* Capaian */
+  .capaian-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 800px) {
+    .capaian-grid { grid-template-columns: 1fr; }
+  }
+  .capaian-grid h4 {
+    margin: 0 0 10px; font-size: 0.88rem; font-weight: 800;
+    padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;
+  }
+  table.capaian {
+    width: 100%; border-collapse: collapse; font-size: 0.8rem;
+  }
+  table.capaian th, table.capaian td {
+    border-bottom: 1px solid #e2e8f0; padding: 9px 10px; text-align: left;
+  }
+  table.capaian th {
+    background: #f8fafc; font-size: 0.68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .03em; color: #64748b;
+  }
+  table.capaian td.num {
+    text-align: right; font-variant-numeric: tabular-nums; font-weight: 700;
+  }
+  .capaian-bar {
+    height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 2px;
+  }
+  .capaian-bar > span {
+    display: block; height: 100%; border-radius: 99px; min-width: 2px;
+  }
+
+  /* TTD */
+  .ttd-preview {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    margin-top: 32px; padding-top: 20px; border-top: 1px dashed var(--line-strong, #cbd5e1);
+  }
+  @media (max-width: 700px) { .ttd-preview { grid-template-columns: 1fr; } }
+  .ttd-box { text-align: center; font-size: 0.82rem; line-height: 1.45; color: var(--text); }
+  .ttd-box .role { font-weight: 800; margin-bottom: 52px; color: #334155; }
+  .ttd-box .name { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .ttd-box .nbm { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-top: 2px; }
+
+  .loading-screen {
+    min-height: 50vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-weight: 700; color: #64748b; gap: 8px;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
@@ -97,15 +239,19 @@
 <div id="not-configured" class="loading-screen" style="display:none;">Firebase belum dikonfigurasi.</div>
 <div id="page" style="display:none;">
   <div class="container">
-    <h1 class="page-title">Rekap Nilai per Kelas</h1>
-    <p class="page-subtitle">Try out per kelas — peringkat terbaik, Matematika, dan Bahasa Indonesia. Siswa yang tidak mengikuti ditandai.</p>
+    <div class="page-header">
+      <div class="page-kicker">Portal Guru · Analisis</div>
+      <h1 class="page-title">Rekap Nilai per Kelas</h1>
+      <p class="page-subtitle">Peringkat, ketuntasan, statistik regresi, dan capaian materi try out — per kelas atau gabungan 6A+6B.</p>
+    </div>
 
     <div class="card">
-      <h3>Filter</h3>
+      <h3>Filter &amp; unduhan</h3>
       <div class="filters">
         <select id="filter-kelas">
           <option value="6A">Kelas 6A</option>
           <option value="6B">Kelas 6B</option>
+          <option value="__gabungan__">Semua kelas (peringkat gabungan)</option>
         </select>
         <select id="filter-jenis">
           <option value="tryout">Try Out</option>
@@ -127,6 +273,52 @@
       </div>
     </div>
 
+    <div class="tabs-bar" role="tablist">
+      <button type="button" class="active" data-tab="peringkat" role="tab">Peringkat &amp; ketuntasan</button>
+      <button type="button" data-tab="statistik" role="tab">Statistik &amp; regresi</button>
+      <button type="button" data-tab="capaian" role="tab">Capaian materi</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-peringkat">
+    <div class="card">
+      <h3 id="judul-tabel">Tabel rekap</h3>
+      <div class="table-wrap">
+        <table class="rekap" id="tabel-rekap">
+          <thead>
+            <tr>
+              <th class="num">No</th>
+              <th>Nama Siswa</th>
+              <th>Kelas</th>
+              <th class="num">Nilai MTK</th>
+              <th class="num">Nilai BI</th>
+              <th class="num">Rata-rata</th>
+              <th class="num">Peringkat Terbaik</th>
+              <th class="num">Peringkat MTK</th>
+              <th class="num">Peringkat BI</th>
+              <th>Ketuntasan</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="10" style="text-align:center;padding:18px;color:#64748b;">Belum ada data. Klik Muat Data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ttd-preview" id="ttd-preview" style="display:none;">
+        <div class="ttd-box" id="ttd-guru">
+          <div class="role">Guru Kelas</div>
+          <div class="name">—</div>
+          <div class="nbm">—</div>
+        </div>
+        <div class="ttd-box">
+          <div class="role">Kepala Sekolah</div>
+          <div class="name">Mudzakkir Walad, S.Pd.</div>
+          <div class="nbm">NBM. 1167327</div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-peringkat -->
+
+    <div class="tab-panel" id="tab-statistik">
     <div class="card" id="card-analisa" style="display:none;">
       <h3>Analisis statistik nilai</h3>
       <div class="analisa-grid">
@@ -176,43 +368,31 @@
           <div class="insight" id="insight-regresi" style="margin-top:10px;">—</div>
         </div>
       </div>
-    </div>
+    </div><!-- /card-analisa -->
+    </div><!-- /tab-statistik -->
 
-    <div class="card">
-      <h3 id="judul-tabel">Tabel rekap</h3>
-      <div class="table-wrap">
-        <table class="rekap" id="tabel-rekap">
-          <thead>
-            <tr>
-              <th class="num">No</th>
-              <th>Nama Siswa</th>
-              <th class="num">Nilai MTK</th>
-              <th class="num">Nilai BI</th>
-              <th class="num">Rata-rata</th>
-              <th class="num">Peringkat Terbaik</th>
-              <th class="num">Peringkat MTK</th>
-              <th class="num">Peringkat BI</th>
-              <th>Keterangan</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <tr><td colspan="9" style="text-align:center;padding:18px;color:#64748b;">Belum ada data. Klik Muat Data.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="ttd-preview" id="ttd-preview" style="display:none;">
-        <div class="ttd-box" id="ttd-guru">
-          <div class="role">Guru Kelas</div>
-          <div class="name">—</div>
-          <div class="nbm">—</div>
-        </div>
-        <div class="ttd-box">
-          <div class="role">Kepala Sekolah</div>
-          <div class="name">Mudzakkir Walad, S.Pd.</div>
-          <div class="nbm">NBM. 1167327</div>
+    <div class="tab-panel" id="tab-capaian">
+      <div class="card">
+        <h3>Capaian per materi</h3>
+        <p class="hint">Rata-rata ketuntasan poin dari attempt terbaik per siswa (field skorPerTipeMateri). KKM acuan 70%.</p>
+        <div class="capaian-grid">
+          <div>
+            <h4>Matematika</h4>
+            <table class="capaian">
+              <thead><tr><th>Materi</th><th class="num">Siswa</th><th class="num">Rata %</th><th>Sebaran</th></tr></thead>
+              <tbody id="tbody-capaian-mtk"><tr><td colspan="4">Muat data terlebih dahulu.</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>Bahasa Indonesia</h4>
+            <table class="capaian">
+              <thead><tr><th>Materi</th><th class="num">Siswa</th><th class="num">Rata %</th><th>Sebaran</th></tr></thead>
+              <tbody id="tbody-capaian-bi"><tr><td colspan="4">Muat data terlebih dahulu.</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </div><!-- /tab-capaian -->
   </div>
 </div>
 
@@ -266,6 +446,22 @@
 
   
   const KKM = 70;
+
+  /** Ringkas status ketuntasan TKA & per mapel (KKM 70). */
+  function ringkasKetuntasan(mtk, bi) {
+    if (mtk == null && bi == null) return 'Tidak ikut';
+    const mT = mtk != null && Number(mtk) >= KKM;
+    const bT = bi != null && Number(bi) >= KKM;
+    if (mtk != null && bi != null) {
+      if (mT && bT) return 'Tuntas TKA';
+      if (mT && !bT) return 'Tuntas MTK · Belum BI';
+      if (!mT && bT) return 'Tuntas BI · Belum MTK';
+      return 'Belum tuntas';
+    }
+    if (mtk != null) return mT ? 'Tuntas MTK · BI tidak ikut' : 'Belum MTK · BI tidak ikut';
+    return bT ? 'Tuntas BI · MTK tidak ikut' : 'Belum BI · MTK tidak ikut';
+  }
+
   let chartSebaran = null;
   let chartPartisipasi = null;
   let chartRegresi = null;
@@ -602,7 +798,9 @@ function renderAnalisa(rowList) {
   }
 
 function normalizeKelas(k) {
-    return String(k ?? '').trim().toUpperCase().replace(/\s+/g, '');
+    const s = String(k ?? '').trim().toUpperCase().replace(/\s+/g, '');
+    const m = s.match(/6[AB]/);
+    return m ? m[0] : s;
   }
 
   /** Ambil attempt terbaik per siswa per mapel (skor % tertinggi). */
@@ -648,11 +846,7 @@ function normalizeKelas(k) {
       const bi = best.get(st.id + '|bahasa-indonesia')?.persen ?? null;
       const parts = [mtk, bi].filter(v => v != null);
       const rata = parts.length ? Math.round(parts.reduce((s, x) => s + x, 0) / parts.length) : null;
-      let ket = '';
-      if (mtk == null && bi == null) ket = 'Tidak mengikuti';
-      else if (mtk == null) ket = 'Tidak mengikuti Matematika';
-      else if (bi == null) ket = 'Tidak mengikuti Bahasa Indonesia';
-      else ket = 'Mengikuti';
+      let ket = ringkasKetuntasan(mtk, bi);
       return {
         studentId: st.id,
         nama: st.nama || st.id,
@@ -694,7 +888,7 @@ function normalizeKelas(k) {
   }
 
   function updateTtd(kelas) {
-    const meta = TTD[kelas] || TTD['6A'];
+    const meta = (kelas === '__gabungan__') ? TTD['6A'] : (TTD[kelas] || TTD['6A']);
     const box = document.getElementById('ttd-guru');
     box.innerHTML = `
       <div class="role">${meta.label}</div>
@@ -707,33 +901,41 @@ function normalizeKelas(k) {
     const tbody = document.getElementById('tbody');
     const kelas = document.getElementById('filter-kelas').value;
     document.getElementById('judul-tabel').textContent =
-      'Rekap Try Out — Kelas ' + kelas;
+      kelas === '__gabungan__'
+        ? 'Rekap Try Out — Peringkat Gabungan 6A + 6B'
+        : ('Rekap Try Out — Kelas ' + kelas);
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:18px;color:#64748b;">Tidak ada siswa untuk kelas ini.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:18px;color:#64748b;">Tidak ada siswa untuk kelas ini.</td></tr>';
       document.getElementById('btn-pdf').disabled = true;
+      const card = document.getElementById('card-analisa');
+      if (card) card.style.display = 'none';
       return;
     }
 
     tbody.innerHTML = rows.map((r, i) => {
       const missAll = r.mtk == null && r.bi == null;
-      const ketCls = missAll || r.ket.startsWith('Tidak') ? 'miss' : '';
+      const ketCls = (missAll || r.ket.startsWith('Tidak') || r.ket.startsWith('Belum')) ? 'miss' : '';
+      const ketOk = r.ket === 'Tuntas TKA' ? 'style="color:#057a55;font-weight:800;"' : '';
       return `<tr>
         <td class="num">${i + 1}</td>
         <td class="nama">${escapeHtml(r.nama)}</td>
-        <td class="num">${r.mtk == null ? '<span class="miss">tidak mengikuti</span>' : escapeHtml(fmtNilai(r.mtk))}</td>
-        <td class="num">${r.bi == null ? '<span class="miss">tidak mengikuti</span>' : escapeHtml(fmtNilai(r.bi))}</td>
+        <td>${escapeHtml(r.kelas || '—')}</td>
+        <td class="num">${r.mtk == null ? '<span class="miss">—</span>' : escapeHtml(fmtNilai(r.mtk))}</td>
+        <td class="num">${r.bi == null ? '<span class="miss">—</span>' : escapeHtml(fmtNilai(r.bi))}</td>
         <td class="num">${r.rata == null ? '' : escapeHtml(fmtNilai(r.rata))}</td>
         <td class="num ${r.rankBest && r.rankBest <= 3 ? 'rank-top' : ''}">${fmtRank(r.rankBest)}</td>
         <td class="num">${fmtRank(r.rankMtk)}</td>
         <td class="num">${fmtRank(r.rankBi)}</td>
-        <td class="${ketCls}">${escapeHtml(r.ket)}</td>
+        <td class="${ketCls}" ${ketOk}>${escapeHtml(r.ket)}</td>
       </tr>`;
     }).join('');
 
     document.getElementById('btn-pdf').disabled = false;
     updateTtd(kelas);
     renderAnalisa(rows);
+    renderRegresi(rows);
+    renderCapaianMateri(attemptsForCapaian || []);
   }
 
   function escapeHtml(s) {
@@ -767,7 +969,91 @@ function normalizeKelas(k) {
   }
 
   async function muatData() {
-    const btn = document.getElementById('btn-muat');
+    const btn = 
+  document.querySelectorAll('.tabs-bar [data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs-bar [data-tab]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById('tab-' + btn.getAttribute('data-tab'));
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  const MATERI_ORDER_MTK = ['Bilangan', 'Geometri dan Pengukuran', 'Geometri', 'Pengukuran', 'Data dan Ketidakpastian', 'Data', 'Aljabar'];
+  const MATERI_ORDER_BI = ['Pemahaman Tekstual', 'Pemahaman Inferensial', 'Evaluasi dan Apresiasi'];
+
+  function aggregateCapaian(attemptList, subjectId) {
+    const best = new Map();
+    (attemptList || []).forEach(a => {
+      if ((a.subjectId || '') !== subjectId) return;
+      const sid = a.studentId;
+      if (!sid) return;
+      const maks = Number(a.skorMaksimal) || 0;
+      const persen = maks > 0 ? (100 * (Number(a.skorAkhir) || 0) / maks) : -1;
+      const prev = best.get(sid);
+      if (!prev || persen > prev.persen) {
+        best.set(sid, { persen, per: a.skorPerTipeMateri || {} });
+      }
+    });
+    const agg = {};
+    best.forEach(v => {
+      const per = v.per || {};
+      Object.keys(per).forEach(tm => {
+        const cell = per[tm] || {};
+        const pm = Number(cell.poinMaks) || 0;
+        const pb = Number(cell.poinBenar) || 0;
+        if (pm <= 0) return;
+        if (!agg[tm]) agg[tm] = { n: 0, sumPct: 0 };
+        agg[tm].n += 1;
+        agg[tm].sumPct += (100 * pb / pm);
+      });
+    });
+    const order = subjectId === 'matematika' ? MATERI_ORDER_MTK : MATERI_ORDER_BI;
+    return Object.keys(agg).map(tm => ({
+      materi: tm,
+      n: agg[tm].n,
+      mean: agg[tm].n ? agg[tm].sumPct / agg[tm].n : null,
+    })).sort((a, b) => {
+      const ia = order.indexOf(a.materi);
+      const ib = order.indexOf(b.materi);
+      if (ia >= 0 || ib >= 0) return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+      return a.materi.localeCompare(b.materi, 'id');
+    });
+  }
+
+  function renderCapaianMateri(attemptList) {
+    const kelas = document.getElementById('filter-kelas').value;
+    let list = attemptList || [];
+    if (kelas && kelas !== '__gabungan__') {
+      list = list.filter(a => normalizeKelas(a.kelasSiswa || a.kelas) === normalizeKelas(kelas));
+    }
+    if (rows && rows.length) {
+      const ids = new Set(rows.map(r => r.studentId));
+      list = list.filter(a => ids.has(a.studentId));
+    }
+    function fill(tbodyId, subjectId) {
+      const tbody = document.getElementById(tbodyId);
+      if (!tbody) return;
+      const data = aggregateCapaian(list, subjectId);
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="4">Belum ada data capaian materi pada attempt (skorPerTipeMateri).</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(d => {
+        const pct = d.mean == null ? '—' : (Math.round(d.mean * 10) / 10);
+        const w = d.mean == null ? 0 : Math.max(0, Math.min(100, d.mean));
+        const color = w >= 70 ? '#057a55' : (w >= 50 ? '#d97706' : '#b45309');
+        return '<tr><td>' + escapeHtml(d.materi) + '</td><td class="num">' + d.n +
+          '</td><td class="num">' + pct + (d.mean == null ? '' : '%') +
+          '</td><td><div class="capaian-bar"><span style="width:' + w + '%;background:' + color + '"></span></div></td></tr>';
+      }).join('');
+    }
+    fill('tbody-capaian-mtk', 'matematika');
+    fill('tbody-capaian-bi', 'bahasa-indonesia');
+  }
+
+document.getElementById('btn-muat');
     const hint = document.getElementById('query-hint');
     const kelas = normalizeKelas(document.getElementById('filter-kelas').value);
     const jenis = document.getElementById('filter-jenis').value;
@@ -778,12 +1064,15 @@ function normalizeKelas(k) {
         loadRoster(),
         loadAttempts(jenis),
       ]);
-      roster = allStudents.filter(s => s.kelas === kelas);
+      const gabungan = kelas === '__gabungan__';
+      roster = gabungan
+        ? allStudents.slice()
+        : allStudents.filter(s => s.kelas === kelas);
       // Sertakan siswa yang punya attempt di kelas ini tapi belum di roster
       const rosterIds = new Set(roster.map(s => s.id));
       for (const a of allAttempts) {
-        const k = normalizeKelas(a.kelasSiswa);
-        if (k !== kelas) continue;
+        const kls = normalizeKelas(a.kelasSiswa);
+        if (!gabungan && kls !== kelas) continue;
         const sid = a.studentId;
         if (sid && !rosterIds.has(sid)) {
           roster.push({
@@ -795,6 +1084,7 @@ function normalizeKelas(k) {
         }
       }
       attempts = allAttempts.filter(a => normalizeKelas(a.kelasSiswa) === kelas);
+      attemptsForCapaian = attempts;
       rows = buildRows(kelas, roster, attempts);
 
       const ikut = rows.filter(r => r.mtk != null || r.bi != null).length;
@@ -804,13 +1094,14 @@ function normalizeKelas(k) {
       document.getElementById('stat-ikut').textContent = ikut;
       document.getElementById('stat-mtk').textContent = ikutMtk;
       document.getElementById('stat-bi').textContent = ikutBi;
-      hint.textContent = `Kelas ${kelas}: ${rows.length} siswa, ${attempts.length} attempt (jenis: ${jenis || 'semua'}). Nilai = persen terbaik per mapel.`;
+      hint.textContent = (kelas === '__gabungan__' ? 'Gabungan 6A+6B' : ('Kelas ' + kelas))
+        + `: ${rows.length} siswa, ${attempts.length} attempt (jenis: ${jenis || 'semua'}). Nilai = persen terbaik per mapel.`;
       renderTable();
     } catch (err) {
       console.error(err);
       hint.textContent = 'Gagal memuat: ' + err.message;
       document.getElementById('tbody').innerHTML =
-        `<tr><td colspan="9" style="text-align:center;color:#b91c1c;padding:18px;">${escapeHtml(err.message)}</td></tr>`;
+        `<tr><td colspan="10" style="text-align:center;color:#b91c1c;padding:18px;">${escapeHtml(err.message)}</td></tr>`;
       document.getElementById('btn-pdf').disabled = true;
     }
     btn.disabled = false;
@@ -830,7 +1121,7 @@ function normalizeKelas(k) {
     doc.text('Rekap Nilai Try Out per Kelas', margin.l, y);
     y += 5.5;
     doc.setFontSize(10);
-    doc.text('Kelas ' + kelas + ' — Portal Latihan TKA 2026', margin.l, y);
+    doc.text((kelas === '__gabungan__' ? 'Peringkat Gabungan 6A+6B' : ('Kelas ' + kelas)) + ' — Portal Latihan TKA 2026', margin.l, y);
     y += 4.5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -862,20 +1153,21 @@ function normalizeKelas(k) {
     const body = rows.map((r, i) => [
       i + 1,
       r.nama,
+      r.kelas || '—',
       r.mtk == null ? '—' : String(r.mtk),
       r.bi == null ? '—' : String(r.bi),
       r.rata == null ? '—' : String(r.rata),
       r.rankBest == null ? '—' : String(r.rankBest),
       r.rankMtk == null ? '—' : String(r.rankMtk),
       r.rankBi == null ? '—' : String(r.rankBi),
-      r.ket === 'Tidak mengikuti' ? 'Tidak ikut' : (r.ket || ''),
+      r.ket || '',
     ]);
 
     doc.autoTable({
       startY: y + 1.5,
       head: [[
-        'No', 'Nama Siswa', 'MTK', 'BI', 'Rata',
-        'Rank', 'R.MTK', 'R.BI', 'Keterangan',
+        'No', 'Nama', 'Kelas', 'MTK', 'BI', 'Rata',
+        'Rank', 'R.MTK', 'R.BI', 'Ketuntasan',
       ]],
       body,
       theme: 'grid',
@@ -900,15 +1192,16 @@ function normalizeKelas(k) {
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 9 },
-        1: { halign: 'left', cellWidth: 52 },
-        2: {halign: 'center', cellWidth: 16 },
-        3: {halign: 'center', cellWidth: 16 },
+        0: { halign: 'center', cellWidth: 8 },
+        1: {halign: 'left', cellWidth: 42 },
+        2: {halign: 'center', cellWidth: 12 },
+        3: {halign: 'center', cellWidth: 14 },
         4: {halign: 'center', cellWidth: 14 },
-        5: {halign: 'center', cellWidth: 14 },
-        6: {halign: 'center', cellWidth: 14 },
-        7: {halign: 'center', cellWidth: 14 },
-        8: {halign: 'left', cellWidth: 'auto' },
+        5: {halign: 'center', cellWidth: 12 },
+        6: {halign: 'center', cellWidth: 12 },
+        7: {halign: 'center', cellWidth: 12 },
+        8: {halign: 'center', cellWidth: 12 },
+        9: {halign: 'left', cellWidth: 'auto', fontSize: 7 },
       },
       margin: { left: margin.l, right: margin.r, bottom: margin.b + 2 },
       tableWidth: 'auto',
@@ -922,18 +1215,22 @@ function normalizeKelas(k) {
           data.cell.styles.minCellHeight = 7;
           data.cell.styles.valign = 'middle';
         }
-        // Nilai "tidak ikut" / strip: abu-abu miring
-        if (data.section === 'body' && (data.column.index === 2 || data.column.index === 3 || data.column.index === 4)) {
+        // Nilai kosong: abu-abu (kolom MTK/BI/Rata setelah Kelas)
+        if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4 || data.column.index === 5)) {
           if (data.cell.raw === '—' || data.cell.raw === '') {
             data.cell.styles.textColor = [148, 163, 184];
             data.cell.styles.fontStyle = 'italic';
           }
         }
-        if (data.section === 'body' && data.column.index === 8) {
+        // Kolom ketuntasan
+        if (data.section === 'body' && data.column.index === 9) {
           const v = String(data.cell.raw || '');
-          if (v.indexOf('Tidak') === 0) {
+          if (v.indexOf('Tidak') === 0 || v.indexOf('Belum') === 0) {
             data.cell.styles.textColor = [180, 83, 9];
             data.cell.styles.fontStyle = 'italic';
+          } else if (v.indexOf('Tuntas TKA') === 0) {
+            data.cell.styles.textColor = [5, 122, 85];
+            data.cell.styles.fontStyle = 'bold';
           }
         }
       },
@@ -959,7 +1256,7 @@ function normalizeKelas(k) {
         // Footer
         doc.setFontSize(7);
         doc.setTextColor(120);
-        doc.text('Kelas ' + kelas + ' · Rekap try out', margin.l, pageH - 6);
+        doc.text((kelas === '__gabungan__' ? 'Gabungan 6A+6B' : ('Kelas ' + kelas)) + ' · Rekap try out', margin.l, pageH - 6);
         doc.text('Hal. ' + data.pageNumber, pageW - margin.r, pageH - 6, { align: 'right' });
         doc.setTextColor(0);
       },

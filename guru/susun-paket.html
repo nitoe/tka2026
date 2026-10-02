@@ -1030,16 +1030,58 @@
         if (!rows.length) {
           addPara('(Tidak ada pernyataan / pilihan kategori pada soal ini)', 8, 'italic', { color: 120, afterGap: 2 });
         } else {
-          addPara('Pilihan (Benar / Salah tiap pernyataan):', 8.5, 'bold', { afterGap: 1.5 });
-          if (spaceLeft() < 16) newPage();
+          addPara('Tabel pernyataan (pgk-cat):', 8.5, 'bold', { afterGap: 1.5 });
+          if (spaceLeft() < 18) newPage();
+          // Header kolom
+          const headCols = ['No', 'Pernyataan'].concat(cols.map(String));
+          // Lebar kolom mm (A4 content ~ maxW)
+          const wNo = 10;
+          const wChoice = Math.min(22, Math.floor((maxW * 0.28) / Math.max(cols.length, 1)));
+          const wStmt = maxW - wNo - wChoice * cols.length;
+          function drawCatRow(cells, isHead) {
+            const fs = isHead ? 8 : 8.5;
+            docPdf.setFont('helvetica', isHead ? 'bold' : 'normal');
+            docPdf.setFontSize(fs);
+            const lineH = fs * 0.42;
+            // tinggi baris = max wrap pernyataan
+            const stmtLines = docPdf.splitTextToSize(String(cells[1] || ''), Math.max(20, wStmt - 2));
+            const rowH = Math.max(7, stmtLines.length * lineH + 3);
+            if (y + rowH > contentBottom) newPage();
+            let x = M.l;
+            // background header
+            if (isHead) {
+              docPdf.setFillColor(241, 245, 249);
+              docPdf.rect(M.l, y - 3.2, maxW, rowH, 'F');
+            }
+            docPdf.setDrawColor(203, 213, 225);
+            docPdf.setLineWidth(0.15);
+            // No
+            docPdf.text(String(cells[0] || ''), x + 1, y);
+            x += wNo;
+            // Pernyataan
+            stmtLines.forEach((ln, li) => {
+              docPdf.text(ln, x + 1, y + li * lineH);
+            });
+            x += wStmt;
+            // Pilihan
+            for (let ci = 0; ci < cols.length; ci++) {
+              const tcell = String(cells[2 + ci] || '');
+              const tw = docPdf.getTextWidth(tcell);
+              docPdf.text(tcell, x + (wChoice - tw) / 2, y);
+              x += wChoice;
+            }
+            // garis bawah
+            docPdf.line(M.l, y + rowH - 2.5, M.l + maxW, y + rowH - 2.5);
+            y += rowH;
+          }
+          drawCatRow(['No', 'Pernyataan', ...cols.map(c => String(c))], true);
           rows.forEach((row, ri) => {
             const rowText = typeof row === 'string' ? row : (row.text || row.label || String(row));
-            const label = (ri + 1) + ') ' + htmlToPdfText(rowText).replace(/\n+/g, ' ');
-            addPara(label, 9, 'normal', { afterGap: 0.8 });
-            // kotak pilihan teks (cetak)
-            const pilihan = cols.map(c => '[ ] ' + String(c)).join('    ');
-            addPara('    ' + pilihan, 8.5, 'normal', { afterGap: 1.5 });
+            const stmt = htmlToPdfText(rowText).replace(/\n+/g, ' ');
+            const choiceCells = cols.map(() => '[ ]');
+            drawCatRow([String(ri + 1), stmt, ...choiceCells], false);
           });
+          y += 2;
           if (kunciArr.length) {
             kunciTxt = rows.map((_, ri) => {
               const k = kunciArr[ri] != null ? String(kunciArr[ri]) : '?';

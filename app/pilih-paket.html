@@ -29,6 +29,7 @@
     <p class="page-desc">Pilih paket latihan atau try out yang aktif. Try out biasanya dibatasi waktu dan token.</p>
     <div id="paket-list" class="paket-list"></div>
     <div id="empty-state" class="empty-state" style="display:none;">Belum ada paket aktif untuk mata pelajaran ini.</div>
+    <p id="list-hint" style="font-size:0.78rem;font-weight:600;color:var(--text-2,#64748b);margin-top:12px;"></p>
   </main>
 </div>
 
@@ -45,6 +46,31 @@
   const page = document.getElementById('page');
   const notConfigured = document.getElementById('not-configured');
   const NAMA_MAPEL = { 'matematika': 'Matematika', 'bahasa-indonesia': 'Bahasa Indonesia' };
+  const CLOCK_GRACE_MS = 3 * 60 * 1000;
+
+  function parseWaktu(val) {
+    if (val == null || val === '') return null;
+    if (typeof val.toDate === 'function') {
+      try { return val.toDate(); } catch (_) {}
+    }
+    if (typeof val === 'object') {
+      if (typeof val.seconds === 'number') return new Date(val.seconds * 1000);
+      if (typeof val._seconds === 'number') return new Date(val._seconds * 1000);
+    }
+    if (typeof val === 'number' && Number.isFinite(val)) {
+      const d = new Date(val < 1e12 ? val * 1000 : val);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    let s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:/.test(s)) s = s.replace(' ', 'T');
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+    if (m) {
+      const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
 
   if (!isConfigured) {
     loading.style.display = 'none';
@@ -64,27 +90,38 @@
         loading.style.display = 'none';
         page.style.display = 'block';
 
-        const q = query(
-          collection(db, 'packages'),
-          where('subjectId', '==', mapel),
-          where('aktif', '==', true)
-        );
-        const snap = await getDocs(q);
-        const pakets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        let pakets = [];
+        let queryNote = '';
+        try {
+          const q = query(
+            collection(db, 'packages'),
+            where('subjectId', '==', mapel),
+            where('aktif', '==', true)
+          );
+          const snap = await getDocs(q);
+          pakets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+          // Fallback jika index komposit subjectId+aktif belum ada
+          console.warn('Query aktif gagal, fallback client filter:', err);
+          queryNote = 'Mode cadangan daftar paket (index Firestore).';
+          const q2 = query(collection(db, 'packages'), where('subjectId', '==', mapel));
+          const snap2 = await getDocs(q2);
+          pakets = snap2.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => p.aktif === true);
+        }
+
         const listEl = document.getElementById('paket-list');
         const emptyEl = document.getElementById('empty-state');
+        const hintEl = document.getElementById('list-hint');
+        if (hintEl) hintEl.textContent = queryNote;
+
         if (!pakets.length) { emptyEl.style.display = 'block'; return; }
 
         const now = new Date();
-        function parseWaktu(val) {
-          if (!val) return null;
-          if (typeof val.toDate === 'function') return val.toDate();
-          const d = new Date(val);
-          return isNaN(d.getTime()) ? null : d;
-        }
         listEl.innerHTML = pakets.map(p => {
           const isTryout = p.jenis === 'tryout';
-          let metaBits = [`${(p.questionIds || []).length} soal`, `Skor maks ${p.totalSkor ?? '—'}`];
+          let metaBits = [`${(p.questionIds || []).length} soal`, `Skor maks ${p.totalSkor ?? p.skorMaksimal ?? '—'}`];
           let disabled = false;
           let btnLabel = isTryout ? 'Mulai try out' : 'Mulai latihan';
           let note = '';
@@ -93,12 +130,12 @@
             if (p.token) metaBits.push('Token');
             const buka = parseWaktu(p.bukaPada);
             const tutup = parseWaktu(p.tutupPada);
-            if (buka && now < buka) {
+            if (buka && now.getTime() + CLOCK_GRACE_MS < buka.getTime()) {
               disabled = true; btnLabel = 'Belum dibuka';
-              note = `<div style="font-size:.75rem;color:var(--warn);margin-top:.35rem;font-weight:600;">Dibuka ${buka.toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'})}</div>`;
-            } else if (tutup && now > tutup) {
+              note = `<div style="font-size:.75rem;color:var(--warn,#b45309);margin-top:.35rem;font-weight:600;">Dibuka ${buka.toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'})}</div>`;
+            } else if (tutup && now.getTime() > tutup.getTime() + CLOCK_GRACE_MS) {
               disabled = true; btnLabel = 'Sudah ditutup';
-              note = `<div style="font-size:.75rem;color:var(--danger);margin-top:.35rem;font-weight:600;">Ditutup ${tutup.toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'})}</div>`;
+              note = `<div style="font-size:.75rem;color:var(--danger,#b91c1c);margin-top:.35rem;font-weight:600;">Ditutup ${tutup.toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'})}</div>`;
             }
           }
           const badge = isTryout
@@ -106,7 +143,7 @@
             : '<span class="badge badge-latihan">LATIHAN</span>';
           const btn = disabled
             ? `<button class="btn btn-secondary" disabled>${btnLabel}</button>`
-            : `<a class="btn btn-primary" href="./kuis.html?paketId=${p.id}">${btnLabel}</a>`;
+            : `<a class="btn btn-primary" href="./kuis.html?paketId=${encodeURIComponent(p.id)}">${btnLabel}</a>`;
           return `<div class="paket-card">
             <div style="min-width:0;flex:1;">
               <div class="paket-nama">${p.nama || 'Paket'} ${badge}</div>

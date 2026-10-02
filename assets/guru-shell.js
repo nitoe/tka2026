@@ -10,6 +10,7 @@ const NAV = [
   { id: 'dashboard', href: './index.html',        icon: '🏠', label: 'Dashboard' },
   { id: 'rekap',     href: './rekap-tryout.html',  icon: '📊', label: 'Rekap Try Out' },
   { id: 'rekap-kelas', href: './rekap-kelas.html', icon: '🏫', label: 'Rekap per Kelas' },
+  { id: 'monitor', href: './monitor-tryout.html', icon: '📡', label: 'Monitor Langsung' },
   { id: 'bank',      href: './bank-soal.html',     icon: '🗂️', label: 'Bank Soal' },
   { id: 'susun',     href: './susun-paket.html',   icon: '🧩', label: 'Susun Paket' },
 ];

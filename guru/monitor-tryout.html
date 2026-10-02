@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Langsung – Portal Latihan TKA 2026</title>
+<link rel="stylesheet" href="../assets/theme.css">
+<style>
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 0 40px; }
+  .page-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-2, #64748b); font-size: 0.88rem; margin-bottom: 1.2rem; font-weight: 500; }
+  .card {
+    background: var(--surface, #fff); border: 1px solid var(--line, #e2e8f0);
+    border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .filters select, .filters button {
+    font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    padding: 0.55rem 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff;
+  }
+  .filters button {
+    background: #1a56db; color: #fff; border-color: #1a56db; cursor: pointer; font-weight: 800;
+  }
+  .filters button.secondary { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .stat-box {
+    flex: 1 1 110px; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .stat-box .num { font-size: 1.35rem; font-weight: 800; }
+  .stat-box .label { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+  .stat-box.live .num { color: #047857; }
+  table.mon { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.mon th, table.mon td { border-bottom: 1px solid #e2e8f0; padding: 9px 10px; text-align: left; }
+  table.mon th { background: #f1f5f9; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+  table.mon tr:hover td { background: #f8fafc; }
+  .badge {
+    display: inline-block; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;
+  }
+  .badge-on { background: #def7ec; color: #057a55; }
+  .badge-done { background: #e0e7ff; color: #3730a3; }
+  .badge-stale { background: #fef3c7; color: #b45309; }
+  .progress-bar {
+    height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; min-width: 80px;
+  }
+  .progress-bar > span { display: block; height: 100%; background: #1a56db; border-radius: 99px; }
+  .hint { font-size: 0.78rem; font-weight: 600; color: #64748b; margin-top: 8px; }
+  .loading-screen { min-height: 50vh; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #64748b; }
+  .dot-live {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;
+    margin-right: 6px; animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen">Memeriksa sesi…</div>
+<div id="not-configured" class="loading-screen" style="display:none;">Firebase belum dikonfigurasi.</div>
+<div id="page" style="display:none;">
+  <div class="container">
+    <h1 class="page-title">Monitor Langsung</h1>
+    <p class="page-subtitle">Pantau siswa yang sedang mengerjakan paket (bukan nilai akhir). Data diperbarui dari sesi aktif siswa.</p>
+
+    <div class="card">
+      <div class="filters">
+        <select id="filter-paket"><option value="">— Pilih paket —</option></select>
+        <button type="button" id="btn-refresh">Segarkan</button>
+        <button type="button" class="secondary" id="btn-toggle-auto">Auto: ON</button>
+      </div>
+      <p class="hint" id="hint">Pilih paket try out / latihan untuk melihat siapa yang sedang mengerjakan.</p>
+    </div>
+
+    <div class="card">
+      <div class="stats">
+        <div class="stat-box live"><div class="num" id="stat-live">0</div><div class="label"><span class="dot-live"></span>Sedang mengerjakan</div></div>
+        <div class="stat-box"><div class="num" id="stat-done">0</div><div class="label">Selesai (sesi)</div></div>
+        <div class="stat-box"><div class="num" id="stat-stale">0</div><div class="label">Tidak aktif &gt;2 mnt</div></div>
+        <div class="stat-box"><div class="num" id="stat-total">0</div><div class="label">Total sesi paket</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table class="mon">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Kelas</th>
+              <th>Status</th>
+              <th>Progres</th>
+              <th>Terjawab</th>
+              <th>Mulai</th>
+              <th>Terakhir aktif</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="7" style="text-align:center;color:#64748b;padding:18px;">Belum ada data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { mountGuruShell } from '../assets/guru-shell.js';
+  import {
+    collection, getDocs, query, where, onSnapshot,
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+  const STALE_MS = 2 * 60 * 1000;
+  let unsub = null;
+  let auto = true;
+  let packages = [];
+
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+  const notConfigured = document.getElementById('not-configured');
+
+  function tsToDate(v) {
+    if (!v) return null;
+    if (typeof v.toDate === 'function') return v.toDate();
+    if (typeof v === 'number') return new Date(v);
+    if (v.seconds) return new Date(v.seconds * 1000);
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmtTime(d) {
+    if (!d) return '—';
+    return d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderRows(list) {
+    const now = Date.now();
+    let nLive = 0, nDone = 0, nStale = 0;
+    const sorted = list.slice().sort((a, b) => {
+      const ta = tsToDate(a.lastSeen)?.getTime() || 0;
+      const tb = tsToDate(b.lastSeen)?.getTime() || 0;
+      return tb - ta;
+    });
+
+    const tbody = document.getElementById('tbody');
+    if (!sorted.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:18px;">Belum ada siswa pada paket ini.</td></tr>';
+      document.getElementById('stat-live').textContent = '0';
+      document.getElementById('stat-done').textContent = '0';
+      document.getElementById('stat-stale').textContent = '0';
+      document.getElementById('stat-total').textContent = '0';
+      return;
+    }
+
+    tbody.innerHTML = sorted.map((s) => {
+      const last = tsToDate(s.lastSeen);
+      const mulai = tsToDate(s.mulaiPada) || (typeof s.mulaiPada === 'number' ? new Date(s.mulaiPada) : null);
+      const age = last ? now - last.getTime() : Infinity;
+      const isDone = s.status === 'selesai';
+      const isStale = !isDone && age > STALE_MS;
+      const isLive = !isDone && !isStale;
+      if (isDone) nDone++;
+      else if (isStale) nStale++;
+      else nLive++;
+
+      const total = Number(s.totalSoal) || 0;
+      const terjawab = Number(s.terjawab) || 0;
+      const pct = total > 0 ? Math.round((terjawab / total) * 100) : 0;
+      let badge = '<span class="badge badge-on">Mengerjakan</span>';
+      if (isDone) badge = '<span class="badge badge-done">Selesai</span>';
+      else if (isStale) badge = '<span class="badge badge-stale">Tidak aktif</span>';
+
+      return `<tr>
+        <td><strong>${escapeHtml(s.namaSiswa || s.studentId)}</strong></td>
+        <td>${escapeHtml(s.kelasSiswa || '—')}</td>
+        <td>${badge}</td>
+        <td>
+          <div class="progress-bar" title="${pct}%"><span style="width:${pct}%"></span></div>
+          <div style="font-size:0.7rem;font-weight:700;color:#64748b;margin-top:3px;">${pct}%</div>
+        </td>
+        <td>${terjawab} / ${total || '—'}</td>
+        <td>${fmtTime(mulai)}</td>
+        <td>${fmtTime(last)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('stat-live').textContent = String(nLive);
+    document.getElementById('stat-done').textContent = String(nDone);
+    document.getElementById('stat-stale').textContent = String(nStale);
+    document.getElementById('stat-total').textContent = String(sorted.length);
+  }
+
+  function listenPackage(packageId) {
+    if (unsub) { unsub(); unsub = null; }
+    if (!packageId) {
+      renderRows([]);
+      document.getElementById('hint').textContent = 'Pilih paket untuk mulai memantau.';
+      return;
+    }
+    const q = query(collection(db, 'liveSessions'), where('packageId', '==', packageId));
+    document.getElementById('hint').textContent = 'Mendengarkan sesi langsung…';
+    unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderRows(list);
+      const p = packages.find(x => x.id === packageId);
+      document.getElementById('hint').textContent =
+        `Paket: ${p?.nama || packageId} · ${list.length} sesi · diperbarui otomatis.`;
+    }, (err) => {
+      document.getElementById('hint').textContent = 'Gagal listen: ' + err.message;
+      console.error(err);
+    });
+  }
+
+  async function loadPackages() {
+    const snap = await getDocs(collection(db, 'packages'));
+    packages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    packages.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id'));
+    const sel = document.getElementById('filter-paket');
+    sel.innerHTML = '<option value="">— Pilih paket —</option>' + packages.map(p => {
+      const j = p.jenis === 'tryout' ? ' [TRY OUT]' : '';
+      const a = p.aktif === true ? '' : ' (nonaktif)';
+      return `<option value="${p.id}">${escapeHtml(p.nama || p.id)}${j}${a}</option>`;
+    }).join('');
+  }
+
+  if (!isConfigured) {
+    loading.style.display = 'none';
+    notConfigured.style.display = 'flex';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.href = '../index.html'; return; }
+      const staff = await getStaffDoc(user.uid);
+      if (!staff) { await signOut(auth); location.href = '../index.html'; return; }
+      loading.style.display = 'none';
+      page.style.display = 'block';
+      mountGuruShell({ active: 'monitor', staff });
+      await loadPackages();
+    });
+  }
+
+  document.getElementById('filter-paket').addEventListener('change', (e) => {
+    listenPackage(e.target.value);
+  });
+  document.getElementById('btn-refresh').addEventListener('click', () => {
+    const id = document.getElementById('filter-paket').value;
+    listenPackage(id);
+  });
+  document.getElementById('btn-toggle-auto').addEventListener('click', () => {
+    auto = !auto;
+    document.getElementById('btn-toggle-auto').textContent = auto ? 'Auto: ON' : 'Auto: OFF';
+    if (!auto && unsub) { unsub(); unsub = null; }
+    else if (auto) listenPackage(document.getElementById('filter-paket').value);
+  });
+</script>
+</body>
+</html>
