@@ -1131,192 +1131,218 @@ async function muatData() {
   }
 
   function unduhPdf() {
-    const kelas = document.getElementById('filter-kelas').value;
+    const filterKelasRaw = document.getElementById('filter-kelas').value;
+    const gabungan = filterKelasRaw === '__gabungan__';
+    const kelas = gabungan ? '__gabungan__' : normalizeKelas(filterKelasRaw);
     if (!rows.length) return;
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    // A4 landscape 297×210 mm — margin cetak aman
-    const margin = { l: 12, r: 12, t: 12, b: 14 };
+    // Portrait A4 — target 1 halaman
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();   // 210
+    const pageH = doc.internal.pageSize.getHeight();  // 297
+    const margin = { l: 10, r: 10, t: 10, b: 10 };
+    const contentW = pageW - margin.l - margin.r;
     let y = margin.t;
 
+    const nRows = rows.length;
+    // Skala kompak agar muat 1 halaman (header + tabel + TTD)
+    const fontSize = nRows > 32 ? 6 : nRows > 24 ? 6.5 : 7;
+    const cellPad = nRows > 32 ? 0.7 : nRows > 24 ? 0.9 : 1.1;
+    const ttdH = nRows > 28 ? 28 : 34;
+
+    // —— Header ——
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
     doc.text('Rekap Nilai Try Out per Kelas', margin.l, y);
-    y += 5.5;
-    doc.setFontSize(10);
-    doc.text((kelas === '__gabungan__' ? 'Peringkat Gabungan 6A+6B' : ('Kelas ' + kelas)) + ' — Portal Latihan TKA 2026', margin.l, y);
     y += 4.5;
+    doc.setFontSize(9);
+    doc.text(gabungan ? 'Peringkat Gabungan 6A + 6B' : ('Kelas ' + kelas), margin.l, y);
+    y += 3.8;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(90);
-    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), margin.l, y);
-    y += 4;
+    doc.setFontSize(7);
+    doc.setTextColor(100);
+    doc.text('Portal Latihan TKA 2026 · Dicetak ' + new Date().toLocaleString('id-ID'), margin.l, y);
+    y += 3.5;
     doc.setTextColor(0);
 
     const st = window.__lastClassStats || computeStats(rows);
-    doc.setFontSize(7.5);
+    doc.setFontSize(6.5);
+    doc.setTextColor(60);
     const statLine =
-      'Statistik — MTK mean ' + round1(st.mtk.mean) + ' (n=' + st.nMtk + ', tuntas ' + st.mtk.tuntas + '); ' +
-      'BI mean ' + round1(st.bi.mean) + ' (n=' + st.nBi + ', tuntas ' + st.bi.tuntas + '); ' +
-      'Rata-rata mean ' + round1(st.rata.mean) + ' (n=' + st.nRata + ').';
-    const statLines = doc.splitTextToSize(statLine, 297 - margin.l - margin.r);
+      'MTK mean ' + round1(st.mtk.mean) + ' (n=' + st.nMtk + ', tuntas ' + st.mtk.tuntas + ') · ' +
+      'BI mean ' + round1(st.bi.mean) + ' (n=' + st.nBi + ', tuntas ' + st.bi.tuntas + ') · ' +
+      'Rata mean ' + round1(st.rata.mean) + ' (n=' + st.nRata + ') · KKM 70';
+    const statLines = doc.splitTextToSize(statLine, contentW);
     doc.text(statLines, margin.l, y);
-    y += statLines.length * 3.4 + 1;
-    const reg = window.__lastRegression;
-    if (reg && reg.n >= 2) {
-      const fmtR = (v) => (Math.round(v * 1000) / 1000).toFixed(3);
-      const regLine =
-        'Regresi BI~MTK (n=' + reg.n + '): BI ≈ ' + fmtR(reg.a) + ' + ' + fmtR(reg.b) +
-        '×MTK; r=' + fmtR(reg.r) + '; R²=' + fmtR(reg.r2) + '.';
-      doc.text(doc.splitTextToSize(regLine, 297 - margin.l - margin.r), margin.l, y);
-      y += 4;
+    y += statLines.length * 2.8 + 1.5;
+    doc.setTextColor(0);
+
+    function shortKet(k) {
+      return String(k || '')
+        .replace('Tuntas TKA', 'Tuntas')
+        .replace('Tuntas MTK · Belum BI', 'MTK saja')
+        .replace('Tuntas BI · Belum MTK', 'BI saja')
+        .replace('Belum tuntas', 'Belum')
+        .replace('Tuntas MTK · BI tidak ikut', 'MTK·BI—')
+        .replace('Belum MTK · BI tidak ikut', 'Belum MTK')
+        .replace('Tuntas BI · MTK tidak ikut', 'BI·MTK—')
+        .replace('Belum BI · MTK tidak ikut', 'Belum BI')
+        .replace('Tidak ikut', '—');
     }
 
-    // Singkat label kolom agar muat; nilai kosong / tidak ikut tetap jelas
-    const body = rows.map((r, i) => [
-      i + 1,
-      r.nama,
-      r.kelas || '—',
-      r.mtk == null ? '—' : String(r.mtk),
-      r.bi == null ? '—' : String(r.bi),
-      r.rata == null ? '—' : String(r.rata),
-      r.rankBest == null ? '—' : String(r.rankBest),
-      r.rankMtk == null ? '—' : String(r.rankMtk),
-      r.rankBi == null ? '—' : String(r.rankBi),
-      r.ket || '',
-    ]);
+    const showKelas = gabungan;
+    const body = rows.map((r, i) => {
+      const base = [
+        i + 1,
+        r.nama,
+      ];
+      if (showKelas) base.push(r.kelas || '—');
+      base.push(
+        r.mtk == null ? '—' : String(r.mtk),
+        r.bi == null ? '—' : String(r.bi),
+        r.rata == null ? '—' : String(r.rata),
+        r.rankBest == null ? '—' : String(r.rankBest),
+        r.rankMtk == null ? '—' : String(r.rankMtk),
+        r.rankBi == null ? '—' : String(r.rankBi),
+        shortKet(r.ket),
+      );
+      return base;
+    });
 
+    const head = showKelas
+      ? [['No', 'Nama', 'Kl', 'MTK', 'BI', 'Rata', 'Rk', 'R.M', 'R.B', 'Ketuntasan']]
+      : [['No', 'Nama', 'MTK', 'BI', 'Rata', 'Rk', 'R.M', 'R.B', 'Ketuntasan']];
+
+    // Lebar kolom portrait (total ~190 mm)
+    const colStyles = showKelas
+      ? {
+          0: { cellWidth: 7, halign: 'center' },
+          1: { cellWidth: 42, halign: 'left' },
+          2: { cellWidth: 9, halign: 'center' },
+          3: { cellWidth: 12, halign: 'center' },
+          4: { cellWidth: 12, halign: 'center' },
+          5: { cellWidth: 12, halign: 'center' },
+          6: { cellWidth: 9, halign: 'center' },
+          7: { cellWidth: 9, halign: 'center' },
+          8: { cellWidth: 9, halign: 'center' },
+          9: { cellWidth: 'auto', halign: 'left', fontSize: Math.max(5.5, fontSize - 0.5) },
+        }
+      : {
+          0: { cellWidth: 7, halign: 'center' },
+          1: { cellWidth: 48, halign: 'left' },
+          2: { cellWidth: 13, halign: 'center' },
+          3: { cellWidth: 13, halign: 'center' },
+          4: { cellWidth: 13, halign: 'center' },
+          5: { cellWidth: 10, halign: 'center' },
+          6: { cellWidth: 10, halign: 'center' },
+          7: { cellWidth: 10, halign: 'center' },
+          8: { cellWidth: 'auto', halign: 'left', fontSize: Math.max(5.5, fontSize - 0.5) },
+        };
+    // fix typos halign
+    Object.keys(colStyles).forEach(k => {
+      if (colStyles[k].halign) {
+        colStyles[k].halign = colStyles[k].halign;
+        delete colStyles[k].halign;
+      }
+    });
+
+    const tableBottom = pageH - margin.b - ttdH;
     doc.autoTable({
-      startY: y + 1.5,
-      head: [[
-        'No', 'Nama', 'Kelas', 'MTK', 'BI', 'Rata',
-        'Rank', 'R.MTK', 'R.BI', 'Ketuntasan',
-      ]],
+      startY: y,
+      head,
       body,
       theme: 'grid',
       styles: {
         font: 'helvetica',
-        fontSize: 7.5,
-        cellPadding: { top: 1.4, right: 1.2, bottom: 1.4, left: 1.2 },
+        fontSize,
+        cellPadding: { top: cellPad, right: 1, bottom: cellPad, left: 1 },
         overflow: 'linebreak',
         valign: 'middle',
         lineColor: [203, 213, 225],
-        lineWidth: 0.15,
+        lineWidth: 0.12,
         textColor: [30, 41, 59],
+        minCellHeight: fontSize * 0.55,
       },
       headStyles: {
         fillColor: [15, 23, 42],
         textColor: 255,
         fontStyle: 'bold',
-        fontSize: 7.5,
+        fontSize: Math.max(6, fontSize),
         halign: 'center',
         valign: 'middle',
-        cellPadding: { top: 1.8, right: 1.2, bottom: 1.8, left: 1.2 },
+        cellPadding: { top: cellPad + 0.3, right: 1, bottom: cellPad + 0.3, left: 1 },
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 8 },
-        1: {halign: 'left', cellWidth: 42 },
-        2: {halign: 'center', cellWidth: 12 },
-        3: {halign: 'center', cellWidth: 14 },
-        4: {halign: 'center', cellWidth: 14 },
-        5: {halign: 'center', cellWidth: 12 },
-        6: {halign: 'center', cellWidth: 12 },
-        7: {halign: 'center', cellWidth: 12 },
-        8: {halign: 'center', cellWidth: 12 },
-        9: {halign: 'left', cellWidth: 'auto', fontSize: 7 },
-      },
-      margin: { left: margin.l, right: margin.r, bottom: margin.b + 2 },
-      tableWidth: 'auto',
-      // Header kolom diulang di setiap halaman (penting saat tabel panjang)
+      columnStyles: colStyles,
+      margin: { left: margin.l, right: margin.r, bottom: pageH - tableBottom },
+      tableWidth: contentW,
       showHead: 'everyPage',
-      // Hindari baris terpotong di batas halaman (header tetap jelas di atas blok)
       rowPageBreak: 'avoid',
-      // Jangan ulang seluruh head HTML ganda — cukup headStyles konsisten
+      pageBreak: 'auto',
       didParseCell(data) {
-        if (data.section === 'head') {
-          data.cell.styles.minCellHeight = 7;
-          data.cell.styles.valign = 'middle';
-        }
-        // Nilai kosong: abu-abu (kolom MTK/BI/Rata setelah Kelas)
-        if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4 || data.column.index === 5)) {
-          if (data.cell.raw === '—' || data.cell.raw === '') {
-            data.cell.styles.textColor = [148, 163, 184];
-            data.cell.styles.fontStyle = 'italic';
+        if (data.section === 'body') {
+          const ketIdx = showKelas ? 9 : 8;
+          const valStart = showKelas ? 3 : 2;
+          if (data.column.index >= valStart && data.column.index <= valStart + 2) {
+            if (data.cell.raw === '—' || data.cell.raw === '') {
+              data.cell.styles.textColor = [148, 163, 184];
+              data.cell.styles.fontStyle = 'italic';
+            }
+          }
+          if (data.column.index === ketIdx) {
+            const v = String(data.cell.raw || '');
+            if (v === '—' || v.indexOf('Belum') === 0) {
+              data.cell.styles.textColor = [180, 83, 9];
+              data.cell.styles.fontStyle = 'italic';
+            } else if (v === 'Tuntas' || v.indexOf('Tuntas') === 0) {
+              data.cell.styles.textColor = [5, 122, 85];
+              data.cell.styles.fontStyle = 'bold';
+            }
           }
         }
-        // Kolom ketuntasan
-        if (data.section === 'body' && data.column.index === 9) {
-          const v = String(data.cell.raw || '');
-          if (v.indexOf('Tidak') === 0 || v.indexOf('Belum') === 0) {
-            data.cell.styles.textColor = [180, 83, 9];
-            data.cell.styles.fontStyle = 'italic';
-          } else if (v.indexOf('Tuntas TKA') === 0) {
-            data.cell.styles.textColor = [5, 122, 85];
-            data.cell.styles.fontStyle = 'bold';
-          }
-        }
-      },
-      didDrawPage(data) {
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
-        // Label konteks di atas tabel pada halaman lanjutan (header kolom sudah diulang autoTable)
-        if (data.pageNumber > 1) {
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7.5);
-          doc.setTextColor(100);
-          const topY = (data.settings.margin.top || margin.t) - 3;
-          // Hanya jika ada ruang di atas area tabel
-          if (topY > 6) {
-            doc.text(
-              'Kelas ' + kelas + ' · lanjutan (header kolom diulang)',
-              margin.l,
-              Math.max(8, topY)
-            );
-          }
-          doc.setTextColor(0);
-        }
-        // Footer
-        doc.setFontSize(7);
-        doc.setTextColor(120);
-        doc.text((kelas === '__gabungan__' ? 'Gabungan 6A+6B' : ('Kelas ' + kelas)) + ' · Rekap try out', margin.l, pageH - 6);
-        doc.text('Hal. ' + data.pageNumber, pageW - margin.r, pageH - 6, { align: 'right' });
-        doc.setTextColor(0);
       },
     });
 
-    let ty = (doc.lastAutoTable?.finalY || y) + 14;
-    const meta = TTD[kelas] || TTD['6A'];
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const colW = (pageW - margin.l - margin.r) / 2;
-
-    if (ty + 36 > pageH - margin.b) {
-      doc.addPage();
-      ty = margin.t + 8;
+    // Paksa hanya halaman 1: hapus halaman ekstra jika terlanjur dibuat
+    const totalPages = doc.internal.getNumberOfPages();
+    if (totalPages > 1) {
+      for (let p = totalPages; p > 1; p--) {
+        doc.deletePage(p);
+      }
     }
 
-    doc.setFontSize(9);
+    // —— TTD di bagian bawah halaman 1 ——
+    doc.setPage(1);
+    let ty = pageH - margin.b - ttdH + 4;
+    const meta = gabungan ? TTD['6A'] : (TTD[kelas] || TTD['6A']);
+    const colW = contentW / 2;
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.2);
+    doc.line(margin.l, ty - 3, margin.l + contentW, ty - 3);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
     doc.setTextColor(0);
-    doc.text(meta.label, margin.l + colW / 2, ty, { align: 'center' });
+    doc.text(meta.label || ('Guru Kelas ' + (gabungan ? '6A/6B' : kelas)), margin.l + colW / 2, ty, { align: 'center' });
     doc.text(TTD.ks.label, margin.l + colW + colW / 2, ty, { align: 'center' });
-    ty += 20;
+    ty += Math.min(18, ttdH - 14);
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
     doc.text(meta.guru, margin.l + colW / 2, ty, { align: 'center' });
     doc.text(TTD.ks.guru, margin.l + colW + colW / 2, ty, { align: 'center' });
-    ty += 5;
+    ty += 3.5;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(6.5);
     doc.setTextColor(80);
     doc.text(meta.nbm, margin.l + colW / 2, ty, { align: 'center' });
     doc.text(TTD.ks.nbm, margin.l + colW + colW / 2, ty, { align: 'center' });
     doc.setTextColor(0);
 
-    doc.save('rekap-kelas-' + kelas + '-tryout.pdf');
+    const safeKelas = gabungan ? 'gabungan' : kelas;
+    doc.save('rekap-kelas-' + safeKelas + '-tryout.pdf');
   }
 
-  document.getElementById('btn-muat').addEventListener('click', muatData);
+document.getElementById('btn-muat').addEventListener('click', muatData);
   document.getElementById('btn-pdf').addEventListener('click', unduhPdf);
   document.getElementById('filter-kelas').addEventListener('change', () => {
     document.getElementById('btn-pdf').disabled = true;
