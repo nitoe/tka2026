@@ -518,6 +518,16 @@
     return m ? m[0] : s;
   }
 
+  function isDummyStudent(a) {
+    if (!a) return false;
+    const id = String(a.studentId || a.id || '').toLowerCase();
+    const nama = String(a.namaSiswa || a.nama || '').toLowerCase().replace(/\s+/g, '');
+    const email = String(a.email || '').toLowerCase();
+    return ['dummy1', 'dummy2'].some(k =>
+      id === k || id.includes(k) || nama === k || nama.includes(k) ||
+      email.startsWith(k + '@') || email.includes(k));
+  }
+
   function filtered() {
     const jenis = document.getElementById('filter-jenis').value;
     const mapel = document.getElementById('filter-mapel').value;
@@ -525,6 +535,7 @@
     const paket = document.getElementById('filter-paket').value;
     const cari = document.getElementById('filter-cari').value.trim().toLowerCase();
     return allAttempts.filter(a => {
+      if (isDummyStudent(a)) return false;
       const j = a.jenisPaket || 'latihan';
       if (jenis && j !== jenis) return false;
       if (mapel && a.subjectId !== mapel) return false;

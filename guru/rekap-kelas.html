@@ -804,6 +804,16 @@ function normalizeKelas(k) {
     return m ? m[0] : s;
   }
 
+  /** Akun uji sistem — tidak dihitung di rekap/peringkat. */
+  function isDummyStudent(st) {
+    if (!st) return false;
+    const id = String(st.id || st.studentId || '').toLowerCase();
+    const nama = String(st.nama || st.namaSiswa || st.name || '').toLowerCase().replace(/\s+/g, '');
+    const email = String(st.email || '').toLowerCase();
+    const keys = ['dummy1', 'dummy2'];
+    return keys.some(k => id === k || id.includes(k) || nama === k || nama.includes(k) || email.startsWith(k + '@') || email.includes(k));
+  }
+
   /** Ambil attempt terbaik per siswa per mapel (skor % tertinggi). */
   function bestAttemptMap(list) {
     const map = new Map(); // key: studentId|subjectId
@@ -1069,16 +1079,17 @@ async function muatData() {
         loadRoster(),
         loadAttempts(jenis),
       ]);
-      roster = gabungan
+      roster = (gabungan
         ? allStudents.slice()
-        : allStudents.filter(s => normalizeKelas(s.kelas) === kelas);
+        : allStudents.filter(s => normalizeKelas(s.kelas) === kelas)
+      ).filter(s => !isDummyStudent(s));
       // Sertakan siswa yang punya attempt di kelas ini tapi belum di roster
       const rosterIds = new Set(roster.map(s => s.id));
       for (const a of allAttempts) {
         const kls = normalizeKelas(a.kelasSiswa || a.kelas);
         if (!gabungan && kls !== kelas) continue;
         const sid = a.studentId;
-        if (sid && !rosterIds.has(sid)) {
+        if (sid && !rosterIds.has(sid) && !isDummyStudent({ id: sid, nama: a.namaSiswa, namaSiswa: a.namaSiswa })) {
           roster.push({
             id: sid,
             nama: a.namaSiswa || sid,
