@@ -133,8 +133,19 @@
     padding: 1.5rem 1rem; overflow-y: auto;
   }
   .edit-backdrop.show { display: flex; }
+  .btn-add-soal {
+    background: linear-gradient(135deg, #2563eb, #1e3a8a) !important;
+    color: #fff !important; border: none !important; font-weight: 800 !important;
+  }
+  .editor-layout {
+    display: grid; grid-template-columns: 1fr; gap: 0.75rem;
+  }
+  .editor-meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem;
+  }
   .edit-modal {
     background: var(--surface, #fff); border-radius: var(--radius, 14px);
+    width: min(720px, 96vw); max-width: 96vw;
     box-shadow: var(--shadow); max-width: 560px; width: 100%;
     padding: 1.25rem 1.2rem 1.35rem; margin: auto;
     border: 1px solid var(--line);
@@ -444,8 +455,13 @@
 <div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
 <div id="page" style="display:none;">
   <main class="container">
-    <div class="page-title">🗂️ Bank Soal</div>
-    <div class="page-subtitle" id="peran-note">Memuat...</div>
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:0.35rem;">
+      <div>
+        <div class="page-title" style="margin-bottom:0.2rem;">🗂️ Bank Soal</div>
+        <div class="page-subtitle" id="peran-note" style="margin:0;">Memuat...</div>
+      </div>
+      <button type="button" class="btn btn-primary btn-add-soal" id="btn-tambah-soal">+ Tambah Soal</button>
+    </div>
     <div class="stat-grid" id="stat-grid"></div>
 
     <div class="card" id="card-import" style="display:none;">
@@ -517,8 +533,50 @@
 
 <div id="edit-backdrop" class="edit-backdrop" role="dialog" aria-modal="true">
   <div class="edit-modal">
-    <h3>Edit Soal</h3>
+    <h3 id="edit-title">Edit Soal</h3>
     <div class="meta-id" id="edit-id">—</div>
+    <div class="editor-meta-grid">
+      <div>
+        <label class="fld" for="edit-subject">Mata pelajaran</label>
+        <select id="edit-subject">
+          <option value="matematika">Matematika</option>
+          <option value="bahasa-indonesia">Bahasa Indonesia</option>
+        </select>
+      </div>
+      <div>
+        <label class="fld" for="edit-tipe">Bentuk soal</label>
+        <select id="edit-tipe">
+          <option value="pg">PG (satu jawaban)</option>
+          <option value="pgk">PGK (lebih dari satu benar)</option>
+          <option value="pgk-cat">PGK-Cat (Benar/Salah)</option>
+        </select>
+      </div>
+      <div>
+        <label class="fld" for="edit-tipe-materi">Materi / capaian</label>
+        <input type="text" id="edit-tipe-materi" placeholder="mis. Bilangan / Pemahaman Tekstual" list="edit-materi-list">
+        <datalist id="edit-materi-list">
+          <option value="Bilangan">
+          <option value="Geometri dan Pengukuran">
+          <option value="Data dan Ketidakpastian">
+          <option value="Aljabar">
+          <option value="Pemahaman Tekstual">
+          <option value="Pemahaman Inferensial">
+          <option value="Evaluasi dan Apresiasi">
+        </datalist>
+      </div>
+      <div>
+        <label class="fld" for="edit-kompleksitas">Kompleksitas</label>
+        <select id="edit-kompleksitas">
+          <option value="L1-Pemahaman">L1-Pemahaman</option>
+          <option value="L2-Aplikasi">L2-Aplikasi</option>
+          <option value="L3-Penalaran">L3-Penalaran</option>
+        </select>
+      </div>
+      <div>
+        <label class="fld" for="edit-skor">Skor / poin</label>
+        <input type="number" id="edit-skor" min="1" step="1" value="1">
+      </div>
+    </div>
     <label class="fld" for="edit-pertanyaan">Pertanyaan (teks / HTML aman / KaTeX)</label>
     <textarea id="edit-pertanyaan"></textarea>
     <div class="edit-math-preview-label">Pratinjau pertanyaan</div>
@@ -533,20 +591,6 @@
     <div class="edit-actions" style="justify-content:flex-start;margin-top:0.35rem;">
       <button type="button" class="btn btn-secondary btn-sm" id="edit-hapus-gambar">Hapus gambar</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
-      <div>
-        <label class="fld" for="edit-tipe-materi">Tipe materi</label>
-        <input type="text" id="edit-tipe-materi">
-      </div>
-      <div>
-        <label class="fld" for="edit-kompleksitas">Kompleksitas</label>
-        <select id="edit-kompleksitas">
-          <option value="L1-Pemahaman">L1-Pemahaman</option>
-          <option value="L2-Aplikasi">L2-Aplikasi</option>
-          <option value="L3-Penalaran">L3-Penalaran</option>
-        </select>
-      </div>
-    </div>
     <div class="edit-opsi-block" id="edit-opsi-block">
       <h4>Pilihan &amp; kunci jawaban</h4>
       <div class="edit-kunci-hint" id="edit-tipe-label">Tipe: —</div>
@@ -558,8 +602,6 @@
         pgk-cat: kunci per baris di kolom kanan (Benar/Salah).
       </div>
     </div>
-    <label class="fld" for="edit-skor">Skor</label>
-    <input type="number" id="edit-skor" min="1" step="1">
     <p style="font-size:0.72rem;font-weight:600;color:var(--text-3);margin-top:0.65rem;line-height:1.4;">
       Gambar dikompres otomatis (lebar maks ~900px, JPEG) agar muat di Firestore dan cepat di kuis.
       Perubahan disimpan ke bank soal + versi publik siswa.
@@ -2059,6 +2101,57 @@ function openPreviewSoal(id) {
         console.warn('openEditFromQuery', err);
       }
     }
+
+    function openNewSoal() {
+      const backdrop = document.getElementById('edit-backdrop');
+      const elId = document.getElementById('edit-id');
+      const elQ = document.getElementById('edit-pertanyaan');
+      const elStim = document.getElementById('edit-stimulus');
+      const elMateri = document.getElementById('edit-tipe-materi');
+      const elKomp = document.getElementById('edit-kompleksitas');
+      const elSkor = document.getElementById('edit-skor');
+      const elGambar = document.getElementById('edit-gambar');
+      const elStatus = document.getElementById('edit-status');
+      const prev = document.getElementById('edit-img-preview');
+      const elTitle = document.getElementById('edit-title');
+      const elSub = document.getElementById('edit-subject');
+      const elTipe = document.getElementById('edit-tipe');
+      if (!backdrop || !elQ) {
+        alert('Form soal tidak siap. Muat ulang halaman.');
+        return;
+      }
+      editState = {
+        id: null,
+        isNew: true,
+        tipe: (elTipe && elTipe.value) || 'pg',
+        subjectId: (elSub && elSub.value) || 'matematika',
+        stimulusImage: null,
+        removeImage: false,
+        opsi: ['', '', '', ''],
+        rows: ['', ''],
+        cols: ['Benar', 'Salah'],
+        kunciJawaban: '',
+      };
+      if (elTitle) elTitle.textContent = 'Tambah Soal Baru';
+      if (elId) elId.textContent = 'Soal baru · akan mendapat ID otomatis saat disimpan';
+      if (elSub) elSub.value = editState.subjectId;
+      if (elTipe) elTipe.value = editState.tipe;
+      elQ.value = '';
+      elStim.value = '';
+      if (elMateri) elMateri.value = '';
+      if (elKomp) elKomp.value = 'L1-Pemahaman';
+      if (elSkor) elSkor.value = 1;
+      if (elGambar) elGambar.value = '';
+      if (elStatus) elStatus.textContent = '';
+      if (prev) prev.innerHTML = '<span style="color:var(--text-3);font-size:0.8rem;font-weight:600;">Belum ada gambar</span>';
+      fillEditOpsiFields({});
+      try {
+        if (typeof refreshEditMathPreviews === 'function') refreshEditMathPreviews();
+      } catch (_) {}
+      backdrop.classList.add('show');
+      elQ.focus();
+    }
+
 function openEditSoal(id) {
       const s = allSoal.find(x => x.id === id);
       if (!s) return;
@@ -2079,7 +2172,9 @@ function openEditSoal(id) {
       const tipe = s.tipe || s.tipeSoal || 'pg';
       editState = {
         id,
+        isNew: false,
         tipe,
+        subjectId: s.subjectId || 'matematika',
         stimulusImage: s.stimulusImage || null,
         removeImage: false,
         opsi: Array.isArray(s.opsi) ? s.opsi.slice() : [],
@@ -2087,6 +2182,12 @@ function openEditSoal(id) {
         cols: Array.isArray(s.cols) ? s.cols.slice() : (tipe === 'pgk-cat' ? ['Benar', 'Salah'] : []),
         kunciJawaban: s.kunciJawaban,
       };
+      const elTitle = document.getElementById('edit-title');
+      if (elTitle) elTitle.textContent = 'Edit Soal';
+      const elSub = document.getElementById('edit-subject');
+      const elTipe = document.getElementById('edit-tipe');
+      if (elSub) elSub.value = editState.subjectId;
+      if (elTipe) elTipe.value = tipe;
       elId.textContent = id + ' · ' + (s.subjectId || '') + ' · ' + tipe;
       elQ.value = s.pertanyaan || '';
       elStim.value = s.stimulus || s.bacaan || '';
@@ -2371,8 +2472,20 @@ function closeEditSoal() {
       }
     });
 
+    document.getElementById('btn-tambah-soal')?.addEventListener('click', () => openNewSoal());
+    document.getElementById('edit-tipe')?.addEventListener('change', () => {
+      if (!document.getElementById('edit-backdrop')?.classList.contains('show')) return;
+      editState.tipe = document.getElementById('edit-tipe').value || 'pg';
+      if (editState.tipe === 'pgk-cat') {
+        if (!editState.rows.length) editState.rows = ['', ''];
+        if (!editState.cols.length) editState.cols = ['Benar', 'Salah'];
+      } else if (!editState.opsi.length) {
+        editState.opsi = ['', '', '', ''];
+      }
+      fillEditOpsiFields({});
+    });
     document.getElementById('edit-simpan')?.addEventListener('click', async () => {
-      if (!editState.id) return;
+      if (!editState.isNew && !editState.id) return;
       const st = document.getElementById('edit-status');
       const btn = document.getElementById('edit-simpan');
       const pertanyaan = document.getElementById('edit-pertanyaan').value.trim();
@@ -2385,7 +2498,12 @@ function closeEditSoal() {
       if (!skor || skor <= 0) { st.textContent = 'Skor harus > 0.'; return; }
 
       const parsed = readEditOpsiKunci();
-      const tipe = editState.tipe || 'pg';
+      const elTipeSel = document.getElementById('edit-tipe');
+      const elSubSel = document.getElementById('edit-subject');
+      const tipe = (elTipeSel && elTipeSel.value) || editState.tipe || 'pg';
+      const subjectId = (elSubSel && elSubSel.value) || editState.subjectId || 'matematika';
+      editState.tipe = tipe;
+      editState.subjectId = subjectId;
       if (tipe === 'pg' || tipe === 'pgk') {
         if (parsed.opsi.length < 2) { st.textContent = 'Minimal 2 opsi terisi.'; return; }
         if (tipe === 'pg') {
@@ -2433,7 +2551,21 @@ function closeEditSoal() {
         } else if (editState.stimulusImage) {
           patch.stimulusImage = editState.stimulusImage;
         }
-        await updateDoc(doc(db, 'questionPool', editState.id), patch);
+        const wasNewCreate = !!(editState.isNew || !editState.id);
+        editState.wasNewCreate = wasNewCreate;
+        let soalId = editState.id;
+        if (wasNewCreate) {
+          const ref = doc(collection(db, 'questionPool'));
+          soalId = ref.id;
+          const createPayload = {
+            ...patch,
+            subjectId,
+            createdAt: serverTimestamp(),
+          };
+          await setDoc(ref, createPayload);
+        } else {
+          await updateDoc(doc(db, 'questionPool', soalId), { ...patch, subjectId });
+        }
         const pubPatch = {
           pertanyaan,
           stimulus,
@@ -2442,6 +2574,7 @@ function closeEditSoal() {
           kompleksitas,
           skor,
           tipe,
+          subjectId,
           opsi: parsed.opsi,
           rows: parsed.rows,
           cols: parsed.cols,
@@ -2452,13 +2585,15 @@ function closeEditSoal() {
         else if (editState.stimulusImage) pubPatch.stimulusImage = editState.stimulusImage;
         // hapus kunci plaintext di publik jika pernah tertinggal
         pubPatch.kunciJawaban = null;
-        await setDoc(doc(db, 'soalPublik', editState.id), pubPatch, { merge: true });
-        const soalIdSaved = editState.id;
+        await setDoc(doc(db, 'soalPublik', soalId), pubPatch, { merge: true });
+        const soalIdSaved = soalId;
+        editState.id = soalId;
+        editState.isNew = false;
         st.textContent = 'Tersimpan.';
         // Tawarkan hitung ulang nilai jika kunci berubah
-        const doRescore = confirm(
+        const doRescore = !editState.wasNewCreate && confirm(
           'Soal tersimpan.\n\nHitung ulang nilai attempt siswa yang memakai soal ini?\n' +
-          '(Disarankan setelah koreksi kunci. Butuh rules staff update attempts.)'
+          '(Disarankan setelah koreksi kunci. Skip untuk soal baru.)'
         );
         if (doRescore) {
           st.textContent = 'Menghitung ulang nilai…';
