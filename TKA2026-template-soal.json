@@ -1,0 +1,78 @@
+{
+  "_petunjuk": {
+    "deskripsi": "Template JSON bank soal TKA 2026. Import lewat Bank Soal → tab JSON. Field _petunjuk diabaikan.",
+    "tipe": [
+      "pg",
+      "pgk",
+      "pgk-cat"
+    ],
+    "kompleksitas": [
+      "L1-Pemahaman",
+      "L2-Aplikasi",
+      "L3-Penalaran"
+    ],
+    "subjectId": [
+      "matematika",
+      "bahasa-indonesia"
+    ]
+  },
+  "soal": [
+    {
+      "subjectId": "matematika",
+      "tipeMateri": "Bilangan",
+      "kompleksitas": "L1-Pemahaman",
+      "tipe": "pg",
+      "stimulus": "",
+      "pertanyaan": "Hasil dari 12 + 8 adalah …",
+      "skor": 1,
+      "opsi": [
+        "18",
+        "20",
+        "22",
+        "24"
+      ],
+      "kunciJawaban": "20"
+    },
+    {
+      "subjectId": "matematika",
+      "tipeMateri": "Bilangan",
+      "kompleksitas": "L2-Aplikasi",
+      "tipe": "pgk",
+      "stimulus": "",
+      "pertanyaan": "Manakah yang termasuk bilangan genap?",
+      "skor": 2,
+      "opsi": [
+        "3",
+        "4",
+        "7",
+        "10"
+      ],
+      "kunciJawaban": [
+        "4",
+        "10"
+      ]
+    },
+    {
+      "subjectId": "bahasa-indonesia",
+      "tipeMateri": "Pemahaman Tekstual",
+      "kompleksitas": "L1-Pemahaman",
+      "tipe": "pgk-cat",
+      "stimulus": "Bacalah teks singkat tentang kebersihan sekolah.",
+      "pertanyaan": "Tentukan benar/salah setiap pernyataan.",
+      "skor": 2,
+      "opsi": [],
+      "rows": [
+        "Menjaga kebersihan adalah tanggung jawab bersama.",
+        "Membuang sampah di sungai diperbolehkan."
+      ],
+      "cols": [
+        "Benar",
+        "Salah"
+      ],
+      "kunciJawaban": [
+        "Benar",
+        "Salah"
+      ]
+    }
+  ]
+}

@@ -6,7 +6,24 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ---
 
+## [0.18.13] — 2026-10-01
+
+### Added
+- **Cetak PDF paket soal** (Susun Paket): A4, cegah potong blok teks, gambar max ~70mm.
+- **Tandai selesai / aktifkan kembali** paket try out (`aktif`); badge SELESAI.
+- **Kunci komposisi soal** jika paket sudah punya attempt (edit narasi/kunci lewat Bank Soal + ID).
+- **Hitung ulang nilai** setelah koreksi kunci (konfirmasi guru); rules staff `update` attempts.
+- **Riwayat nilai siswa** (`app/riwayat.html`) — hanya attempt sendiri pada paket nonaktif/selesai.
+
+### Changed
+- `firestore.rules`: `attempts` allow update for staff (rescore).
+
+---
+
 ## [0.18.12] — 2026-10-01
+
+### Changed
+- **Performa loading kuis**: unduh `soalPublik` batch (`documentId in`, 30/chunk) + prefetch saat input token; profil siswa & paket paralel; KaTeX JS on-demand; preconnect CDN/Firestore.
 
 ### Fixed
 - **Akses try out siswa**: parser waktu (`bukaPada`/`tutupPada`) diseragamkan (Timestamp, epoch, string lokal tanpa zona) di `kuis.html` & `pilih-paket.html`.
