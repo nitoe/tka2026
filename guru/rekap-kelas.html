@@ -968,8 +968,8 @@ function normalizeKelas(k) {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
-  async function muatData() {
-    const btn = 
+  
+  // —— Tab UI ——
   document.querySelectorAll('.tabs-bar [data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tabs-bar [data-tab]').forEach(b => b.classList.remove('active'));
@@ -1023,10 +1023,11 @@ function normalizeKelas(k) {
   }
 
   function renderCapaianMateri(attemptList) {
-    const kelas = document.getElementById('filter-kelas').value;
+    const filterKelasRaw = document.getElementById('filter-kelas').value;
     let list = attemptList || [];
-    if (kelas && kelas !== '__gabungan__') {
-      list = list.filter(a => normalizeKelas(a.kelasSiswa || a.kelas) === normalizeKelas(kelas));
+    if (filterKelasRaw && filterKelasRaw !== '__gabungan__') {
+      const kelas = normalizeKelas(filterKelasRaw);
+      list = list.filter(a => normalizeKelas(a.kelasSiswa || a.kelas) === kelas);
     }
     if (rows && rows.length) {
       const ids = new Set(rows.map(r => r.studentId));
@@ -1053,37 +1054,41 @@ function normalizeKelas(k) {
     fill('tbody-capaian-bi', 'bahasa-indonesia');
   }
 
-document.getElementById('btn-muat');
+async function muatData() {
+    const btn = document.getElementById('btn-muat');
     const hint = document.getElementById('query-hint');
-    const kelas = normalizeKelas(document.getElementById('filter-kelas').value);
+    const filterKelasRaw = document.getElementById('filter-kelas').value;
+    const gabungan = filterKelasRaw === '__gabungan__';
+    const kelas = gabungan ? '__gabungan__' : normalizeKelas(filterKelasRaw);
     const jenis = document.getElementById('filter-jenis').value;
-    btn.disabled = true;
-    hint.textContent = 'Memuat roster siswa & attempt…';
+    if (btn) btn.disabled = true;
+    if (hint) hint.textContent = 'Memuat roster siswa & attempt…';
     try {
       const [allStudents, allAttempts] = await Promise.all([
         loadRoster(),
         loadAttempts(jenis),
       ]);
-      const gabungan = kelas === '__gabungan__';
       roster = gabungan
         ? allStudents.slice()
-        : allStudents.filter(s => s.kelas === kelas);
+        : allStudents.filter(s => normalizeKelas(s.kelas) === kelas);
       // Sertakan siswa yang punya attempt di kelas ini tapi belum di roster
       const rosterIds = new Set(roster.map(s => s.id));
       for (const a of allAttempts) {
-        const kls = normalizeKelas(a.kelasSiswa);
+        const kls = normalizeKelas(a.kelasSiswa || a.kelas);
         if (!gabungan && kls !== kelas) continue;
         const sid = a.studentId;
         if (sid && !rosterIds.has(sid)) {
           roster.push({
             id: sid,
             nama: a.namaSiswa || sid,
-            kelas: k,
+            kelas: kls || kelas,
           });
           rosterIds.add(sid);
         }
       }
-      attempts = allAttempts.filter(a => normalizeKelas(a.kelasSiswa) === kelas);
+      attempts = gabungan
+        ? allAttempts.slice()
+        : allAttempts.filter(a => normalizeKelas(a.kelasSiswa || a.kelas) === kelas);
       attemptsForCapaian = attempts;
       rows = buildRows(kelas, roster, attempts);
 
@@ -1094,17 +1099,23 @@ document.getElementById('btn-muat');
       document.getElementById('stat-ikut').textContent = ikut;
       document.getElementById('stat-mtk').textContent = ikutMtk;
       document.getElementById('stat-bi').textContent = ikutBi;
-      hint.textContent = (kelas === '__gabungan__' ? 'Gabungan 6A+6B' : ('Kelas ' + kelas))
-        + `: ${rows.length} siswa, ${attempts.length} attempt (jenis: ${jenis || 'semua'}). Nilai = persen terbaik per mapel.`;
+      if (hint) {
+        hint.textContent = (gabungan ? 'Gabungan 6A+6B' : ('Kelas ' + kelas))
+          + `: ${rows.length} siswa, ${attempts.length} attempt (jenis: ${jenis || 'semua'}). Nilai = persen terbaik per mapel.`;
+      }
       renderTable();
     } catch (err) {
       console.error(err);
-      hint.textContent = 'Gagal memuat: ' + err.message;
-      document.getElementById('tbody').innerHTML =
-        `<tr><td colspan="10" style="text-align:center;color:#b91c1c;padding:18px;">${escapeHtml(err.message)}</td></tr>`;
-      document.getElementById('btn-pdf').disabled = true;
+      if (hint) hint.textContent = 'Gagal memuat: ' + err.message;
+      const tb = document.getElementById('tbody');
+      if (tb) {
+        tb.innerHTML =
+          `<tr><td colspan="10" style="text-align:center;color:#b91c1c;padding:18px;">${escapeHtml(err.message)}</td></tr>`;
+      }
+      const pdfBtn = document.getElementById('btn-pdf');
+      if (pdfBtn) pdfBtn.disabled = true;
     }
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
   }
 
   function unduhPdf() {
