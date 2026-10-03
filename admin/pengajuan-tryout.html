@@ -77,7 +77,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import {
-    collection, getDocs, doc, updateDoc, addDoc, serverTimestamp
+    collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, increment, writeBatch
   } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
 
   const loading = document.getElementById('loading');
@@ -86,6 +86,8 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
   let pengajuan = [];
   let poolSoal = []; // full soalPublik
   let usedIds = new Set();
+  /** @type {Map<string, number>} hitungan dari paket try out + field kaliDipakaiTryout */
+  let usageCount = new Map();
   let filterMode = 'antrian';
   let openGenId = null;
   /** @type {Record<string, string[]>} */
@@ -104,14 +106,34 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
     return a;
   }
 
+  function getUsage(idOrSoal) {
+    const id = typeof idOrSoal === 'string' ? idOrSoal : idOrSoal?.id;
+    if (!id) return 0;
+    const fromMap = usageCount.get(id);
+    if (fromMap != null) return fromMap;
+    const s = typeof idOrSoal === 'object' ? idOrSoal : poolSoal.find((x) => x.id === id);
+    return Number(s?.kaliDipakaiTryout) || 0;
+  }
+
   async function loadUsedIds() {
     const snap = await getDocs(collection(db, 'packages'));
     usedIds = new Set();
+    usageCount = new Map();
     snap.docs.forEach((d) => {
       const p = d.data();
       if ((p.jenis || '') === 'tryout') {
-        (p.questionIds || []).forEach((id) => usedIds.add(id));
+        (p.questionIds || []).forEach((id) => {
+          usedIds.add(id);
+          usageCount.set(id, (usageCount.get(id) || 0) + 1);
+        });
       }
+    });
+    // Gabungkan dengan field tersimpan di soal (lebih tinggi menang)
+    poolSoal.forEach((s) => {
+      const stored = Number(s.kaliDipakaiTryout) || 0;
+      const fromPkg = usageCount.get(s.id) || 0;
+      usageCount.set(s.id, Math.max(stored, fromPkg));
+      if (usageCount.get(s.id) > 0) usedIds.add(s.id);
     });
   }
 
@@ -128,7 +150,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 
   /**
    * Generate questionIds sesuai komposisi.
-   * Prioritas: belum dipakai try out, lalu baru yang sudah dipakai.
+   * Prioritas: kaliDipakaiTryout terendah (0 dulu), acak di dalam tingkat yang sama.
    */
   function generateFor(p) {
     const subjectId = p.subjectId;
@@ -151,9 +173,15 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         return true;
       });
 
-      const unused = shuffle(candidates.filter((s) => !usedIds.has(s.id)));
-      const used = shuffle(candidates.filter((s) => usedIds.has(s.id)));
-      const ordered = unused.concat(used);
+      // Kelompokkan per jumlah pemakaian, acak dalam kelompok, urut dari 0 → tinggi
+      const byCount = new Map();
+      candidates.forEach((s) => {
+        const c = getUsage(s);
+        if (!byCount.has(c)) byCount.set(c, []);
+        byCount.get(c).push(s);
+      });
+      const ordered = [...byCount.keys()].sort((a, b) => a - b)
+        .flatMap((c) => shuffle(byCount.get(c)));
 
       let got = 0;
       for (const s of ordered) {
@@ -198,11 +226,12 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
       if (isOpen) {
         const rows = genIds.map((id) => {
           const s = poolSoal.find((x) => x.id === id) || { id };
-          const used = usedIds.has(id);
+          const n = getUsage(id);
+          const used = n > 0;
           const q = (s.pertanyaan || '').slice(0, 90);
           return `<div class="soal-row ${used ? 'used' : 'unused'}">
             <div style="flex:1;min-width:0">
-              <div class="tag">${used ? 'pernah dipakai' : 'baru'} · ${escapeHtml(s.tipeMateri || '-')} · ${escapeHtml(s.kompleksitas || '-')} · skor ${s.skor ?? '-'}</div>
+              <div class="tag">${used ? 'dipakai ' + n + '×' : 'belum dipakai'} · ${escapeHtml(s.tipeMateri || '-')} · ${escapeHtml(s.kompleksitas || '-')} · skor ${s.skor ?? '-'}</div>
               <div style="font-weight:700;margin-top:2px">${escapeHtml(q)}${(s.pertanyaan || '').length > 90 ? '…' : ''}</div>
               <div style="font-size:.68rem;color:#94a3b8;font-weight:600">${escapeHtml(id)}</div>
             </div>
@@ -356,13 +385,36 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         generatedQuestionIds: ids,
         updatedAt: serverTimestamp(),
       });
-      // tandai used
-      ids.forEach((id) => usedIds.add(id));
+      // Fase 5: catat pemakaian di soalPublik + questionPool
+      const chunk = 40;
+      for (let i = 0; i < ids.length; i += chunk) {
+        const batch = writeBatch(db);
+        const slice = ids.slice(i, i + chunk);
+        for (const qid of slice) {
+          batch.set(doc(db, 'soalPublik', qid), {
+            kaliDipakaiTryout: increment(1),
+            lastUsedTryoutAt: serverTimestamp(),
+            lastUsedPackageId: ref.id,
+          }, { merge: true });
+          batch.set(doc(db, 'questionPool', qid), {
+            kaliDipakaiTryout: increment(1),
+            lastUsedTryoutAt: serverTimestamp(),
+            lastUsedPackageId: ref.id,
+          }, { merge: true });
+        }
+        await batch.commit();
+      }
+      ids.forEach((id) => {
+        usedIds.add(id);
+        usageCount.set(id, getUsage(id) + 1);
+        const s = poolSoal.find((x) => x.id === id);
+        if (s) s.kaliDipakaiTryout = getUsage(id);
+      });
       await loadPengajuan();
       openGenId = null;
       if (st) st.textContent = 'Published. Paket ID: ' + ref.id;
       renderList();
-      alert('Try out dipublish. Siswa sekolah terkait dapat melihat paket aktif.');
+      alert('Try out dipublish. Pemakaian soal dicatat. Siswa sekolah terkait dapat melihat paket aktif.');
     } catch (err) {
       if (st) st.textContent = 'Gagal: ' + err.message;
       alert('Gagal publish: ' + err.message);
@@ -408,7 +460,9 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         return;
       }
       try {
-        await Promise.all([loadPool(), loadUsedIds(), loadPengajuan()]);
+        await loadPool();
+        await loadUsedIds(); // setelah pool agar gabung kaliDipakaiTryout
+        await loadPengajuan();
         loading.style.display = 'none';
         app.style.display = 'block';
         renderList();

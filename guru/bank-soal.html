@@ -543,6 +543,9 @@
         <label class="filter-chip" id="chip-tanpa-media" title="Soal tanpa teks stimulus dan tanpa gambar">
           <input type="checkbox" id="filter-tanpa-media"> Tanpa media
         </label>
+        <label class="filter-chip" id="chip-belum-tryout" title="Belum pernah dipakai di paket try out" style="display:none">
+          <input type="checkbox" id="filter-belum-tryout"> Belum dipakai try out
+        </label>
       </div>
       <div class="filters">
         <select id="filter-mapel"><option value="">Semua Mapel</option></select>
@@ -552,7 +555,7 @@
       <div class="hasil-filter" id="hasil-filter"></div>
       <div class="preview-wrap">
         <table>
-          <thead><tr><th></th><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe</th><th>Pertanyaan</th><th>Skor</th><th>Aksi</th></tr></thead>
+          <thead><tr><th></th><th>Mapel</th><th>Tipe Materi</th><th>Kompleksitas</th><th>Tipe</th><th>Pertanyaan</th><th>Skor</th><th>Pakai</th><th>Aksi</th></tr></thead>
           <tbody id="soal-tbody"></tbody>
         </table>
       </div>
@@ -1108,10 +1111,15 @@
       const total = allSoal.length;
       const mtk = allSoal.filter(s => s.subjectId === 'matematika').length;
       const bindo = allSoal.filter(s => s.subjectId === 'bahasa-indonesia').length;
+      const belum = allSoal.filter(s => !(Number(s.kaliDipakaiTryout) > 0)).length;
+      const isAdmin = currentStaff && currentStaff.peran === 'admin';
+      const chipBelum = document.getElementById('chip-belum-tryout');
+      if (chipBelum) chipBelum.style.display = isAdmin ? '' : 'none';
       grid.innerHTML = `
         <div class="stat-box"><div class="num">${total}</div><div class="label">Total Soal</div></div>
         <div class="stat-box"><div class="num">${mtk}</div><div class="label">Matematika</div></div>
-        <div class="stat-box"><div class="num">${bindo}</div><div class="label">B. Indonesia</div></div>`;
+        <div class="stat-box"><div class="num">${bindo}</div><div class="label">B. Indonesia</div></div>
+        ${isAdmin ? `<div class="stat-box"><div class="num">${belum}</div><div class="label">Belum try out</div></div>` : ''}`;
     }
 
     function populateFilters() {
@@ -1152,12 +1160,14 @@
       const fKomp = document.getElementById('filter-kompleksitas').value;
       const fSearch = (document.getElementById('filter-search')?.value || '').trim().toLowerCase();
       const fTanpaMedia = document.getElementById('filter-tanpa-media')?.checked;
+      const fBelumTryout = document.getElementById('filter-belum-tryout')?.checked;
       const tokens = fSearch ? fSearch.split(/\s+/).filter(Boolean) : [];
       const filtered = allSoal.filter(s => {
         if (fMapel && s.subjectId !== fMapel) return false;
         if (fMateri && s.tipeMateri !== fMateri) return false;
         if (fKomp && s.kompleksitas !== fKomp) return false;
         if (fTanpaMedia && hasMedia(s)) return false;
+        if (fBelumTryout && Number(s.kaliDipakaiTryout) > 0) return false;
         if (tokens.length) {
           const blob = soalSearchBlob(s);
           if (!tokens.every(tok => blob.includes(tok))) return false;
@@ -1205,6 +1215,10 @@
           <button type="button" class="btn-sm btn-preview" data-preview="${s.id}">Preview</button>
           ${editBtn}
         </span>`;
+        const nPakai = Number(s.kaliDipakaiTryout) || 0;
+        const pakaiCell = nPakai > 0
+          ? `<span class="chip-miss" style="background:#fef3c7;color:#92400e">${nPakai}×</span>`
+          : `<span style="font-size:0.72rem;font-weight:700;color:#057a55">0</span>`;
         return `<tr>
           <td>${thumb}</td>
           <td>${s.subjectId || '-'}</td>
@@ -1213,6 +1227,7 @@
           <td>${s.tipe || '-'}</td>
           <td>${(s.pertanyaan || '').slice(0, 70)}${(s.pertanyaan || '').length > 70 ? '…' : ''}</td>
           <td>${s.skor ?? '-'}</td>
+          <td>${pakaiCell}</td>
           <td>${aksi}</td>
         </tr>`;
       }).join('');
@@ -1243,6 +1258,7 @@
       }
     });
     document.getElementById('filter-tanpa-media')?.addEventListener('change', renderTable);
+    document.getElementById('filter-belum-tryout')?.addEventListener('change', renderTable);
 
     // Template downloads
     document.getElementById('btn-dl-xlsx')?.addEventListener('click', buildExcelTemplate);
