@@ -83,3 +83,53 @@ export function resolveSekolahIdForRead(userDoc) {
   if (fromCtx) return fromCtx;
   return SEKOLAH_DEFAULT_ID;
 }
+
+/**
+ * sekolahId saat menulis ke bank soal.
+ * - Admin → null (pool admin global, dipakai semua sekolah)
+ * - Guru → sekolah guru
+ */
+export function resolveSekolahIdForBankWrite(staff) {
+  if (staff && staff.peran === 'admin') return null;
+  return resolveSekolahIdForWrite(staff);
+}
+
+/** sumber soal: 'admin' | 'guru' */
+export function resolveSumberSoal(staff) {
+  if (staff && staff.peran === 'admin') return 'admin';
+  return 'guru';
+}
+
+/**
+ * Filter bank soal menurut peran (fase 1 multi-pool).
+ *
+ * Guru: soal tim sekolah (sumber guru + legacy se-sekolah); TANPA pool admin.
+ * Admin: pool admin global SELALU + soal guru (filter sekolah kerja jika dipilih).
+ *
+ * Legacy (tanpa sumber):
+ * - tanpa sekolahId → dianggap pool admin (hanya admin)
+ * - ada sekolahId / legacy Kukusan → tim sekolah (guru se-sekolah + admin)
+ */
+export function filterBankSoal(docs, userDoc) {
+  const isAdmin = !!(userDoc && userDoc.peran === 'admin');
+  const sid = resolveSekolahIdForRead(userDoc);
+  return (docs || []).filter((d) => {
+    const sumber = d && d.sumber;
+    if (sumber === 'admin') {
+      return isAdmin;
+    }
+    if (sumber === 'guru') {
+      if (isAdmin) return !sid || belongsToSekolah(d, sid);
+      return belongsToSekolah(d, sid);
+    }
+    // Legacy tanpa sumber
+    const hasSid = d && d.sekolahId != null && d.sekolahId !== '';
+    if (!hasSid) {
+      // pool lama tanpa sekolahId: admin saja (kecuali filter Kukusan lewat belongsTo)
+      if (isAdmin) return true;
+      return belongsToSekolah(d, sid);
+    }
+    if (isAdmin) return !sid || belongsToSekolah(d, sid);
+    return belongsToSekolah(d, sid);
+  });
+}

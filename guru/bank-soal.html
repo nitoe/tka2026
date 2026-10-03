@@ -691,6 +691,14 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
+  import {
+    resolveSekolahIdForWrite,
+    filterBySekolah,
+    resolveSekolahIdForRead,
+    resolveSekolahIdForBankWrite,
+    resolveSumberSoal,
+    filterBankSoal,
+  } from '../assets/sekolah-scope.js';
   import { collection, getDocs, writeBatch, doc, serverTimestamp, updateDoc, setDoc, query, where, limit, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import { computeKunciHash, toSoalPublik, hashJawabanSiswa } from '../assets/scoring.js';
 
@@ -1002,9 +1010,13 @@
     };
   }
 
-  async function commitSoalList(validDataList, sourceLabel, statusEl, logEl) {
+  async function commitSoalList(validDataList, sourceLabel, statusEl, logEl, staffDoc) {
     let count = 0;
     const chunk = 40;
+    const staff = staffDoc || currentStaff;
+    const sekolahId = resolveSekolahIdForBankWrite(staff);
+    const sumber = resolveSumberSoal(staff);
+    const createdBy = (auth.currentUser && auth.currentUser.uid) || null;
     for (let i = 0; i < validDataList.length; i += chunk) {
       const slice = validDataList.slice(i, i + chunk);
       const batch = writeBatch(db);
@@ -1016,16 +1028,24 @@
           ...rest,
           kunciJawaban,
           sourceFile: sourceLabel,
+          sumber,
+          createdBy,
           createdAt: serverTimestamp(),
         };
+        // Pool admin global: tanpa sekolahId. Soal guru: tempel sekolahId.
+        if (sekolahId) payload.sekolahId = sekolahId;
         batch.set(ref, payload);
         const publik = await toSoalPublik({ id: ref.id, ...payload });
         const { id: _id, kunciJawaban: _k, ...pubRest } = publik;
-        batch.set(doc(db, 'soalPublik', ref.id), {
+        const pubDoc = {
           ...pubRest,
           kunciHash,
+          sumber,
+          createdBy,
           createdAt: serverTimestamp(),
-        });
+        };
+        if (sekolahId) pubDoc.sekolahId = sekolahId;
+        batch.set(doc(db, 'soalPublik', ref.id), pubDoc);
         count++;
       }
       await batch.commit();
@@ -1039,12 +1059,13 @@
     return count;
   }
 
+  let currentStaff = null;
+  let allSoal = [];
+
   if (!isConfigured) {
     loading.style.display = 'none';
     notConfigured.style.display = 'flex';
   } else {
-    let currentStaff = null;
-    let allSoal = [];
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = '../index.html'; return; }
@@ -1053,7 +1074,9 @@
       currentStaff = staff;
       document.getElementById('peran-note').textContent =
         `Masuk sebagai ${staff.nama} (${staff.peran}). ` +
-        (staff.peran === 'admin' ? 'Anda dapat mengimpor soal dan mengunduh template.' : 'Guru dapat melihat bank soal.');
+        (staff.peran === 'admin'
+          ? 'Pool admin global + soal guru. Impor masuk ke pool admin bersama.'
+          : 'Bank tim sekolah Anda (tanpa pool admin). Soal baru tercatat sebagai soal guru.');
       if (staff.peran === 'admin') {
         document.getElementById('card-import').style.display = 'block';
         document.getElementById('card-backfill').style.display = 'block';
@@ -1067,7 +1090,10 @@
 
     async function loadSoal() {
       const snap = await getDocs(collection(db, 'questionPool'));
-      allSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Fase 1: guru = soal tim sekolah (tanpa pool admin);
+      // admin = pool admin global + soal guru (filter sekolah kerja).
+      allSoal = filterBankSoal(raw, currentStaff);
       renderStats();
       populateFilters();
       renderTable();
@@ -1158,8 +1184,16 @@
         return;
       }
       emptyState.style.display = 'none';
-      const canEdit = currentStaff && (currentStaff.peran === 'admin' || currentStaff.peran === 'guru');
+      const uid = (auth.currentUser && auth.currentUser.uid) || '';
       tbody.innerHTML = filtered.map(s => {
+        // Admin: semua yang tampil. Guru: hanya miliknya; legacy tanpa createdBy boleh diedit tim.
+        const canEdit = currentStaff && (
+          currentStaff.peran === 'admin'
+          || (currentStaff.peran === 'guru' && (
+            s.createdBy === uid
+            || (!s.createdBy && s.sumber !== 'admin')
+          ))
+        );
         const miss = !(s.stimulus || s.bacaan || s.stimulusImage);
         const thumb = s.stimulusImage
           ? `<span class="thumb-cell"><img src="${s.stimulusImage}" alt="" loading="lazy" decoding="async" width="56" height="40"></span>`
@@ -2620,14 +2654,20 @@ function isEditFormDirty() {
         const wasNewCreate = !!(editState.isNew || !editState.id);
         editState.wasNewCreate = wasNewCreate;
         let soalId = editState.id;
+        const sekolahIdWrite = resolveSekolahIdForBankWrite(currentStaff);
+        const sumberWrite = resolveSumberSoal(currentStaff);
+        const createdByWrite = (auth.currentUser && auth.currentUser.uid) || null;
         if (wasNewCreate) {
           const ref = doc(collection(db, 'questionPool'));
           soalId = ref.id;
           const createPayload = {
             ...patch,
             subjectId,
+            sumber: sumberWrite,
+            createdBy: createdByWrite,
             createdAt: serverTimestamp(),
           };
+          if (sekolahIdWrite) createPayload.sekolahId = sekolahIdWrite;
           await setDoc(ref, createPayload);
         } else {
           await updateDoc(doc(db, 'questionPool', soalId), { ...patch, subjectId });
@@ -2647,6 +2687,11 @@ function isEditFormDirty() {
           kunciHash,
           updatedAt: serverTimestamp(),
         };
+        if (wasNewCreate) {
+          pubPatch.sumber = sumberWrite;
+          pubPatch.createdBy = createdByWrite;
+          if (sekolahIdWrite) pubPatch.sekolahId = sekolahIdWrite;
+        }
         if (editState.removeImage) pubPatch.stimulusImage = null;
         else if (editState.stimulusImage) pubPatch.stimulusImage = editState.stimulusImage;
         // hapus kunci plaintext di publik jika pernah tertinggal

@@ -297,7 +297,12 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
-  import { resolveSekolahIdForWrite, filterBySekolah, resolveSekolahIdForRead } from '../assets/sekolah-scope.js';
+  import {
+    resolveSekolahIdForWrite,
+    filterBySekolah,
+    resolveSekolahIdForRead,
+    filterBankSoal,
+  } from '../assets/sekolah-scope.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
   import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, where, limit } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
@@ -394,7 +399,9 @@
     const list = document.getElementById('soal-list');
     try {
       const snap = await getDocs(collection(db, 'soalPublik'));
-      allSoal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Fase 1: guru = tim sekolah (tanpa admin); admin = pool admin + soal guru
+      allSoal = filterBankSoal(raw, currentStaff);
       populateFilters();
       renderSoalList();
     } catch (err) {
