@@ -569,8 +569,8 @@
       const snap = await getDocs(collection(db, 'packages'));
       let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const sid = resolveSekolahIdForRead(currentStaff);
-      // Admin tanpa sekolahId melihat semua; guru difilter
-      if (currentStaff?.peran !== 'admin') items = filterBySekolah(items, sid);
+      // Admin: null = semua sekolah; id = filter. Guru: selalu filter.
+      items = filterBySekolah(items, sid);
       items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       if (!items.length) {
         list.innerHTML = '<div class="empty-state">Belum ada paket.</div>';
