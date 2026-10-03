@@ -98,6 +98,19 @@
       <a class="nav-card" href="#sekolah"><strong>🏫 Sekolah</strong><span>Tambah & edit data sekolah</span></a>
       <a class="nav-card" href="#guru"><strong>👨‍🏫 Akun Guru</strong><span>Buat akun guru per sekolah</span></a>
       <a class="nav-card" href="#siswa"><strong>📥 Import Siswa</strong><span>Nama + NISN + sekolah</span></a>
+      <a class="nav-card" href="./backfill-sekolah.html"><strong>🔧 Backfill</strong><span>Isi sekolahId data lama</span></a>
+    </div>
+    <div class="card" id="stabilisasi" style="border:1.5px solid #bfdbfe;background:#eff6ff;">
+      <h2>Stabilisasi deploy (sekali jalan)</h2>
+      <p class="hint" style="margin-bottom:10px;">Urutan aman setelah upload file multi-sekolah:</p>
+      <ol class="hint" style="margin:0 0 12px 1.1rem;line-height:1.7;">
+        <li>Pastikan <code>firestore.rules</code> sudah di-deploy.</li>
+        <li>Klik <strong>Seed sekolah Kukusan</strong> di bawah (atau isi form Kelola Sekolah).</li>
+        <li>Jalankan <a href="./backfill-sekolah.html">Backfill sekolahId</a> (dry-run dulu, lalu tulis).</li>
+        <li>Hard refresh (Ctrl+Shift+R) di gerbang <code>/</code> → pilih sekolah → login.</li>
+      </ol>
+      <button type="button" class="btn btn-primary" id="btn-seed-kukusan">Seed sekolah SDM01KUKUSAN</button>
+      <div class="status" id="status-seed"></div>
     </div>
 
     <!-- SEKOLAH -->
@@ -461,6 +474,31 @@
     e.preventDefault();
     await signOut(auth);
     window.location.href = '../login.html?mode=admin';
+  });
+
+
+  document.getElementById('btn-seed-kukusan')?.addEventListener('click', async () => {
+    const status = document.getElementById('status-seed');
+    status.className = 'status';
+    status.textContent = 'Menyimpan seed…';
+    try {
+      await setDoc(doc(db, 'sekolah', 'SDM01KUKUSAN'), {
+        kode: 'SDM01KUKUSAN',
+        nama: 'SD Muhammadiyah 01 Kukusan',
+        alamat: 'Kukusan, Beji, Kota Depok',
+        namaKepalaSekolah: 'Mudzakkir Walad, S.Pd.',
+        nbmKepala: '1167327',
+        aktif: true,
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+      status.textContent = '✅ Seed SDM01KUKUSAN tersimpan (merge).';
+      status.className = 'status ok';
+      await loadSekolah();
+    } catch (err) {
+      status.textContent = 'Gagal: ' + (err.message || err.code);
+      status.className = 'status err';
+    }
   });
 
   onAuthStateChanged(auth, async (user) => {
