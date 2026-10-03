@@ -1,7 +1,7 @@
 rules_version = '2';
 
-// Firestore Security Rules — Portal Latihan TKA 2026
-// SD Muhammadiyah 01 Kukusan
+// Firestore Security Rules — Portal Latihan TKA 2026 (multi-sekolah)
+// Satu project Firebase; isolasi data lewat field sekolahId.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -27,6 +27,28 @@ service cloud.firestore {
       return isStaff() && staffData().peran == 'admin';
     }
 
+    function isGuru() {
+      return isStaff() && staffData().peran == 'guru';
+    }
+
+    // sekolahId user (staff). Admin super: tidak terikat satu sekolah.
+    function staffSekolahId() {
+      return staffData().sekolahId;
+    }
+
+    // ─── Master sekolah (gerbang publik hanya baca yang aktif) ───
+    match /sekolah/{sekolahId} {
+      allow read: if resource.data.aktif == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Roster dropdown login — HANYA nama, kelas, emailLogin, jenis, sekolahId
+    // (tanpa NISN / password). Dibaca sebelum login.
+    match /loginRoster/{rosterId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /staff/{uid} {
       allow read: if isOwner(uid) || isStaff();
       allow write: if isAdmin();
@@ -42,7 +64,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Bank soal: staff (admin & guru) boleh edit stimulus/gambar agar perbaikan cepat
+    // Bank soal — fase transisi: staff masih full access.
+    // Fase berikutnya: filter sekolahId di rules + query.
     match /questionPool/{questionId} {
       allow read: if isStaff();
       allow write: if isStaff();
@@ -68,7 +91,6 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // Monitoring langsung: siswa menulis sesi sendiri; staf membaca semua
     match /liveSessions/{sessionId} {
       allow read: if isStaff();
       allow create, update: if isSignedIn()
@@ -83,7 +105,6 @@ service cloud.firestore {
         request.resource.data.studentId == request.auth.uid;
       allow read: if isStaff() ||
         (isSignedIn() && resource.data.studentId == request.auth.uid);
-      // Staff: hitung ulang nilai setelah koreksi kunci (rescore)
       allow update: if isStaff();
       allow delete: if isStaff();
     }
