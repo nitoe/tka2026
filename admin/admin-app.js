@@ -427,55 +427,129 @@ async function loadSiswaList(sekolahId) {
     let rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       .filter((r) => belongsToSchool(r, sekolahId));
 
-    // Lengkapi dari loginRoster (siswa) — dipakai dropdown login
+    // Peta email dari loginRoster (sumber dropdown login)
+    const emailByName = new Map();
+    const emailById = new Map();
     try {
       const rosterSnap = await getDocs(collection(db, 'loginRoster'));
       const rosterSiswa = rosterSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => (r.jenis === 'siswa' || (!r.jenis && !r.peran)) && belongsToSchool(r, sekolahId));
-      const emails = new Set(rows.map((r) => (r.emailLogin || '').toLowerCase()).filter(Boolean));
-      const names = new Set(rows.map((r) => (r.nama || '').toLowerCase()).filter(Boolean));
-      for (const r of rosterSiswa) {
-        const em = (r.emailLogin || '').toLowerCase();
-        const nm = (r.nama || '').toLowerCase();
-        if (em && emails.has(em)) continue;
-        if (!em && nm && names.has(nm)) continue;
-        rows.push({
-          id: r.id,
-          nama: r.nama,
-          kelas: r.kelas || '',
-          nisn: r.nisn || '',
-          emailLogin: r.emailLogin || '',
-          sekolahId: r.sekolahId,
-          _fromRoster: true,
+        .filter((r) => {
+          if (r.jenis === 'guru' || r.peran === 'guru' || r.peran === 'admin') return false;
+          return belongsToSchool(r, sekolahId);
         });
-        if (em) emails.add(em);
-        if (nm) names.add(nm);
+      for (const r of rosterSiswa) {
+        const em = (r.emailLogin || r.email || '').trim();
+        const nm = (r.nama || '').trim().toLowerCase();
+        if (em && nm) emailByName.set(nm, em);
+        if (em) emailById.set(r.id, em);
+        // Tambah baris jika belum ada di students
+        const exists = rows.some((x) =>
+          x.id === r.id
+          || ((x.emailLogin || x.email || '').toLowerCase() === em.toLowerCase() && em)
+          || ((x.nama || '').trim().toLowerCase() === nm && nm)
+        );
+        if (!exists) {
+          rows.push({
+            id: r.id,
+            nama: r.nama,
+            kelas: r.kelas || '',
+            nisn: r.nisn || '',
+            emailLogin: em,
+            sekolahId: r.sekolahId,
+            _fromRoster: true,
+          });
+        }
       }
     } catch (_) {}
 
-    rows.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id'));
-    if (!rows.length) {
+    // Lengkapi email di setiap baris
+    for (const r of rows) {
+      let em = (r.emailLogin || r.email || r.emailMasuk || '').trim();
+      if (!em && r.id && emailById.has(r.id)) em = emailById.get(r.id);
+      if (!em) {
+        const nm = (r.nama || '').trim().toLowerCase();
+        if (nm && emailByName.has(nm)) em = emailByName.get(nm);
+      }
+      r.emailLogin = em || '';
+    }
+
+    // Pisahkan akun tes sistem (dummy)
+    function isDummy(r) {
+      const nama = (r.nama || '').toLowerCase();
+      const kelas = (r.kelas || '').toLowerCase();
+      const email = (r.emailLogin || '').toLowerCase();
+      if (kelas.includes('test') || kelas.includes('tes sistem') || kelas === 'test sistem') return true;
+      if (/^dummy\s*\d*$/i.test((r.nama || '').trim())) return true;
+      if (email.startsWith('dummy') && email.includes('@')) return true;
+      if (nama.includes('dummy 1') || nama.includes('dummy 2') || nama === 'dummy1' || nama === 'dummy2') return true;
+      return false;
+    }
+
+    const aktif = rows.filter((r) => !isDummy(r));
+    const dummy = rows.filter((r) => isDummy(r));
+
+    function sortSiswa(list) {
+      return list.slice().sort((a, b) => {
+        const ka = String(a.kelas || 'ZZZ');
+        const kb = String(b.kelas || 'ZZZ');
+        const ck = ka.localeCompare(kb, 'id', { numeric: true, sensitivity: 'base' });
+        if (ck !== 0) return ck;
+        return String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' });
+      });
+    }
+
+    const aktifSorted = sortSiswa(aktif);
+    const dummySorted = sortSiswa(dummy);
+
+    if (!aktifSorted.length && !dummySorted.length) {
       wrap.innerHTML = `<div class="empty-box" style="box-shadow:none;padding:20px">
         Belum ada siswa untuk sekolah ini.<br>
-        <span style="font-size:0.8rem;font-weight:600">Jika data sudah pernah ada, tekan “Hubungkan data lama” di tab Akun guru atau di bawah.</span>
+        <span style="font-size:0.8rem;font-weight:600">Jika data sudah pernah ada, tekan “Hubungkan data lama”.</span>
       </div>
       <div style="margin-top:12px">${hubungkanBtnHtml()}</div>`;
       bindHubungkanBtn();
       return;
     }
+
     const legacyCount = rows.filter((r) => r.sekolahId == null || r.sekolahId === '').length;
-    wrap.innerHTML = `
-      ${legacyCount ? `<p class="hint">${legacyCount} data belum bertanda sekolah (data lama).</p>
-        <div style="margin-bottom:12px">${hubungkanBtnHtml()}</div>` : ''}
-      <div style="overflow-x:auto"><table class="data-table">
-      <thead><tr><th>Nama</th><th>Kelas</th><th>NISN</th><th>Email masuk</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr>
+
+    function rowsHtml(list) {
+      return list.map((r) => `<tr>
         <td><strong>${escapeHtml(r.nama || '—')}</strong>${r.sekolahId ? '' : ' <span class="badge off">data lama</span>'}</td>
         <td>${escapeHtml(r.kelas || '—')}</td>
         <td>${escapeHtml(r.nisn || '—')}</td>
-        <td>${escapeHtml(r.emailLogin || '—')}</td>
-      </tr>`).join('')}</tbody></table></div>
-      <p class="hint" style="margin-top:10px;margin-bottom:0">${rows.length} siswa</p>`;
+        <td>${r.emailLogin ? escapeHtml(r.emailLogin) : '<span style="color:#94a3b8">— belum ada —</span>'}</td>
+      </tr>`).join('');
+    }
+
+    let html = '';
+    if (legacyCount) {
+      html += `<p class="hint">${legacyCount} data belum bertanda sekolah (data lama).</p>
+        <div style="margin-bottom:12px">${hubungkanBtnHtml()}</div>`;
+    }
+
+    if (aktifSorted.length) {
+      html += `<div style="overflow-x:auto"><table class="data-table">
+        <thead><tr><th>Nama</th><th>Kelas</th><th>NISN</th><th>Email masuk</th></tr></thead>
+        <tbody>${rowsHtml(aktifSorted)}</tbody>
+      </table></div>
+      <p class="hint" style="margin-top:10px">${aktifSorted.length} siswa aktif</p>`;
+    } else {
+      html += `<div class="empty-box" style="box-shadow:none;padding:16px">Belum ada siswa aktif.</div>`;
+    }
+
+    if (dummySorted.length) {
+      html += `<div style="margin-top:22px;padding-top:16px;border-top:2px dashed #e2e8f0">
+        <h3 style="font-family:'Baloo 2',cursive;font-size:0.95rem;color:#64748b;margin-bottom:6px">Akun tes sistem</h3>
+        <p class="hint">Bukan siswa aktif sekolah — hanya untuk uji coba (Dummy 1 &amp; Dummy 2).</p>
+        <div style="overflow-x:auto"><table class="data-table">
+          <thead><tr><th>Nama</th><th>Kelas</th><th>NISN</th><th>Email masuk</th></tr></thead>
+          <tbody>${rowsHtml(dummySorted)}</tbody>
+        </table></div>
+      </div>`;
+    }
+
+    wrap.innerHTML = html;
     bindHubungkanBtn();
   } catch (err) {
     wrap.innerHTML = `<div class="status err">Gagal memuat: ${escapeHtml(err.message)}</div>`;
