@@ -24,6 +24,20 @@ const NAV = [
   { id: 'susun',     href: './susun-paket.html',   icon: '🧩', label: 'Susun Paket' },
 ];
 
+/** Label menu susun: guru = Latihan TKA; admin = Susun Paket penuh */
+function navForStaff(staff) {
+  const isAdmin = staff && staff.peran === 'admin';
+  return NAV.map((n) => {
+    if (n.id === 'susun') {
+      return {
+        ...n,
+        label: isAdmin ? 'Susun Paket' : 'Susun Latihan TKA',
+      };
+    }
+    return n;
+  });
+}
+
 /** Key: filter sekolah admin di panel guru. '__all__' = semua sekolah. */
 const ADMIN_FILTER_KEY = 'tka2026_admin_sekolah_filter';
 
@@ -64,7 +78,7 @@ function buildSidebarHTML(active, staff) {
   const nama = (staff && staff.nama) || 'Staf';
   const peran = (staff && staff.peran) || 'guru';
   const isAdmin = peran === 'admin';
-  const items = NAV.map(n => {
+  const items = navForStaff(staff).map(n => {
     const cls = n.id === active ? 'sidebar-link active' : 'sidebar-link';
     return `<a class="${cls}" href="${n.href}" data-nav="${n.id}">
       <span class="sidebar-icon">${n.icon}</span>

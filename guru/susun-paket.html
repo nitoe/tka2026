@@ -181,9 +181,9 @@
 <div id="page" style="display:none;">
 <main class="container">
     <div class="page-header" style="margin-bottom:1rem;padding-bottom:0.85rem;border-bottom:1px solid var(--border,#e2e8f0);">
-      <div style="font-size:0.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Portal Guru · Paket</div>
-      <div class="page-title" style="margin-bottom:4px;">Susun Paket Soal</div>
-      <div class="page-subtitle">Filter bank soal, susun paket latihan/try out, aktifkan jadwal, kunci komposisi, dan cetak PDF.</div>
+      <div style="font-size:0.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;" id="page-eyebrow">Portal Guru · Paket</div>
+      <div class="page-title" style="margin-bottom:4px;" id="page-title-main">Susun Paket Soal</div>
+      <div class="page-subtitle" id="page-subtitle-main">Filter bank soal, susun paket latihan/try out, aktifkan jadwal, kunci komposisi, dan cetak PDF.</div>
     </div>
     <div class="layout">
       <div>
@@ -365,6 +365,43 @@
     el.innerHTML = '<strong>Buka:</strong> ' + fmt(b) + '<br><strong>Tutup:</strong> ' + fmt(tutup);
   }
 
+  /** Fase 2: guru hanya susun paket latihan dari soal miliknya sendiri. */
+  function isGuruLatihanMode() {
+    return currentStaff && currentStaff.peran !== 'admin';
+  }
+
+  function applyGuruLatihanUi() {
+    if (!isGuruLatihanMode()) return;
+    const eyebrow = document.getElementById('page-eyebrow');
+    const title = document.getElementById('page-title-main');
+    const sub = document.getElementById('page-subtitle-main');
+    if (eyebrow) eyebrow.textContent = 'Portal Guru · Latihan TKA';
+    if (title) title.textContent = 'Susun Soal Latihan TKA';
+    if (sub) {
+      sub.textContent = 'Susun paket latihan dari soal yang Anda buat sendiri. Try out diajukan ke admin (bukan disusun di sini).';
+    }
+    const bankH2 = document.querySelector('.card h2');
+    if (bankH2 && bankH2.textContent.trim() === 'Bank Soal') {
+      bankH2.textContent = 'Soal Saya';
+    }
+    const selJenisEl = document.getElementById('jenis-paket');
+    if (selJenisEl) {
+      selJenisEl.value = 'latihan';
+      selJenisEl.disabled = true;
+      // Sembunyikan opsi try out
+      Array.from(selJenisEl.options).forEach((opt) => {
+        if (opt.value === 'tryout') opt.hidden = true;
+      });
+    }
+    const tryoutBox = document.getElementById('tryout-options');
+    if (tryoutBox) tryoutBox.style.display = 'none';
+    const jenisField = selJenisEl && selJenisEl.closest('.field');
+    if (jenisField) {
+      const lab = jenisField.querySelector('label');
+      if (lab) lab.textContent = 'Jenis Paket (latihan saja)';
+    }
+  }
+
   if (!isConfigured) {
     loading.style.display = 'none';
     notConfigured.style.display = 'flex';
@@ -376,17 +413,22 @@
       loading.style.display = 'none';
       page.style.display = 'block';
       mountGuruShell({ active: 'susun', staff: currentStaff });
+      applyGuruLatihanUi();
       await loadSoal();
-      await 
-  document.getElementById('filter-hanya-paket')?.addEventListener('change', () => renderSoalList());
-
-  loadPaket();
+      await loadPaket();
     });
   }
+
+  document.getElementById('filter-hanya-paket')?.addEventListener('change', () => renderSoalList());
 
   const selJenis = document.getElementById('jenis-paket');
   const tryoutOptions = document.getElementById('tryout-options');
   selJenis.addEventListener('change', () => {
+    if (isGuruLatihanMode()) {
+      selJenis.value = 'latihan';
+      tryoutOptions.style.display = 'none';
+      return;
+    }
     tryoutOptions.style.display = selJenis.value === 'tryout' ? 'block' : 'none';
   });
   ['buka-pada', 'tutup-pada'].forEach(id => {
@@ -400,8 +442,14 @@
     try {
       const snap = await getDocs(collection(db, 'soalPublik'));
       const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Fase 1: guru = tim sekolah (tanpa admin); admin = pool admin + soal guru
-      allSoal = filterBankSoal(raw, currentStaff);
+      // Fase 1: filter bank per peran
+      let pool = filterBankSoal(raw, currentStaff);
+      // Fase 2: guru latihan hanya soal miliknya sendiri
+      if (isGuruLatihanMode()) {
+        const uid = (auth.currentUser && auth.currentUser.uid) || '';
+        pool = pool.filter((s) => s.createdBy === uid);
+      }
+      allSoal = pool;
       populateFilters();
       renderSoalList();
     } catch (err) {
@@ -578,6 +626,16 @@
       const sid = resolveSekolahIdForRead(currentStaff);
       // Admin: null = semua sekolah; id = filter. Guru: selalu filter.
       items = filterBySekolah(items, sid);
+      // Fase 2: guru hanya paket latihan miliknya
+      if (isGuruLatihanMode()) {
+        const uid = (auth.currentUser && auth.currentUser.uid) || '';
+        items = items.filter((p) => {
+          const j = p.jenis || 'latihan';
+          if (j === 'tryout') return false;
+          if (!p.createdBy) return true; // legacy latihan se-sekolah
+          return p.createdBy === uid;
+        });
+      }
       items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       if (!items.length) {
         list.innerHTML = '<div class="empty-state">Belum ada paket.</div>';
@@ -609,6 +667,17 @@
 
   async function startEdit(p) {
     if (!p) return;
+    if (isGuruLatihanMode()) {
+      const uid = (auth.currentUser && auth.currentUser.uid) || '';
+      if ((p.jenis || 'latihan') === 'tryout') {
+        alert('Paket try out hanya dikelola admin.');
+        return;
+      }
+      if (p.createdBy && p.createdBy !== uid) {
+        alert('Anda hanya dapat mengedit paket latihan milik sendiri.');
+        return;
+      }
+    }
     editingId = p.id;
     selected = {};
     (p.questionIds || []).forEach(id => {
@@ -662,7 +731,20 @@
     if (!ids.length) return;
     const nama = document.getElementById('nama-paket').value.trim();
     if (!nama) { alert('Nama paket wajib diisi.'); return; }
-    const jenis = document.getElementById('jenis-paket').value;
+    // Fase 2: guru dipaksa latihan + hanya soal sendiri
+    let jenis = document.getElementById('jenis-paket').value;
+    if (isGuruLatihanMode()) {
+      jenis = 'latihan';
+      const uid = (auth.currentUser && auth.currentUser.uid) || '';
+      const bukanMilik = ids.filter((id) => {
+        const s = selected[id] || allSoal.find((x) => x.id === id);
+        return s && s.createdBy && s.createdBy !== uid;
+      });
+      if (bukanMilik.length) {
+        alert('Paket latihan hanya boleh memakai soal yang Anda buat sendiri.');
+        return;
+      }
+    }
     const skorMaksimal = ids.reduce((s, id) => s + (Number(selected[id]?.skor) || 0), 0);
     // Normalisasi subjectId agar cocok dengan filter siswa (matematika / bahasa-indonesia)
     let subjectId = selected[ids[0]]?.subjectId || selected[ids[0]]?.mapel || null;
