@@ -268,33 +268,117 @@ document.getElementById('form-identitas').addEventListener('submit', async (e) =
   }
 });
 
+function belongsToSchool(data, sekolahId) {
+  const sid = data && data.sekolahId;
+  if (sid != null && sid !== '') return String(sid) === String(sekolahId);
+  // Data lama tanpa sekolahId → milik sekolah default Kukusan
+  return String(sekolahId) === 'SDM01KUKUSAN';
+}
+
 async function loadGuruList(sekolahId) {
   const wrap = document.getElementById('guru-list-wrap');
   wrap.innerHTML = '<div class="empty-box" style="box-shadow:none;padding:20px">Memuat…</div>';
   try {
-    let rows = [];
+    // Ambil semua staff lalu filter di klien agar data lama (tanpa sekolahId) ikut tampil
+    const snap = await getDocs(collection(db, 'staff'));
+    let rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((r) => {
+        if (r.peran === 'admin') return false;
+        // peran guru, atau tanpa peran (data lama) tapi bukan admin
+        const isGuru = !r.peran || r.peran === 'guru';
+        return isGuru && belongsToSchool(r, sekolahId);
+      });
+
+    // Lengkapi dari loginRoster jika staff kosong / kurang
     try {
-      const q = query(collection(db, 'staff'), where('sekolahId', '==', sekolahId), where('peran', '==', 'guru'));
-      const snap = await getDocs(q);
-      rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch {
-      const snap = await getDocs(collection(db, 'staff'));
-      rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => r.peran === 'guru' && r.sekolahId === sekolahId);
-    }
+      const rosterSnap = await getDocs(collection(db, 'loginRoster'));
+      const rosterGuru = rosterSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .filter((r) => (r.jenis === 'guru' || r.peran === 'guru') && belongsToSchool(r, sekolahId));
+      const emails = new Set(rows.map((r) => (r.emailLogin || '').toLowerCase()).filter(Boolean));
+      for (const r of rosterGuru) {
+        const em = (r.emailLogin || '').toLowerCase();
+        if (em && emails.has(em)) continue;
+        rows.push({
+          id: r.id,
+          nama: r.nama,
+          emailLogin: r.emailLogin,
+          aktif: true,
+          _fromRoster: true,
+          sekolahId: r.sekolahId,
+        });
+        if (em) emails.add(em);
+      }
+    } catch (_) { /* loginRoster opsional */ }
+
     rows.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id'));
     if (!rows.length) {
-      wrap.innerHTML = '<div class="empty-box" style="box-shadow:none;padding:20px">Belum ada guru di sekolah ini.</div>';
+      wrap.innerHTML = `<div class="empty-box" style="box-shadow:none;padding:20px">
+        Belum ada guru untuk sekolah ini.<br>
+        <span style="font-size:0.8rem;font-weight:600">Jika data sudah pernah dibuat sebelum multi-sekolah, gunakan tombol “Hubungkan data lama” di bawah.</span>
+      </div>
+      <div style="margin-top:12px">${hubungkanBtnHtml()}</div>`;
+      bindHubungkanBtn();
       return;
     }
-    wrap.innerHTML = `<table class="data-table"><thead><tr><th>Nama</th><th>Email masuk</th><th>Status</th></tr></thead>
+    const legacyCount = rows.filter((r) => r.sekolahId == null || r.sekolahId === '').length;
+    wrap.innerHTML = `
+      ${legacyCount ? `<p class="hint">${legacyCount} data belum bertanda sekolah (data lama). Disarankan hubungkan ke sekolah ini.</p>
+        <div style="margin-bottom:12px">${hubungkanBtnHtml()}</div>` : ''}
+      <table class="data-table"><thead><tr><th>Nama</th><th>Email masuk</th><th>Status</th></tr></thead>
       <tbody>${rows.map((r) => `<tr>
-        <td><strong>${escapeHtml(r.nama || '—')}</strong></td>
+        <td><strong>${escapeHtml(r.nama || '—')}</strong>${r.sekolahId ? '' : ' <span class="badge off">data lama</span>'}</td>
         <td>${escapeHtml(r.emailLogin || '—')}</td>
         <td><span class="badge ${r.aktif !== false ? 'on' : 'off'}">${r.aktif !== false ? 'Aktif' : 'Dimatikan'}</span></td>
-      </tr>`).join('')}</tbody></table>`;
+      </tr>`).join('')}</tbody></table>
+      <p class="hint" style="margin-top:10px;margin-bottom:0">${rows.length} guru</p>`;
+    bindHubungkanBtn();
   } catch (err) {
     wrap.innerHTML = `<div class="status err">Gagal memuat: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function hubungkanBtnHtml() {
+  return `<button type="button" class="btn btn-ghost btn-sm" id="btn-hubungkan-lama">Hubungkan data lama ke sekolah ini</button>
+    <div class="status" id="status-hubungkan"></div>`;
+}
+
+function bindHubungkanBtn() {
+  document.getElementById('btn-hubungkan-lama')?.addEventListener('click', hubungkanDataLama);
+}
+
+async function hubungkanDataLama() {
+  if (!currentSekolahId) return;
+  const status = document.getElementById('status-hubungkan');
+  if (status) {
+    status.className = 'status';
+    status.textContent = 'Menghubungkan data lama…';
+  }
+  const target = currentSekolahId;
+  let n = 0;
+  try {
+    for (const col of ['staff', 'students', 'loginRoster']) {
+      const snap = await getDocs(collection(db, col));
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (data.sekolahId != null && data.sekolahId !== '') continue;
+        // Jangan sentuh super-admin
+        if (col === 'staff' && data.peran === 'admin') continue;
+        await setDoc(doc(db, col, d.id), { sekolahId: target }, { merge: true });
+        n++;
+      }
+    }
+    if (status) {
+      status.textContent = n
+        ? `✅ ${n} data ditandai milik ${target}.`
+        : 'Tidak ada data lama yang perlu ditandai.';
+      status.className = 'status ok';
+    }
+    await Promise.all([loadGuruList(target), loadSiswaList(target)]);
+  } catch (err) {
+    if (status) {
+      status.textContent = 'Gagal: ' + (err.message || err.code);
+      status.className = 'status err';
+    }
   }
 }
 
@@ -339,30 +423,60 @@ async function loadSiswaList(sekolahId) {
   const wrap = document.getElementById('siswa-list-wrap');
   wrap.innerHTML = '<div class="empty-box" style="box-shadow:none;padding:20px">Memuat…</div>';
   try {
-    let rows = [];
+    const snap = await getDocs(collection(db, 'students'));
+    let rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((r) => belongsToSchool(r, sekolahId));
+
+    // Lengkapi dari loginRoster (siswa) — dipakai dropdown login
     try {
-      const q = query(collection(db, 'students'), where('sekolahId', '==', sekolahId));
-      const snap = await getDocs(q);
-      rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch {
-      const snap = await getDocs(collection(db, 'students'));
-      rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => r.sekolahId === sekolahId || (!r.sekolahId && sekolahId === 'SDM01KUKUSAN'));
-    }
+      const rosterSnap = await getDocs(collection(db, 'loginRoster'));
+      const rosterSiswa = rosterSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .filter((r) => (r.jenis === 'siswa' || (!r.jenis && !r.peran)) && belongsToSchool(r, sekolahId));
+      const emails = new Set(rows.map((r) => (r.emailLogin || '').toLowerCase()).filter(Boolean));
+      const names = new Set(rows.map((r) => (r.nama || '').toLowerCase()).filter(Boolean));
+      for (const r of rosterSiswa) {
+        const em = (r.emailLogin || '').toLowerCase();
+        const nm = (r.nama || '').toLowerCase();
+        if (em && emails.has(em)) continue;
+        if (!em && nm && names.has(nm)) continue;
+        rows.push({
+          id: r.id,
+          nama: r.nama,
+          kelas: r.kelas || '',
+          nisn: r.nisn || '',
+          emailLogin: r.emailLogin || '',
+          sekolahId: r.sekolahId,
+          _fromRoster: true,
+        });
+        if (em) emails.add(em);
+        if (nm) names.add(nm);
+      }
+    } catch (_) {}
+
     rows.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id'));
     if (!rows.length) {
-      wrap.innerHTML = '<div class="empty-box" style="box-shadow:none;padding:20px">Belum ada siswa di sekolah ini.</div>';
+      wrap.innerHTML = `<div class="empty-box" style="box-shadow:none;padding:20px">
+        Belum ada siswa untuk sekolah ini.<br>
+        <span style="font-size:0.8rem;font-weight:600">Jika data sudah pernah ada, tekan “Hubungkan data lama” di tab Akun guru atau di bawah.</span>
+      </div>
+      <div style="margin-top:12px">${hubungkanBtnHtml()}</div>`;
+      bindHubungkanBtn();
       return;
     }
-    wrap.innerHTML = `<div style="overflow-x:auto"><table class="data-table">
+    const legacyCount = rows.filter((r) => r.sekolahId == null || r.sekolahId === '').length;
+    wrap.innerHTML = `
+      ${legacyCount ? `<p class="hint">${legacyCount} data belum bertanda sekolah (data lama).</p>
+        <div style="margin-bottom:12px">${hubungkanBtnHtml()}</div>` : ''}
+      <div style="overflow-x:auto"><table class="data-table">
       <thead><tr><th>Nama</th><th>Kelas</th><th>NISN</th><th>Email masuk</th></tr></thead>
       <tbody>${rows.map((r) => `<tr>
-        <td><strong>${escapeHtml(r.nama || '—')}</strong></td>
+        <td><strong>${escapeHtml(r.nama || '—')}</strong>${r.sekolahId ? '' : ' <span class="badge off">data lama</span>'}</td>
         <td>${escapeHtml(r.kelas || '—')}</td>
         <td>${escapeHtml(r.nisn || '—')}</td>
         <td>${escapeHtml(r.emailLogin || '—')}</td>
       </tr>`).join('')}</tbody></table></div>
       <p class="hint" style="margin-top:10px;margin-bottom:0">${rows.length} siswa</p>`;
+    bindHubungkanBtn();
   } catch (err) {
     wrap.innerHTML = `<div class="status err">Gagal memuat: ${escapeHtml(err.message)}</div>`;
   }
@@ -454,6 +568,18 @@ document.getElementById('btn-seed-kukusan')?.addEventListener('click', async () 
   } catch (err) {
     status.textContent = 'Gagal: ' + (err.message || err.code);
     status.className = 'status err';
+  }
+});
+
+
+document.getElementById('btn-hubungkan-identitas')?.addEventListener('click', async () => {
+  const st = document.getElementById('status-hubungkan-identitas');
+  if (st) { st.className = 'status'; st.textContent = 'Menghubungkan data lama…'; }
+  await hubungkanDataLama();
+  const src = document.getElementById('status-hubungkan');
+  if (st) {
+    st.textContent = (src && src.textContent) || 'Selesai.';
+    st.className = (src && src.className) || 'status ok';
   }
 });
 
