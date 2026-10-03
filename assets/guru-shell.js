@@ -6,15 +6,13 @@
  *
  * Admin-only:
  *   - Link kembali ke Admin Pusat (guru tidak melihat ini)
- *   - Pemilih sekolah kerja (filter data panel guru)
+ *   - Pemilih sekolah kerja di topbar (compact, tanpa scroll sidebar)
  */
 import { signOut, auth, listSekolahAktif } from './firebase-init.js';
 import {
   getSekolah,
   setSekolah,
-  clearSekolah,
   SEKOLAH_SEED,
-  SEKOLAH_DEFAULT_ID,
 } from './sekolah-context.js';
 
 const NAV = [
@@ -46,18 +44,10 @@ export function setAdminSekolahFilter(id) {
     sessionStorage.setItem(ADMIN_FILTER_KEY, v);
     localStorage.setItem(ADMIN_FILTER_KEY, v);
   } catch (_) {}
-  if (v === '__all__') {
-    // Jangan hapus konteks siswa; admin filter terpisah
-  } else {
-    // Sinkronkan konteks sekolah agar resolveSekolahIdForWrite ikut
+  if (v !== '__all__') {
     const cur = getSekolah();
     if (!cur || cur.id !== v) {
-      setSekolah({
-        id: v,
-        kode: v,
-        nama: v,
-        aktif: true,
-      });
+      setSekolah({ id: v, kode: v, nama: v, aktif: true });
     }
   }
 }
@@ -82,20 +72,13 @@ function buildSidebarHTML(active, staff) {
     </a>`;
   }).join('');
 
-  // Blok khusus admin: kembali ke Admin Pusat + pemilih sekolah
+  // Hanya link Admin Pusat di sidebar (ringkas); pemilih sekolah di topbar
   const adminBlock = isAdmin ? `
   <div class="sidebar-section">Admin</div>
   <a class="sidebar-link sidebar-link-admin" href="../admin/" data-nav="admin" id="link-admin-pusat">
     <span class="sidebar-icon">⚙️</span>
     <span>Admin Pusat</span>
   </a>
-  <div class="sidebar-sekolah-picker" id="admin-sekolah-picker">
-    <label for="admin-sekolah-select">Sekolah kerja</label>
-    <select id="admin-sekolah-select" aria-label="Pilih sekolah untuk panel guru">
-      <option value="__all__">Semua sekolah</option>
-    </select>
-    <p class="sidebar-sekolah-hint">Filter data bank, paket, dan rekap. Guru tidak melihat opsi ini.</p>
-  </div>
   ` : '';
 
   const brandSub = isAdmin
@@ -132,14 +115,22 @@ function buildTopbarHTML(active, staff) {
   const current = NAV.find(n => n.id === active);
   const title = current ? current.label : 'Dashboard';
   const isAdmin = staff && staff.peran === 'admin';
-  const adminChip = isAdmin
-    ? `<a class="topbar-admin-back" href="../admin/" title="Kembali ke Admin Pusat">⚙️ Admin Pusat</a>`
-    : '';
+
+  // Pemilih sekolah + link admin di topbar (satu baris, tidak memicu scroll sidebar)
+  const adminTools = isAdmin ? `
+  <div class="topbar-admin-tools">
+    <label class="topbar-sekolah-label" for="admin-sekolah-select">🏫</label>
+    <select id="admin-sekolah-select" class="topbar-sekolah-select" title="Sekolah kerja — filter data panel guru" aria-label="Pilih sekolah kerja">
+      <option value="__all__">Semua sekolah</option>
+    </select>
+    <a class="topbar-admin-back" href="../admin/" title="Kembali ke Admin Pusat">⚙️ Admin Pusat</a>
+  </div>` : '';
+
   return `
 <header class="guru-topbar">
   <button type="button" class="btn-menu" id="btn-menu" aria-label="Buka menu">☰</button>
   <div class="topbar-title">${title}</div>
-  <div class="topbar-actions">${adminChip}</div>
+  ${adminTools}
 </header>
 `;
 }
@@ -159,52 +150,56 @@ function injectAdminStyles() {
     .sidebar-link-admin:hover {
       background: rgba(37, 99, 235, 0.2) !important;
     }
-    .sidebar-sekolah-picker {
-      margin: 0 12px 14px;
-      padding: 10px 12px;
-      background: #f1f5f9;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
-    }
-    .sidebar-sekolah-picker label {
-      display: block;
-      font-size: 0.65rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #64748b;
-      margin-bottom: 6px;
-    }
-    .sidebar-sekolah-picker select {
-      width: 100%;
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 700;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1.5px solid #cbd5e1;
-      background: #fff;
-      color: #1e293b;
-    }
-    .sidebar-sekolah-hint {
-      margin: 6px 0 0;
-      font-size: 0.68rem;
-      font-weight: 600;
-      color: #64748b;
-      line-height: 1.35;
-    }
     .guru-topbar {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: nowrap;
     }
-    .topbar-title { flex: 1; }
-    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .topbar-title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .topbar-admin-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .topbar-sekolah-label {
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: default;
+      opacity: 0.85;
+    }
+    .topbar-sekolah-select {
+      max-width: min(220px, 42vw);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 28px 6px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #cbd5e1;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;
+      color: #1e293b;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+    }
+    .topbar-sekolah-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
     .topbar-admin-back {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 800;
       color: #1e40af;
       background: #dbeafe;
@@ -215,6 +210,12 @@ function injectAdminStyles() {
       white-space: nowrap;
     }
     .topbar-admin-back:hover { background: #bfdbfe; }
+    @media (max-width: 640px) {
+      .topbar-sekolah-select { max-width: min(150px, 36vw); font-size: 0.72rem; padding: 5px 24px 5px 8px; }
+      .topbar-admin-back { padding: 5px 8px; font-size: 0.7rem; }
+      .topbar-admin-back { font-size: 0; padding: 6px 10px; } /* icon only on very small */
+      .topbar-admin-back::first-line { font-size: 0.76rem; }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -300,7 +301,6 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
 
   document.getElementById('btn-logout')?.remove();
 
-  // ── Admin: isi dropdown sekolah + simpan filter ──
   if (staff && staff.peran === 'admin') {
     initAdminSekolahPicker();
   }
@@ -318,19 +318,16 @@ async function initAdminSekolahPicker() {
   }
   if (!schools.length) schools = SEKOLAH_SEED.slice();
 
-  // Opsi: semua + tiap sekolah
   const current = getAdminSekolahFilter() || '__all__';
   sel.innerHTML = '<option value="__all__">Semua sekolah</option>' +
     schools.map(s =>
       `<option value="${escapeHtml(s.id)}">${escapeHtml(s.nama || s.id)}</option>`
     ).join('');
 
-  // Pastikan value valid
   const ids = new Set(['__all__', ...schools.map(s => s.id)]);
   sel.value = ids.has(current) ? current : '__all__';
   setAdminSekolahFilter(sel.value === '__all__' ? '__all__' : sel.value);
 
-  // Lengkapi nama di konteks jika pilih sekolah spesifik
   if (sel.value !== '__all__') {
     const s = schools.find(x => x.id === sel.value);
     if (s) setSekolah(s);
@@ -343,7 +340,6 @@ async function initAdminSekolahPicker() {
       const s = schools.find(x => x.id === v);
       if (s) setSekolah(s);
     }
-    // Muat ulang halaman agar query/filter ikut konteks baru
     location.reload();
   });
 }
