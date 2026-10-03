@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Backfill sekolahId – Admin TKA 2026</title>
+<title>Penanda data sekolah – Admin TKA 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root { --primary:#1a56db; --dark:#12296b; --green:#057a55; --red:#dc2626; --muted:#6b7280; --bg:#f0f4ff; }
@@ -26,33 +26,33 @@
 </head>
 <body>
 <div class="box">
-  <h1>Backfill sekolahId</h1>
+  <h1>Penanda data sekolah</h1>
   <p class="hint">
-    Menulis field <code>sekolahId</code> ke dokumen yang belum punya field tersebut.
-    Hanya super-admin. Jalankan <strong>sekali</strong> setelah migrasi multi-sekolah.
-    <br><a href="./index.html">← Panel admin</a>
+    Menandai data lama (paket, nilai, siswa) agar terhubung ke sekolah yang benar.
+    Cukup dijalankan <strong>sekali</strong> setelah sistem multi-sekolah diaktifkan.
+    <br><a href="./index.html">← Kembali ke Admin Pusat</a>
   </p>
   <div class="hint" style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px;color:#92400e;margin-bottom:14px;">
-    <strong>Urutan aman:</strong><br>
-    1) Seed sekolah Kukusan di panel admin<br>
-    2) Dry-run di halaman ini (centang) → cek log<br>
-    3) Uncheck dry-run → Jalankan lagi untuk menulis<br>
-    4) Hard refresh gerbang &amp; uji login siswa Kukusan
+    <strong>Cara aman:</strong><br>
+    1) Pastikan sekolah Kukusan sudah ada di daftar sekolah<br>
+    2) Centang &quot;Hanya hitung dulu&quot; → tekan Jalankan → lihat hasil<br>
+    3) Hapus centang → Jalankan lagi untuk menyimpan penanda<br>
+    4) Segarkan halaman login dan coba masuk sebagai siswa
   </div>
   <div id="gate" class="status err" style="display:none;"></div>
   <div id="ui" style="display:none;">
     <div class="field">
-      <label>Target sekolahId</label>
+      <label>Kode sekolah tujuan</label>
       <input id="target-id" value="SDM01KUKUSAN">
     </div>
     <div class="checks">
-      <label><input type="checkbox" id="c-packages" checked> packages</label>
-      <label><input type="checkbox" id="c-attempts" checked> attempts</label>
-      <label><input type="checkbox" id="c-questionPool" checked> questionPool</label>
-      <label><input type="checkbox" id="c-soalPublik" checked> soalPublik</label>
-      <label><input type="checkbox" id="c-students" checked> students</label>
-      <label><input type="checkbox" id="c-staff" checked> staff (hanya peran guru, tanpa admin)</label>
-      <label><input type="checkbox" id="c-liveSessions"> liveSessions</label>
+      <label><input type="checkbox" id="c-packages" checked> Paket soal (packages)</label>
+      <label><input type="checkbox" id="c-attempts" checked> Hasil ujian (attempts)</label>
+      <label><input type="checkbox" id="c-questionPool" checked> Bank soal (questionPool)</label>
+      <label><input type="checkbox" id="c-soalPublik" checked> Soal publik</label>
+      <label><input type="checkbox" id="c-students" checked> Data siswa</label>
+      <label><input type="checkbox" id="c-staff" checked> Akun guru (bukan admin)</label>
+      <label><input type="checkbox" id="c-liveSessions"> Sesi live (opsional)</label>
     </div>
     <label style="font-weight:700;font-size:.85rem;display:flex;gap:8px;align-items:center;margin-bottom:12px;">
       <input type="checkbox" id="dry-run" checked> Dry-run (hitung saja, jangan tulis)
@@ -124,7 +124,7 @@
         if (!document.getElementById(cid).checked) continue;
         await backfillCollection(name, targetId, dry, onlyGuru);
       }
-      statusEl.textContent = dry ? 'Dry-run selesai. Uncheck dry-run lalu jalankan lagi untuk menulis.' : '✅ Backfill selesai. Lanjut: hard refresh gerbang, uji login siswa/guru Kukusan.';
+      statusEl.textContent = dry ? 'Perhitungan selesai. Hapus centang “Hanya hitung dulu” lalu jalankan lagi untuk menyimpan.' : '✅ Penanda data selesai. Segarkan halaman login dan uji masuk siswa/guru.';
       statusEl.className = 'status ok';
     } catch (err) {
       statusEl.textContent = 'Gagal: ' + (err.message || err.code);

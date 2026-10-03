@@ -235,7 +235,8 @@
       <button type="button" class="nav-link" data-view="guru"><span class="ico">👨‍🏫</span> Akun Guru</button>
       <button type="button" class="nav-link" data-view="siswa"><span class="ico">📥</span> Import Siswa</button>
       <div class="sidebar-section">Alat</div>
-      <a class="nav-link" href="./backfill-sekolah.html"><span class="ico">🔧</span> Backfill sekolahId</a>
+      <div class="sidebar-section">Lanjutan</div>
+      <button type="button" class="nav-link" data-view="lanjutan"><span class="ico">🛠️</span> Perawatan data</button>
       <a class="nav-link" href="../guru/"><span class="ico">📋</span> Panel Guru</a>
     </nav>
     <div class="sidebar-footer">
@@ -263,14 +264,12 @@
         <div class="page-head">
           <div>
             <h2>Daftar Sekolah</h2>
-            <p>Sekolah yang aktif muncul di gerbang pilih sekolah. Edit data atau nonaktifkan dari kartu di bawah.</p>
+            <p>Sekolah yang aktif bisa dipilih saat login. Ubah data atau matikan sekolah dari kartu di bawah.</p>
           </div>
           <div class="toolbar-row">
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-seed-kukusan">Seed Kukusan</button>
             <button type="button" class="btn btn-primary" id="btn-open-tambah">+ Tambah sekolah</button>
           </div>
         </div>
-        <div class="status" id="status-seed" style="margin-top:-8px;margin-bottom:12px;"></div>
         <div class="school-grid" id="school-grid">
           <div class="empty-box">Memuat sekolah…</div>
         </div>
@@ -281,11 +280,12 @@
         <div class="page-head">
           <div>
             <h2>Akun Guru</h2>
-            <p>Buat akun Firebase Auth + dokumen staff + loginRoster. Guru hanya melihat data sekolah yang dipilih.</p>
+            <p>Buat akun masuk untuk guru. Setiap guru terhubung ke satu sekolah dan hanya melihat data sekolah itu.</p>
           </div>
         </div>
         <div class="card">
           <h3>Buat akun baru</h3>
+          <p class="hint">Isi sekolah, nama, email masuk, dan kata sandi. Email dipakai hanya untuk login (boleh format internal, bukan email pribadi).</p>
           <div class="grid-2">
             <div class="field">
               <label>Sekolah *</label>
@@ -298,16 +298,37 @@
           </div>
           <div class="grid-2">
             <div class="field">
-              <label>Email Login *</label>
+              <label>Email masuk *</label>
               <input id="g-email" type="email" placeholder="nama@gurutka2026.id">
             </div>
             <div class="field">
-              <label>Kata Sandi Awal *</label>
-              <input id="g-pass" type="text" placeholder="min. 6 karakter">
+              <label>Kata sandi awal *</label>
+              <input id="g-pass" type="text" placeholder="minimal 6 karakter">
             </div>
           </div>
-          <button class="btn btn-primary" id="btn-add-guru">Buat Akun Guru</button>
+          <button class="btn btn-primary" id="btn-add-guru">Buat akun guru</button>
           <div class="status" id="status-guru"></div>
+        </div>
+      </section>
+
+      <!-- ════ LANJUTAN ════ -->
+      <section class="view" id="view-lanjutan">
+        <div class="page-head">
+          <div>
+            <h2>Perawatan data</h2>
+            <p>Menu ini hanya dipakai saat pindah ke sistem multi-sekolah atau memperbaiki data lama. Untuk pemakaian harian, abaikan halaman ini.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Data sekolah awal (Kukusan)</h3>
+          <p class="hint">Jika daftar sekolah masih kosong, tekan tombol di bawah untuk menambahkan SD Muhammadiyah 01 Kukusan secara otomatis.</p>
+          <button type="button" class="btn btn-primary" id="btn-seed-kukusan">Tambahkan SD Muhammadiyah 01 Kukusan</button>
+          <div class="status" id="status-seed"></div>
+        </div>
+        <div class="card">
+          <h3>Tandai data lama dengan sekolah</h3>
+          <p class="hint">Paket soal, nilai, dan siswa yang dibuat sebelum sistem multi-sekolah belum punya penanda sekolah. Proses ini menambahkan penanda tersebut agar data tidak tercampur antar sekolah.</p>
+          <a class="btn btn-primary" href="./backfill-sekolah.html" style="display:inline-block;text-decoration:none;">Buka alat penanda data</a>
         </div>
       </section>
 
@@ -316,21 +337,22 @@
         <div class="page-head">
           <div>
             <h2>Import Siswa</h2>
-            <p>JSON array. Minimal per baris: <code>nama</code>, <code>nisn</code>. Password Auth = NISN.</p>
+            <p>Unggah daftar siswa sekaligus. Tiap baris minimal berisi nama lengkap dan NISN. Kata sandi masuk siswa = NISN.</p>
           </div>
         </div>
         <div class="card">
-          <h3>Upload file</h3>
+          <h3>Unggah daftar</h3>
+          <p class="hint">File berformat JSON (daftar). Contoh isi satu baris: nama, nisn, kelas (opsional). Pilih sekolah di bawah jika file tidak mencantumkan sekolah.</p>
           <div class="field">
-            <label>Sekolah default (jika item tidak punya sekolahId)</label>
+            <label>Sekolah tujuan</label>
             <select id="s-sekolah"></select>
           </div>
           <div class="field">
-            <label>File JSON</label>
+            <label>File daftar siswa (.json)</label>
             <input type="file" id="s-file" accept="application/json,.json">
           </div>
           <div class="hint" id="s-preview"></div>
-          <button class="btn btn-primary" id="btn-import-siswa" disabled>Mulai Import</button>
+          <button class="btn btn-primary" id="btn-import-siswa" disabled>Mulai impor</button>
           <div class="status" id="status-siswa"></div>
           <div id="s-log" style="margin-top:12px;max-height:280px;overflow:auto;font-family:monospace;font-size:0.78rem;"></div>
         </div>
@@ -398,7 +420,7 @@
   const appEl = document.getElementById('app');
   const gateMsg = document.getElementById('gate-msg');
   const modal = document.getElementById('modal-sekolah');
-  const TITLES = { sekolah: 'Sekolah', guru: 'Akun Guru', siswa: 'Import Siswa' };
+  const TITLES = { sekolah: 'Sekolah', guru: 'Akun Guru', siswa: 'Import Siswa', lanjutan: 'Perawatan data' };
 
   if (!isConfigured) {
     gate.style.display = 'block';
@@ -507,12 +529,12 @@
             <div class="school-name">${escapeHtml(s.nama || s.id)}</div>
             <div class="school-meta">${escapeHtml(s.alamat || 'Alamat belum diisi')}${s.namaKepalaSekolah ? ' · ' + escapeHtml(s.namaKepalaSekolah) : ''}</div>
             <span class="school-code">${escapeHtml(s.kode || s.id)}</span>
-            <span class="badge ${s.aktif !== false ? 'on' : 'off'}" style="margin-left:6px;">${s.aktif !== false ? 'Aktif' : 'Nonaktif'}</span>
+            <span class="badge ${s.aktif !== false ? 'on' : 'off'}" style="margin-left:6px;">${s.aktif !== false ? 'Aktif' : 'Dimatikan'}</span>
           </div>
           <div class="school-actions">
             <button type="button" class="btn btn-ghost btn-sm" data-edit="${escapeAttr(s.id)}">Edit</button>
             <button type="button" class="btn btn-sm ${s.aktif !== false ? 'btn-danger' : 'btn-primary'}" data-toggle="${escapeAttr(s.id)}">
-              ${s.aktif !== false ? 'Nonaktifkan' : 'Aktifkan'}
+              ${s.aktif !== false ? 'Matikan' : 'Aktifkan'}
             </button>
           </div>
         </article>
@@ -560,8 +582,8 @@
     if (!s) return;
     const next = s.aktif === false;
     const msg = next
-      ? 'Aktifkan sekolah ini agar muncul di gerbang?'
-      : 'Nonaktifkan sekolah? Tidak akan muncul di gerbang pilih sekolah.';
+      ? 'Aktifkan sekolah ini agar bisa dipilih saat login?'
+      : 'Matikan sekolah ini? Nama sekolah tidak akan muncul saat login.';
     if (!confirm(msg)) return;
     await setDoc(doc(db, 'sekolah', id), { aktif: next, updatedAt: serverTimestamp() }, { merge: true });
     await loadSekolah();
