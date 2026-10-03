@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Pusat – Portal Latihan TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-dark: #12296b; --primary-mid: #1e429f;
+    --green: #057a55; --green-light: #def7ec;
+    --red: #dc2626; --red-light: #fee2e2;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --text: #1f2a37; --text-muted: #6b7280;
+    --bg: #f0f4ff; --white: #fff; --border: #e2e8f0;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .topbar {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-mid));
+    color: #fff; padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .topbar h1 { font-family: 'Baloo 2', cursive; font-size: 1.2rem; }
+  .topbar .meta { font-size: 0.78rem; font-weight: 700; opacity: 0.85; }
+  .topbar a { color: #fff; font-weight: 800; font-size: 0.82rem; text-decoration: none; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 22px 16px 60px; }
+  .card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px 22px; margin-bottom: 18px;
+  }
+  .card h2 { font-family: 'Baloo 2', cursive; font-size: 1.05rem; color: var(--primary-dark); margin-bottom: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 5px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700;
+    padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: #f4f7fb; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--primary); background: #fff; }
+  .btn {
+    border: none; border-radius: 10px; padding: 11px 16px; font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem; font-weight: 800; cursor: pointer; color: #fff;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+  .btn-ghost { background: #e2e8f0; color: var(--text); }
+  .btn-danger { background: var(--red); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
+  .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  }
+  .badge.on { background: var(--green-light); color: var(--green); }
+  .badge.off { background: var(--red-light); color: var(--red); }
+  .status { font-size: 0.8rem; font-weight: 700; margin-top: 10px; }
+  .status.ok { color: var(--green); }
+  .status.err { color: var(--red); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .hint { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+  .nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .nav-card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px; text-decoration: none; color: inherit; border: 1.5px solid transparent;
+  }
+  .nav-card:hover { border-color: var(--primary); }
+  .nav-card strong { display: block; font-size: 0.95rem; color: var(--primary-dark); margin-bottom: 4px; }
+  .nav-card span { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+  #gate { max-width: 420px; margin: 60px auto; }
+</style>
+</head>
+<body>
+<div id="gate" class="card" style="display:none;">
+  <h2>Akses Admin</h2>
+  <p class="hint">Halaman ini hanya untuk super-admin. Silakan masuk lewat <a href="../login.html?mode=admin">login admin</a>.</p>
+  <div class="status err" id="gate-msg"></div>
+</div>
+
+<div id="app" style="display:none;">
+  <header class="topbar">
+    <div>
+      <h1>Admin Pusat · TKA 2026</h1>
+      <div class="meta" id="admin-name">—</div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;">
+      <a href="../guru/">Panel Guru</a>
+      <a href="#" id="btn-logout">Keluar</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="nav-cards">
+      <a class="nav-card" href="#sekolah"><strong>🏫 Sekolah</strong><span>Tambah & edit data sekolah</span></a>
+      <a class="nav-card" href="#guru"><strong>👨‍🏫 Akun Guru</strong><span>Buat akun guru per sekolah</span></a>
+      <a class="nav-card" href="#siswa"><strong>📥 Import Siswa</strong><span>Nama + NISN + sekolah</span></a>
+    </div>
+
+    <!-- SEKOLAH -->
+    <section class="card" id="sekolah">
+      <h2>Kelola Sekolah</h2>
+      <p class="hint">Kode sekolah dipakai sebagai ID dokumen (unik, huruf besar, tanpa spasi). Setelah disimpan, sekolah muncul di gerbang pilih sekolah.</p>
+      <form id="form-sekolah">
+        <input type="hidden" id="edit-id" value="">
+        <div class="grid-2">
+          <div class="field">
+            <label>Kode / ID Sekolah *</label>
+            <input id="f-kode" placeholder="SDM01KUKUSAN" required>
+          </div>
+          <div class="field">
+            <label>Nama Sekolah *</label>
+            <input id="f-nama" placeholder="SD Muhammadiyah 01 Kukusan" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Alamat</label>
+          <input id="f-alamat" placeholder="Kelurahan, Kecamatan, Kota">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Nama Kepala Sekolah</label>
+            <input id="f-kepala" placeholder="Nama lengkap, gelar">
+          </div>
+          <div class="field">
+            <label>NBM Kepala Sekolah</label>
+            <input id="f-nbm" placeholder="opsional">
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="btn-save-sekolah">Simpan Sekolah</button>
+          <button type="button" class="btn btn-ghost" id="btn-reset-form">Batal / Baru</button>
+        </div>
+        <div class="status" id="status-sekolah"></div>
+      </form>
+
+      <div style="margin-top:20px; overflow-x:auto;">
+        <table class="table" id="tbl-sekolah">
+          <thead>
+            <tr><th>Nama</th><th>Kode</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- GURU -->
+    <section class="card" id="guru">
+      <h2>Tambah Akun Guru</h2>
+      <p class="hint">Membuat user Firebase Auth + dokumen <code>staff</code> (peran: guru) + baris <code>loginRoster</code>. Email login internal, bukan email sungguhan.</p>
+      <div class="grid-2">
+        <div class="field">
+          <label>Sekolah *</label>
+          <select id="g-sekolah"></select>
+        </div>
+        <div class="field">
+          <label>Nama Guru *</label>
+          <input id="g-nama" placeholder="Nama lengkap">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Email Login *</label>
+          <input id="g-email" type="email" placeholder="nama@gurutka2026.id">
+        </div>
+        <div class="field">
+          <label>Kata Sandi Awal *</label>
+          <input id="g-pass" type="text" placeholder="min. 6 karakter">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-add-guru">Buat Akun Guru</button>
+      <div class="status" id="status-guru"></div>
+    </section>
+
+    <!-- SISWA -->
+    <section class="card" id="siswa">
+      <h2>Import Siswa Massal</h2>
+      <p class="hint">
+        File JSON array. Setiap item minimal: <code>nama</code>, <code>nisn</code>, dan <code>sekolahId</code> (atau pilih sekolah di bawah).
+        Opsional: <code>kelas</code>, <code>emailLogin</code> (jika kosong digenerate otomatis).
+        Password Auth = NISN.
+      </p>
+      <div class="field">
+        <label>Sekolah default (jika item tidak punya sekolahId)</label>
+        <select id="s-sekolah"></select>
+      </div>
+      <div class="field">
+        <label>File JSON</label>
+        <input type="file" id="s-file" accept="application/json,.json">
+      </div>
+      <div class="hint" id="s-preview"></div>
+      <button class="btn btn-primary" id="btn-import-siswa" disabled>Mulai Import</button>
+      <div class="status" id="status-siswa"></div>
+      <div id="s-log" style="margin-top:12px;max-height:280px;overflow:auto;font-family:monospace;font-size:0.78rem;"></div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+  import { firebaseConfig } from '../firebase-config.js';
+  import {
+    isConfigured, auth, db,
+    onAuthStateChanged, signOut,
+    getStaffDoc,
+    doc, setDoc, getDocs, collection, query, where, serverTimestamp,
+    createUserWithEmailAndPassword,
+  } from '../assets/firebase-init.js';
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
+  import { getAuth } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+
+  const gate = document.getElementById('gate');
+  const appEl = document.getElementById('app');
+  const gateMsg = document.getElementById('gate-msg');
+
+  if (!isConfigured) {
+    gate.style.display = 'block';
+    gateMsg.textContent = 'Firebase belum dikonfigurasi.';
+  }
+
+  // Secondary app agar createUser tidak mengganti sesi admin
+  const secondaryApp = isConfigured ? initializeApp(firebaseConfig, 'admin-secondary') : null;
+  const secondaryAuth = secondaryApp ? getAuth(secondaryApp) : null;
+
+  let sekolahList = [];
+  let siswaPayload = null;
+
+  function slugEmailLocal(nama) {
+    return String(nama || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '')
+      .slice(0, 48) || 'siswa';
+  }
+
+  async function loadSekolah() {
+    const snap = await getDocs(collection(db, 'sekolah'));
+    sekolahList = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const tbody = document.querySelector('#tbl-sekolah tbody');
+    tbody.innerHTML = sekolahList.map((s) => `
+      <tr>
+        <td><strong>${escapeHtml(s.nama || '')}</strong><br><span style="color:#6b7280;font-size:0.78rem">${escapeHtml(s.alamat || '')}</span></td>
+        <td><code>${escapeHtml(s.kode || s.id)}</code></td>
+        <td><span class="badge ${s.aktif !== false ? 'on' : 'off'}">${s.aktif !== false ? 'Aktif' : 'Nonaktif'}</span></td>
+        <td>
+          <button type="button" class="btn btn-ghost" data-edit="${escapeAttr(s.id)}" style="padding:6px 10px;font-size:0.75rem">Edit</button>
+          <button type="button" class="btn ${s.aktif !== false ? 'btn-danger' : 'btn-primary'}" data-toggle="${escapeAttr(s.id)}" style="padding:6px 10px;font-size:0.75rem">
+            ${s.aktif !== false ? 'Nonaktifkan' : 'Aktifkan'}
+          </button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="4">Belum ada sekolah. Isi form di atas lalu simpan.</td></tr>';
+
+    tbody.querySelectorAll('[data-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => fillForm(btn.getAttribute('data-edit')));
+    });
+    tbody.querySelectorAll('[data-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => toggleAktif(btn.getAttribute('data-toggle')));
+    });
+
+    const opts = sekolahList
+      .filter((s) => s.aktif !== false)
+      .map((s) => `<option value="${escapeAttr(s.id)}">${escapeHtml(s.nama)}</option>`)
+      .join('');
+    document.getElementById('g-sekolah').innerHTML = opts || '<option value="">— belum ada —</option>';
+    document.getElementById('s-sekolah').innerHTML = opts || '<option value="">— belum ada —</option>';
+  }
+
+  function fillForm(id) {
+    const s = sekolahList.find((x) => x.id === id);
+    if (!s) return;
+    document.getElementById('edit-id').value = s.id;
+    document.getElementById('f-kode').value = s.kode || s.id;
+    document.getElementById('f-kode').readOnly = true;
+    document.getElementById('f-nama').value = s.nama || '';
+    document.getElementById('f-alamat').value = s.alamat || '';
+    document.getElementById('f-kepala').value = s.namaKepalaSekolah || '';
+    document.getElementById('f-nbm').value = s.nbmKepala || '';
+    document.getElementById('btn-save-sekolah').textContent = 'Update Sekolah';
+    document.getElementById('sekolah').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    document.getElementById('form-sekolah').reset();
+    document.getElementById('edit-id').value = '';
+    document.getElementById('f-kode').readOnly = false;
+    document.getElementById('btn-save-sekolah').textContent = 'Simpan Sekolah';
+  }
+
+  async function toggleAktif(id) {
+    const s = sekolahList.find((x) => x.id === id);
+    if (!s) return;
+    await setDoc(doc(db, 'sekolah', id), { aktif: s.aktif === false, updatedAt: serverTimestamp() }, { merge: true });
+    await loadSekolah();
+  }
+
+  document.getElementById('btn-reset-form').addEventListener('click', resetForm);
+
+  document.getElementById('form-sekolah').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('status-sekolah');
+    status.className = 'status';
+    const kode = document.getElementById('f-kode').value.trim().toUpperCase().replace(/\s+/g, '');
+    const nama = document.getElementById('f-nama').value.trim();
+    if (!kode || !nama) {
+      status.textContent = 'Kode dan nama wajib diisi.';
+      status.className = 'status err';
+      return;
+    }
+    const editId = document.getElementById('edit-id').value || kode;
+    const payload = {
+      kode,
+      nama,
+      alamat: document.getElementById('f-alamat').value.trim(),
+      namaKepalaSekolah: document.getElementById('f-kepala').value.trim(),
+      nbmKepala: document.getElementById('f-nbm').value.trim(),
+      aktif: true,
+      updatedAt: serverTimestamp(),
+    };
+    if (!document.getElementById('edit-id').value) payload.createdAt = serverTimestamp();
+    try {
+      await setDoc(doc(db, 'sekolah', editId), payload, { merge: true });
+      status.textContent = '✅ Sekolah disimpan.';
+      status.className = 'status ok';
+      resetForm();
+      await loadSekolah();
+    } catch (err) {
+      status.textContent = 'Gagal: ' + (err.message || err.code);
+      status.className = 'status err';
+    }
+  });
+
+  document.getElementById('btn-add-guru').addEventListener('click', async () => {
+    const status = document.getElementById('status-guru');
+    status.className = 'status';
+    const sekolahId = document.getElementById('g-sekolah').value;
+    const nama = document.getElementById('g-nama').value.trim();
+    const email = document.getElementById('g-email').value.trim().toLowerCase();
+    const pass = document.getElementById('g-pass').value;
+    if (!sekolahId || !nama || !email || pass.length < 6) {
+      status.textContent = 'Lengkapi sekolah, nama, email, dan kata sandi (min. 6).';
+      status.className = 'status err';
+      return;
+    }
+    try {
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+      await setDoc(doc(db, 'staff', cred.user.uid), {
+        nama,
+        peran: 'guru',
+        sekolahId,
+        emailLogin: email,
+        aktif: true,
+        createdAt: serverTimestamp(),
+      });
+      await setDoc(doc(db, 'loginRoster', cred.user.uid), {
+        sekolahId,
+        nama,
+        emailLogin: email,
+        jenis: 'guru',
+        peran: 'guru',
+        kelas: '',
+      });
+      status.textContent = '✅ Akun guru dibuat: ' + nama;
+      status.className = 'status ok';
+      document.getElementById('g-nama').value = '';
+      document.getElementById('g-email').value = '';
+      document.getElementById('g-pass').value = '';
+    } catch (err) {
+      status.textContent = 'Gagal: ' + (err.code || err.message);
+      status.className = 'status err';
+    }
+  });
+
+  document.getElementById('s-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const preview = document.getElementById('s-preview');
+    const btn = document.getElementById('btn-import-siswa');
+    siswaPayload = null;
+    btn.disabled = true;
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data)) throw new Error('Bukan array');
+      siswaPayload = data;
+      preview.textContent = data.length + ' baris terbaca. Siap diimpor.';
+      btn.disabled = false;
+    } catch {
+      preview.textContent = 'File JSON tidak valid.';
+    }
+  });
+
+  document.getElementById('btn-import-siswa').addEventListener('click', async () => {
+    if (!siswaPayload) return;
+    const status = document.getElementById('status-siswa');
+    const log = document.getElementById('s-log');
+    const defaultSekolah = document.getElementById('s-sekolah').value;
+    const btn = document.getElementById('btn-import-siswa');
+    btn.disabled = true;
+    log.innerHTML = '';
+    let ok = 0, skip = 0, err = 0;
+
+    for (const row of siswaPayload) {
+      const nama = (row.nama || '').trim();
+      const nisn = String(row.nisn || row.passwordDefault || '').trim();
+      const sekolahId = (row.sekolahId || row.sekolah || defaultSekolah || '').trim();
+      const kelas = (row.kelas || '').trim();
+      let email = (row.emailLogin || row.email || '').trim().toLowerCase();
+      if (!email && nama && sekolahId) {
+        email = slugEmailLocal(nama) + '@' + sekolahId.toLowerCase() + '.tka2026.id';
+      }
+      if (!nama || !nisn || !sekolahId || !email) {
+        log.innerHTML += `<div>❌ ${escapeHtml(nama || '(tanpa nama)')}: data tidak lengkap</div>`;
+        err++;
+        continue;
+      }
+      try {
+        const cred = await createUserWithEmailAndPassword(secondaryAuth, email, nisn);
+        await setDoc(doc(db, 'students', cred.user.uid), {
+          nama,
+          nisn,
+          kelas,
+          sekolahId,
+          emailLogin: email,
+          aktif: true,
+          createdAt: serverTimestamp(),
+        });
+        await setDoc(doc(db, 'loginRoster', cred.user.uid), {
+          sekolahId,
+          nama,
+          kelas,
+          emailLogin: email,
+          jenis: 'siswa',
+        });
+        log.innerHTML += `<div>✅ ${escapeHtml(nama)}</div>`;
+        ok++;
+      } catch (e) {
+        if (e.code === 'auth/email-already-in-use') {
+          log.innerHTML += `<div>⏭️ ${escapeHtml(nama)}: sudah ada</div>`;
+          skip++;
+        } else {
+          log.innerHTML += `<div>❌ ${escapeHtml(nama)}: ${escapeHtml(e.code || e.message)}</div>`;
+          err++;
+        }
+      }
+      await new Promise((r) => setTimeout(r, 350));
+    }
+    status.textContent = `Selesai: ${ok} baru, ${skip} dilewati, ${err} gagal.`;
+    status.className = 'status ok';
+    btn.disabled = false;
+  });
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(str) { return escapeHtml(str).replace(/'/g, '&#39;'); }
+
+  document.getElementById('btn-logout').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = '../login.html?mode=admin';
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!isConfigured) return;
+    if (!user) {
+      gate.style.display = 'block';
+      appEl.style.display = 'none';
+      gateMsg.textContent = 'Belum masuk. Buka login admin.';
+      return;
+    }
+    const staff = await getStaffDoc(user.uid);
+    if (!staff || staff.peran !== 'admin') {
+      gate.style.display = 'block';
+      appEl.style.display = 'none';
+      gateMsg.textContent = 'Akun ini bukan super-admin.';
+      return;
+    }
+    gate.style.display = 'none';
+    appEl.style.display = 'block';
+    document.getElementById('admin-name').textContent = staff.nama || user.email;
+    await loadSekolah();
+  });
+</script>
+</body>
+</html>

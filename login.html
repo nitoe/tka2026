@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk – Portal Latihan TKA 2026</title>
+<meta name="description" content="Masuk untuk mulai latihan soal Tes Kompetensi Akademik (TKA) 2026.">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #12296b;
+    --primary-mid: #1e429f;
+    --accent-light: #93c5fd;
+    --green: #057a55;
+    --amber: #d97706;
+    --amber-light: #fef3c7;
+    --text: #1f2a37;
+    --text-muted: #6b7280;
+    --panel-bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 20px 50px rgba(15, 41, 107, 0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: clamp(14px, 1.05vw + 8px, 16px); }
+  body { font-family: 'Nunito', sans-serif; color: var(--text); min-height: 100vh; }
+  a { color: inherit; }
+  .shell { min-height: 100vh; display: grid; grid-template-columns: 1.15fr 1fr; }
+  .brand-side {
+    position: relative; overflow: hidden;
+    background: linear-gradient(155deg, var(--primary-dark) 0%, var(--primary-mid) 55%, var(--primary) 100%);
+    color: #fff; padding: 40px 48px; display: flex; flex-direction: column; justify-content: center; gap: 32px;
+  }
+  .brand-side::before {
+    content: ''; position: absolute; top: -120px; right: -160px; width: 480px; height: 480px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+  }
+  .brand-header { display: flex; align-items: center; gap: 14px; position: relative; }
+  .brand-logo {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
+  .brand-name { font-family: 'Baloo 2', cursive; font-size: 1.15rem; font-weight: 800; }
+  .brand-sub { font-size: 0.78rem; opacity: 0.75; font-weight: 600; margin-top: 2px; }
+  .hero-text { position: relative; max-width: 460px; }
+  .hero-text h1 {
+    font-family: 'Baloo 2', cursive; font-weight: 800;
+    font-size: clamp(1.9rem, 3vw, 2.5rem); line-height: 1.15;
+  }
+  .hero-text h1 span { display: block; font-style: italic; font-weight: 700; color: var(--accent-light); }
+  .hero-text p { margin-top: 16px; font-size: 0.95rem; line-height: 1.6; opacity: 0.85; font-weight: 600; }
+  .school-badge {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 999px; padding: 8px 14px; font-size: 0.8rem; font-weight: 700;
+  }
+  .auth-side {
+    background: var(--panel-bg); display: flex; align-items: center; justify-content: center; padding: 32px 24px;
+  }
+  .auth-wrap { width: 100%; max-width: 380px; }
+  .dev-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--amber-light); color: #92400e; border: 1px solid #fde68a;
+    border-radius: 20px; padding: 5px 12px; font-size: 0.68rem; font-weight: 800; margin-bottom: 16px;
+  }
+  .dev-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+  .auth-card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 28px 26px;
+  }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
+  .tab-btn {
+    flex: 1; text-align: center; background: none; border: none;
+    font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 800;
+    color: var(--text-muted); padding: 0 0 12px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { color: var(--primary); border-color: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.4px;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%; font-family: 'Nunito', sans-serif; font-size: 0.92rem; font-weight: 700;
+    padding: 11px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    background: #f4f7fb; color: var(--text); outline: none; appearance: none; -webkit-appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px;
+  }
+  .field input:focus, .field select:focus { border-color: var(--primary); background-color: var(--white); }
+  .field-error { display: none; font-size: 0.72rem; font-weight: 700; color: #dc2626; margin-top: 5px; }
+  .field.has-error input, .field.has-error select { border-color: #dc2626; }
+  .field.has-error .field-error { display: block; }
+  .btn-submit {
+    width: 100%; background: linear-gradient(135deg, var(--primary-mid), var(--primary));
+    color: #fff; border: none; border-radius: var(--radius-sm); padding: 13px;
+    font-family: 'Nunito', sans-serif; font-size: 0.94rem; font-weight: 800; cursor: pointer; margin-top: 4px;
+  }
+  .auth-footer {
+    margin-top: 18px; text-align: center; font-size: 0.76rem; color: var(--text-muted); font-weight: 700; line-height: 1.7;
+  }
+  .auth-footer a { color: var(--primary-mid); text-decoration: none; }
+  .status-box {
+    display: none; margin-top: 16px; padding: 12px 14px; border-radius: var(--radius-sm);
+    font-size: 0.78rem; font-weight: 700; line-height: 1.5;
+    background: var(--amber-light); color: #92400e; border: 1px solid #fde68a;
+  }
+  .status-box.show { display: block; }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .auth-side { order: 1; padding: 28px 20px 8px; }
+    .brand-side { order: 2; padding: 32px 24px 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="brand-side">
+    <div class="brand-header">
+      <div class="brand-logo">📚</div>
+      <div>
+        <div class="brand-name">Portal Latihan TKA</div>
+        <div class="brand-sub" id="brand-sub">TKA 2026</div>
+      </div>
+    </div>
+    <div class="hero-text">
+      <h1>Siap Hadapi<span>TKA 2026!</span></h1>
+      <p id="hero-desc">Platform latihan soal interaktif untuk siswa kelas 6. Soal disusun per kompetensi, terkoreksi otomatis, dan hasilnya tersimpan rapi ke akunmu.</p>
+      <div class="school-badge" id="school-badge" style="margin-top:18px;display:none;">
+        <span>🏫</span>
+        <span id="school-badge-name">—</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="auth-side">
+    <div class="auth-wrap">
+      <div class="dev-pill" id="dev-pill"><span class="dot"></span>Memeriksa Firebase…</div>
+      <div class="auth-card">
+        <div class="tabs" id="tabs-row">
+          <button class="tab-btn active" id="tab-siswa" type="button">Siswa</button>
+          <button class="tab-btn" id="tab-guru" type="button">Guru</button>
+        </div>
+
+        <form class="panel active" id="panel-siswa" novalidate>
+          <div class="field" id="f-siswa-nama">
+            <label for="siswa-nama">Nama Siswa</label>
+            <select id="siswa-nama"><option value="">Pilih namamu...</option></select>
+            <div class="field-error">Pilih nama terlebih dahulu.</div>
+          </div>
+          <div class="field" id="f-siswa-pass">
+            <label for="siswa-pass">Kata Sandi</label>
+            <input type="password" id="siswa-pass" placeholder="Kata sandi (NISN)" autocomplete="current-password">
+            <div class="field-error">Kata sandi wajib diisi.</div>
+          </div>
+          <button type="submit" class="btn-submit">Masuk</button>
+          <div class="status-box" id="status-siswa"></div>
+        </form>
+
+        <form class="panel" id="panel-guru" novalidate>
+          <div class="field" id="f-guru-nama">
+            <label for="guru-nama">Nama</label>
+            <select id="guru-nama"><option value="">Pilih nama...</option></select>
+            <div class="field-error">Pilih nama terlebih dahulu.</div>
+          </div>
+          <div class="field" id="f-guru-pass">
+            <label for="guru-pass">Kata Sandi</label>
+            <input type="password" id="guru-pass" placeholder="••••••••" autocomplete="current-password">
+            <div class="field-error">Kata sandi wajib diisi.</div>
+          </div>
+          <button type="submit" class="btn-submit">Masuk</button>
+          <div class="status-box" id="status-guru"></div>
+        </form>
+      </div>
+      <div class="auth-footer">
+        <span id="footer-ganti"><a href="index.html" id="link-ganti-sekolah">Ganti sekolah</a> · </span>
+        Lupa kata sandi? Hubungi wali kelas atau admin.
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+  import {
+    isConfigured, auth, signInWithEmailAndPassword, resolveHomeByRole,
+    getStaffDoc, listLoginRoster,
+  } from './assets/firebase-init.js';
+  import {
+    getSekolah, requireSekolahOrRedirect, isAdminMode, setAdminMode, clearSekolah,
+    SEKOLAH_DEFAULT_ID,
+  } from './assets/sekolah-context.js';
+
+  // ── Fallback roster (sekolah existing) — dipakai jika loginRoster belum diisi ──
+  const SISWA_FALLBACK = [
+    { nama: 'Abi Ibadurrohman', kelas: '6A', email: 'abi.ibadurrohman@sdm01tka2026.id' },
+    { nama: 'Al-Ghifari Azzam Khoirusshalih Mahika', kelas: '6A', email: 'alghifari.azzam.khoirusshalih.mahika@sdm01tka2026.id' },
+    { nama: 'Daenzel Zhafran', kelas: '6A', email: 'daenzel.zhafran@sdm01tka2026.id' },
+    { nama: 'Davindra Arfino Erwansyah', kelas: '6A', email: 'davindra.arfino.erwansyah@sdm01tka2026.id' },
+    { nama: 'Dzaky Abdul Rauf', kelas: '6A', email: 'dzaky.abdul.rauf@sdm01tka2026.id' },
+    { nama: 'Farannisa Humaira Mumtaz', kelas: '6A', email: 'farannisa.humaira.mumtaz@sdm01tka2026.id' },
+    { nama: 'Fayakuun Abdullah Wikrama', kelas: '6A', email: 'fayakuun.abdullah.wikrama@sdm01tka2026.id' },
+    { nama: 'Gibran Praja Al Fatih', kelas: '6A', email: 'gibran.praja.al.fatih@sdm01tka2026.id' },
+    { nama: 'Hafiz Ali Al Fatih', kelas: '6A', email: 'hafiz.ali.al.fatih@sdm01tka2026.id' },
+    { nama: 'Hafiza Khaira Lubna', kelas: '6A', email: 'hafiza.khaira.lubna@sdm01tka2026.id' },
+    { nama: 'Kanzaki Luvry Amirza', kelas: '6A', email: 'kanzaki.luvry.amirza@sdm01tka2026.id' },
+    { nama: 'Luqman Syafii', kelas: '6A', email: 'luqman.syafii@sdm01tka2026.id' },
+    { nama: 'Mirza Ukail Bunia', kelas: '6A', email: 'mirza.ukail.bunia@sdm01tka2026.id' },
+    { nama: 'Muhammad Abdus Salam Firanda', kelas: '6A', email: 'muhammad.abdus.salam.firanda@sdm01tka2026.id' },
+    { nama: 'Muhammad Arkan Alfarizi', kelas: '6A', email: 'muhammad.arkan.alfarizi@sdm01tka2026.id' },
+    { nama: 'Muhammad Danish Alfiero', kelas: '6A', email: 'muhammad.danish.alfiero@sdm01tka2026.id' },
+    { nama: 'Muhammad Wirabumi', kelas: '6A', email: 'muhammad.wirabumi@sdm01tka2026.id' },
+    { nama: 'Naila Azharina Zhafira', kelas: '6A', email: 'naila.azharina.zhafira@sdm01tka2026.id' },
+    { nama: 'Najla Fiesya Callista', kelas: '6A', email: 'najla.fiesya.callista@sdm01tka2026.id' },
+    { nama: 'Naufal Adrian Ramadhani', kelas: '6A', email: 'naufal.adrian.ramadhani@sdm01tka2026.id' },
+    { nama: 'Oryza Adilla Yasin', kelas: '6A', email: 'oryza.adilla.yasin@sdm01tka2026.id' },
+    { nama: 'Qisya Hamizan Chasril', kelas: '6A', email: 'qisya.hamizan.chasril@sdm01tka2026.id' },
+    { nama: 'Safiya Azzahra Elmeira Kandow', kelas: '6A', email: 'safiya.azzahra.elmeira.kandow@sdm01tka2026.id' },
+    { nama: 'Sinan Abhinaya Tsabit', kelas: '6A', email: 'sinan.abhinaya.tsabit@sdm01tka2026.id' },
+    { nama: 'Syabila Aisyatuz Zahra', kelas: '6A', email: 'syabila.aisyatuz.zahra@sdm01tka2026.id' },
+    { nama: 'Yasfa Qudsiyyah', kelas: '6A', email: 'yasfa.qudsiyyah@sdm01tka2026.id' },
+    { nama: 'Agisha Bellvania Raeka Hermansyah', kelas: '6B', email: 'agisha.bellvania.raeka.hermansyah@sdm01tka2026.id' },
+    { nama: 'Ahmad Rayhan Nurhadi', kelas: '6B', email: 'ahmad.rayhan.nurhadi@sdm01tka2026.id' },
+    { nama: 'Aisyah Ayudia Inara', kelas: '6B', email: 'aisyah.ayudia.inara@sdm01tka2026.id' },
+    { nama: 'Alendru Naizar', kelas: '6B', email: 'alendru.naizar@sdm01tka2026.id' },
+    { nama: 'Alisha Marwa Shofia', kelas: '6B', email: 'alisha.marwa.shofia@sdm01tka2026.id' },
+    { nama: 'Arkarilo Alkhawarizmi Laami', kelas: '6B', email: 'arkarilo.alkhawarizmi.laami@sdm01tka2026.id' },
+    { nama: 'Awlia Ramadhani Handoko', kelas: '6B', email: 'awlia.ramadhani.handoko@sdm01tka2026.id' },
+    { nama: 'Dhabita Arissa Mahera', kelas: '6B', email: 'dhabita.arissa.mahera@sdm01tka2026.id' },
+    { nama: 'Fathan Ghani Abidenur', kelas: '6B', email: 'fathan.ghani.abidenur@sdm01tka2026.id' },
+    { nama: 'Ibrahim Abbas Al Ukasyah Hasibuan', kelas: '6B', email: 'ibrahim.abbas.al.ukasyah.hasibuan@sdm01tka2026.id' },
+    { nama: 'La Ode Muhammad Fakhri Akbar', kelas: '6B', email: 'la.ode.muhammad.fakhri.akbar@sdm01tka2026.id' },
+    { nama: 'Maliq Rizky Javier', kelas: '6B', email: 'maliq.rizky.javier@sdm01tka2026.id' },
+    { nama: 'Mohammad Rayyan Bagjapura', kelas: '6B', email: 'mohammad.rayyan.bagjapura@sdm01tka2026.id' },
+    { nama: 'Muhammad Abdullah Azzam', kelas: '6B', email: 'muhammad.abdullah.azzam@sdm01tka2026.id' },
+    { nama: 'Muhammad Abidzar Al Ghifari', kelas: '6B', email: 'muhammad.abidzar.al.ghifari@sdm01tka2026.id' },
+    { nama: 'Muhammad Alzam Hanif', kelas: '6B', email: 'muhammad.alzam.hanif@sdm01tka2026.id' },
+    { nama: 'Muhammad Kafiluddin Jundori', kelas: '6B', email: 'muhammad.kafiluddin.jundori@sdm01tka2026.id' },
+    { nama: 'Naufal Ibrohim', kelas: '6B', email: 'naufal.ibrohim@sdm01tka2026.id' },
+    { nama: 'Raziq Hanan Achmad', kelas: '6B', email: 'raziq.hanan.achmad@sdm01tka2026.id' },
+    { nama: 'Sabiq Alkhairy Rahman', kelas: '6B', email: 'sabiq.alkhairy.rahman@sdm01tka2026.id' },
+    { nama: 'Syafira Putri Kartadisastra', kelas: '6B', email: 'syafira.putri.kartadisastra@sdm01tka2026.id' },
+    { nama: 'Syifa Aulia Azkiya', kelas: '6B', email: 'syifa.aulia.azkiya@sdm01tka2026.id' },
+    { nama: 'Tangguh Hafiz Pratama', kelas: '6B', email: 'tangguh.hafiz.pratama@sdm01tka2026.id' },
+    { nama: 'Uwais Al Fatih', kelas: '6B', email: 'uwais.al.fatih@sdm01tka2026.id' },
+    { nama: 'Vania Amira Zhafirah', kelas: '6B', email: 'vania.amira.zhafirah@sdm01tka2026.id' },
+    { nama: 'Zakiyah Fathinah Fauziyah', kelas: '6B', email: 'zakiyah.fathinah.fauziyah@sdm01tka2026.id' },
+    { nama: 'Dummy 1', kelas: 'Test Sistem', email: 'dummy1@sdm01tka2026.id' },
+    { nama: 'Dummy 2', kelas: 'Test Sistem', email: 'dummy2@sdm01tka2026.id' },
+  ];
+
+  const GURU_FALLBACK = [
+    { nama: 'Ratih Yuniati', peran: 'guru', email: 'ratih@gurutka2026.id' },
+    { nama: 'Asuroh Susanti', peran: 'guru', email: 'santi@gurutka2026.id' },
+  ];
+
+  const ADMIN_FALLBACK = [
+    { nama: 'Arif Azwar Anas', peran: 'admin', email: 'arif@admintka2026.id' },
+  ];
+
+  const params = new URLSearchParams(window.location.search);
+  const adminMode = params.get('mode') === 'admin' || isAdminMode();
+  if (params.get('mode') === 'admin') setAdminMode(true);
+
+  const sekolah = getSekolah();
+
+  // Wajib pilih sekolah kecuali mode admin
+  if (!adminMode && !sekolah) {
+    requireSekolahOrRedirect('index.html');
+  }
+
+  // UI konteks sekolah / admin
+  const brandSub = document.getElementById('brand-sub');
+  const badge = document.getElementById('school-badge');
+  const badgeName = document.getElementById('school-badge-name');
+  const heroDesc = document.getElementById('hero-desc');
+  const footerGanti = document.getElementById('footer-ganti');
+  const tabsRow = document.getElementById('tabs-row');
+
+  if (adminMode) {
+    brandSub.textContent = 'TKA 2026 · Admin pusat';
+    heroDesc.textContent = 'Masuk sebagai admin untuk mengelola sekolah, akun guru, dan import siswa.';
+    badge.style.display = 'inline-flex';
+    badgeName.textContent = 'Mode Admin Pusat';
+    footerGanti.innerHTML = '<a href="index.html">Pilih sekolah (siswa/guru)</a> · ';
+    // Hanya tab guru (admin)
+    document.getElementById('tab-siswa').style.display = 'none';
+    document.getElementById('tab-guru').textContent = 'Admin';
+    document.getElementById('tab-guru').classList.add('active');
+    document.getElementById('tab-siswa').classList.remove('active');
+    document.getElementById('panel-siswa').classList.remove('active');
+    document.getElementById('panel-guru').classList.add('active');
+  } else if (sekolah) {
+    brandSub.textContent = 'TKA 2026 · ' + sekolah.nama;
+    badge.style.display = 'inline-flex';
+    badgeName.textContent = sekolah.nama;
+  }
+
+  const pill = document.getElementById('dev-pill');
+  if (isConfigured) {
+    pill.innerHTML = '<span class="dot" style="background:#057a55"></span>Terhubung ke Firebase';
+    pill.style.background = '#def7ec';
+    pill.style.color = '#046c4e';
+    pill.style.borderColor = '#a7f3d0';
+  } else {
+    pill.innerHTML = '<span class="dot"></span>Firebase belum dikonfigurasi';
+  }
+
+  function fillSelectSiswa(list) {
+    const sel = document.getElementById('siswa-nama');
+    sel.innerHTML = '<option value="">Pilih namamu...</option>';
+    const kelasList = [...new Set(list.map((s) => s.kelas || 'Lainnya'))];
+    kelasList.forEach((kelas) => {
+      const group = document.createElement('optgroup');
+      group.label = kelas === 'Test Sistem' ? 'Test Sistem' : ('Kelas ' + kelas);
+      list.filter((s) => (s.kelas || 'Lainnya') === kelas).forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.email;
+        opt.textContent = s.nama;
+        group.appendChild(opt);
+      });
+      sel.appendChild(group);
+    });
+  }
+
+  function fillSelectGuru(list) {
+    const sel = document.getElementById('guru-nama');
+    sel.innerHTML = '<option value="">Pilih nama...</option>';
+    list.forEach((g) => {
+      const opt = document.createElement('option');
+      opt.value = g.email;
+      opt.textContent = g.nama + (g.peran === 'admin' ? ' (Admin)' : '');
+      sel.appendChild(opt);
+    });
+  }
+
+  async function loadRosters() {
+    if (adminMode) {
+      fillSelectGuru(ADMIN_FALLBACK);
+      return;
+    }
+    const sid = sekolah ? sekolah.id : SEKOLAH_DEFAULT_ID;
+    let siswa = await listLoginRoster(sid, 'siswa');
+    let guru = await listLoginRoster(sid, 'guru');
+
+    // Fallback hanya untuk sekolah default (data existing)
+    if (!siswa.length && sid === SEKOLAH_DEFAULT_ID) siswa = SISWA_FALLBACK;
+    if (!guru.length && sid === SEKOLAH_DEFAULT_ID) guru = GURU_FALLBACK;
+
+    fillSelectSiswa(siswa);
+    fillSelectGuru(guru);
+
+    if (!siswa.length && !guru.length) {
+      const box = document.getElementById('status-siswa');
+      box.textContent = 'Belum ada roster untuk sekolah ini. Admin perlu mengisi akun guru/siswa.';
+      box.classList.add('show');
+    }
+  }
+
+  function switchTab(name) {
+    if (adminMode) return;
+    document.getElementById('tab-siswa').classList.toggle('active', name === 'siswa');
+    document.getElementById('tab-guru').classList.toggle('active', name === 'guru');
+    document.getElementById('panel-siswa').classList.toggle('active', name === 'siswa');
+    document.getElementById('panel-guru').classList.toggle('active', name === 'guru');
+  }
+
+  document.getElementById('tab-siswa').addEventListener('click', () => switchTab('siswa'));
+  document.getElementById('tab-guru').addEventListener('click', () => switchTab('guru'));
+
+  function bindSubmit(formId, role) {
+    document.getElementById(formId).addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const isSiswa = role === 'siswa';
+      const namaEl = document.getElementById(isSiswa ? 'siswa-nama' : 'guru-nama');
+      const passEl = document.getElementById(isSiswa ? 'siswa-pass' : 'guru-pass');
+      const fNama = document.getElementById(isSiswa ? 'f-siswa-nama' : 'f-guru-nama');
+      const fPass = document.getElementById(isSiswa ? 'f-siswa-pass' : 'f-guru-pass');
+      const statusBox = document.getElementById(isSiswa ? 'status-siswa' : 'status-guru');
+
+      fNama.classList.remove('has-error');
+      fPass.classList.remove('has-error');
+      statusBox.classList.remove('show');
+
+      let valid = true;
+      if (!namaEl.value) { fNama.classList.add('has-error'); valid = false; }
+      if (!passEl.value) { fPass.classList.add('has-error'); valid = false; }
+      if (!valid) return;
+
+      statusBox.textContent = 'Memeriksa...';
+      statusBox.classList.add('show');
+
+      if (!isConfigured) {
+        statusBox.textContent = 'Firebase belum dikonfigurasi. Isi firebase-config.js terlebih dahulu.';
+        return;
+      }
+
+      try {
+        const cred = await signInWithEmailAndPassword(auth, namaEl.value, passEl.value);
+        // Validasi keanggotaan sekolah (kecuali admin)
+        if (!adminMode && sekolah) {
+          const staff = await getStaffDoc(cred.user.uid);
+          if (staff) {
+            if (staff.peran === 'admin') {
+              // admin boleh masuk dari jalur sekolah → arahkan ke panel admin
+            } else if (staff.sekolahId && staff.sekolahId !== sekolah.id) {
+              statusBox.textContent = 'Akun guru ini terdaftar di sekolah lain.';
+              return;
+            }
+          }
+        }
+        const home = await resolveHomeByRole(cred.user.uid);
+        if (!home) {
+          statusBox.textContent = 'Akun ini belum terdaftar sebagai siswa atau staf. Hubungi admin.';
+          return;
+        }
+        window.location.href = home;
+      } catch (err) {
+        const code = err.code || '';
+        if (['auth/wrong-password', 'auth/invalid-credential', 'auth/user-not-found', 'auth/invalid-email'].includes(code)) {
+          statusBox.textContent = 'Nama atau kata sandi salah. Coba lagi.';
+        } else if (code === 'auth/too-many-requests') {
+          statusBox.textContent = 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
+        } else if (code === 'auth/network-request-failed') {
+          statusBox.textContent = 'Koneksi bermasalah. Periksa internet lalu coba lagi.';
+        } else {
+          statusBox.textContent = 'Gagal masuk: ' + (err.message || code);
+        }
+      }
+    });
+  }
+
+  bindSubmit('panel-siswa', 'siswa');
+  bindSubmit('panel-guru', 'guru');
+
+  document.getElementById('link-ganti-sekolah')?.addEventListener('click', () => {
+    clearSekolah();
+    setAdminMode(false);
+  });
+
+  loadRosters();
+</script>
+</body>
+</html>

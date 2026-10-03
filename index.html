@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk – Portal Latihan TKA 2026 | SD Muhammadiyah 01 Kukusan</title>
-<meta name="description" content="Masuk untuk mulai latihan soal Tes Kompetensi Akademik (TKA) 2026 — SD Muhammadiyah 01 Kukusan.">
+<title>Pilih Sekolah – Portal Latihan TKA 2026</title>
+<meta name="description" content="Pilih sekolah Anda untuk masuk ke Portal Latihan TKA 2026.">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -13,48 +13,38 @@
     --primary-mid: #1e429f;
     --accent-light: #93c5fd;
     --green: #057a55;
-    --amber: #d97706;
-    --amber-light: #fef3c7;
     --text: #1f2a37;
     --text-muted: #6b7280;
     --panel-bg: #f8fafc;
     --white: #ffffff;
     --border: #e2e8f0;
     --radius: 16px;
-    --radius-sm: 10px;
-    --shadow: 0 20px 50px rgba(15, 41, 107, 0.18);
+    --radius-sm: 12px;
+    --shadow: 0 20px 50px rgba(15, 41, 107, 0.16);
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: clamp(14px, 1.05vw + 8px, 16px); }
-
   body {
     font-family: 'Nunito', sans-serif;
     color: var(--text);
     min-height: 100vh;
+    background: var(--panel-bg);
   }
-
-  a { color: inherit; }
-
   .shell {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: 1.15fr 1fr;
+    grid-template-columns: 1.05fr 1fr;
   }
-
-  /* ─────────── LEFT: BRAND / HERO ─────────── */
   .brand-side {
     position: relative;
     overflow: hidden;
     background: linear-gradient(155deg, var(--primary-dark) 0%, var(--primary-mid) 55%, var(--primary) 100%);
     color: #fff;
-    padding: 40px 48px 40px;
+    padding: 40px 48px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 32px;
+    gap: 28px;
   }
-
   .brand-side::before {
     content: '';
     position: absolute;
@@ -63,488 +53,279 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
   }
-  .brand-side::after {
-    content: '';
-    position: absolute;
-    bottom: -180px; right: -80px;
-    width: 380px; height: 380px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
-  }
-
-  .brand-header {
-    display: flex; align-items: center; gap: 14px;
-    position: relative;
-  }
-
+  .brand-header { display: flex; align-items: center; gap: 14px; position: relative; }
   .brand-logo {
-    width: 46px; height: 46px; border-radius: 12px;
+    width: 48px; height: 48px; border-radius: 12px;
     background: linear-gradient(135deg, #60a5fa, #34d399);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; flex-shrink: 0;
+    font-size: 1.4rem;
     box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   }
-
   .brand-name { font-family: 'Baloo 2', cursive; font-size: 1.15rem; font-weight: 800; }
   .brand-sub { font-size: 0.78rem; opacity: 0.75; font-weight: 600; margin-top: 2px; }
-
-  .hero-text { position: relative; max-width: 460px; }
+  .hero-text { position: relative; max-width: 440px; }
   .hero-text h1 {
     font-family: 'Baloo 2', cursive;
     font-weight: 800;
-    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    font-size: clamp(1.85rem, 3vw, 2.4rem);
     line-height: 1.15;
   }
-  .hero-text h1 span {
-    display: block;
-    font-style: italic;
-    font-weight: 700;
-    color: var(--accent-light);
-  }
+  .hero-text h1 span { display: block; font-style: italic; color: var(--accent-light); }
   .hero-text p {
-    margin-top: 16px;
+    margin-top: 14px;
     font-size: 0.95rem;
     line-height: 1.6;
-    opacity: 0.85;
+    opacity: 0.88;
     font-weight: 600;
   }
-
-  .feature-grid {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    max-width: 560px;
-  }
-
-  .feature-card {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: var(--radius-sm);
-    padding: 16px 18px;
-    backdrop-filter: blur(6px);
-  }
-
-  .feature-icon { font-size: 1.3rem; margin-bottom: 8px; }
-  .feature-title { font-weight: 800; font-size: 0.88rem; margin-bottom: 4px; }
-  .feature-desc { font-size: 0.76rem; line-height: 1.45; opacity: 0.78; font-weight: 600; }
-
-  /* ─────────── RIGHT: AUTH PANEL ─────────── */
-  .auth-side {
-    background: var(--panel-bg);
+  .panel-side {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 32px 24px;
   }
-
-  .auth-wrap { width: 100%; max-width: 380px; }
-
-  .dev-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--amber-light); color: #92400e;
-    border: 1px solid #fde68a;
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-size: 0.68rem; font-weight: 800;
-    margin-bottom: 16px;
-  }
-  .dev-pill .dot {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--amber);
-    animation: pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-  .auth-card {
+  .panel-wrap { width: 100%; max-width: 420px; }
+  .panel-card {
     background: var(--white);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    padding: 28px 28px 26px;
+    padding: 28px 26px 24px;
   }
-
-  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
-  .tab-btn {
-    flex: 1; text-align: center;
-    background: none; border: none;
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.9rem; font-weight: 800;
+  .panel-card h2 {
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.35rem;
+    color: var(--primary-dark);
+    margin-bottom: 6px;
+  }
+  .panel-card .lead {
+    font-size: 0.88rem;
+    font-weight: 600;
     color: var(--text-muted);
-    padding: 0 0 12px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    margin-bottom: 20px;
+    line-height: 1.5;
   }
-  .tab-btn.active { color: var(--primary); border-color: var(--primary); }
-
-  .panel { display: none; }
-  .panel.active { display: block; animation: fadeIn 0.25s ease both; }
-  @keyframes fadeIn { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
-
-  .field { margin-bottom: 16px; }
-  .field label {
-    display: block; font-size: 0.68rem; font-weight: 800;
-    letter-spacing: 0.4px; text-transform: uppercase;
-    color: var(--text-muted); margin-bottom: 6px;
+  .search-box {
+    margin-bottom: 14px;
   }
-  .field input, .field select {
+  .search-box input {
     width: 100%;
     font-family: 'Nunito', sans-serif;
-    font-size: 0.92rem; font-weight: 700;
-    padding: 11px 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 12px 14px;
     border-radius: var(--radius-sm);
     border: 1.5px solid var(--border);
     background: #f4f7fb;
-    color: var(--text);
     outline: none;
-    transition: border-color 0.15s ease, background 0.15s ease;
-    appearance: none;
-    -webkit-appearance: none;
   }
-  .field select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.6' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 34px;
-  }
-  .field input:focus, .field select:focus {
+  .search-box input:focus {
     border-color: var(--primary);
-    background-color: var(--white);
+    background: #fff;
   }
-  .field-error {
-    display: none;
-    font-size: 0.72rem; font-weight: 700;
-    color: #dc2626; margin-top: 5px;
+  .school-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 2px;
   }
-  .field.has-error input, .field.has-error select { border-color: #dc2626; }
-  .field.has-error .field-error { display: block; }
-
-  .btn-submit {
+  .school-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
     width: 100%;
-    background: linear-gradient(135deg, var(--primary-mid), var(--primary));
-    color: #fff;
-    border: none;
+    border: 1.5px solid var(--border);
+    background: #f8fafc;
     border-radius: var(--radius-sm);
-    padding: 13px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.94rem; font-weight: 800;
+    padding: 14px 14px;
     cursor: pointer;
-    margin-top: 4px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    font-family: 'Nunito', sans-serif;
+    transition: border-color 0.15s, background 0.15s, transform 0.12s;
   }
-  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(26,86,219,0.3); }
-  .btn-submit:active { transform: translateY(0); }
-
-  .auth-footer {
-    margin-top: 18px; text-align: center;
-    font-size: 0.76rem; color: var(--text-muted); font-weight: 700;
-    line-height: 1.7;
+  .school-btn:hover {
+    border-color: var(--primary);
+    background: #eff6ff;
+    transform: translateY(-1px);
   }
-
-  .status-box {
-    display: none;
-    margin-top: 16px;
-    padding: 12px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.78rem; font-weight: 700; line-height: 1.5;
-    background: var(--amber-light); color: #92400e;
-    border: 1px solid #fde68a;
+  .school-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
   }
-  .status-box.show { display: block; animation: fadeIn 0.25s ease both; }
-
-  /* ─────────── RESPONSIVE ─────────── */
+  .school-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--primary-dark);
+    line-height: 1.3;
+  }
+  .school-meta {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .status-line {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 12px;
+    min-height: 1.2em;
+  }
+  .status-line.err { color: #dc2626; }
+  .footer-links {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .footer-links a {
+    color: var(--primary-mid);
+    text-decoration: none;
+  }
+  .footer-links a:hover { text-decoration: underline; }
+  .empty-state {
+    text-align: center;
+    padding: 28px 12px;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
   @media (max-width: 900px) {
     .shell { grid-template-columns: 1fr; }
-    .auth-side { order: 1; padding: 28px 20px 8px; }
-    .brand-side { order: 2; padding: 32px 24px 40px; }
-    .hero-text { max-width: 100%; }
-    .feature-grid { max-width: 100%; }
-  }
-
-  @media (max-width: 480px) {
-    .feature-grid { grid-template-columns: 1fr; }
-    .brand-side, .auth-side { padding-left: 18px; padding-right: 18px; }
+    .panel-side { order: 1; padding: 28px 18px 12px; }
+    .brand-side { order: 2; padding: 32px 22px 40px; }
   }
 </style>
 </head>
 <body>
-
 <div class="shell">
-
-  <!-- ═══════════ LEFT: BRAND / HERO ═══════════ -->
   <section class="brand-side">
     <div class="brand-header">
       <div class="brand-logo">📚</div>
       <div>
         <div class="brand-name">Portal Latihan TKA</div>
-        <div class="brand-sub">TKA 2026 · SD Muhammadiyah 01 Kukusan</div>
+        <div class="brand-sub">TKA 2026 · Multi-sekolah</div>
       </div>
     </div>
-
     <div class="hero-text">
-      <h1>Siap Hadapi<span>TKA 2026!</span></h1>
-      <p>Platform latihan soal interaktif untuk siswa kelas 6 SD Muhammadiyah 01 Kukusan. Soal disusun per kompetensi, terkoreksi otomatis, dan hasilnya tersimpan rapi ke akunmu — bisa dikerjakan kapan saja dari HP maupun laptop.</p>
-    </div>
-
-    <div class="feature-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🎯</div>
-        <div class="feature-title">Latihan Terarah</div>
-        <div class="feature-desc">Soal disusun per kompetensi sesuai kisi-kisi TKA.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-title">Koreksi Otomatis</div>
-        <div class="feature-desc">Nilai dan rekap kompetensi langsung muncul setelah selesai.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">Rekap Tersimpan</div>
-        <div class="feature-desc">Riwayat dan skor terbaik tersimpan ke akun masing-masing.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🆓</div>
-        <div class="feature-title">Gratis Sepenuhnya</div>
-        <div class="feature-desc">Tidak ada biaya, murni untuk mendukung belajar siswa.</div>
-      </div>
+      <h1>Pilih sekolahmu<span>untuk mulai</span></h1>
+      <p>Satu portal untuk latihan soal TKA kelas 6. Data setiap sekolah terpisah — pilih nama sekolah Anda, lalu masuk sebagai siswa atau guru.</p>
     </div>
   </section>
 
-  <!-- ═══════════ RIGHT: AUTH PANEL ═══════════ -->
-  <section class="auth-side">
-    <div class="auth-wrap">
-
-      <div class="dev-pill"><span class="dot"></span>Pratinjau UI — belum tersambung Firebase</div>
-
-      <div class="auth-card">
-        <div class="tabs">
-          <button class="tab-btn active" id="tab-siswa" onclick="AuthUI.switchTab('siswa')">Siswa</button>
-          <button class="tab-btn" id="tab-guru" onclick="AuthUI.switchTab('guru')">Guru & Admin</button>
+  <section class="panel-side">
+    <div class="panel-wrap">
+      <div class="panel-card">
+        <h2>Pilih Sekolah</h2>
+        <p class="lead">Ketuk nama sekolah Anda. Sistem akan memakai data sekolah tersebut untuk login dan latihan.</p>
+        <div class="search-box">
+          <input type="search" id="cari-sekolah" placeholder="Cari nama sekolah..." autocomplete="off">
         </div>
-
-        <!-- PANEL SISWA -->
-        <form class="panel active" id="panel-siswa" onsubmit="return AuthUI.submitLogin(event, 'siswa')" novalidate>
-          <div class="field" id="f-siswa-nama">
-            <label for="siswa-nama">Nama Siswa</label>
-            <select id="siswa-nama">
-              <option value="">Pilih namamu...</option>
-            </select>
-            <div class="field-error">Pilih nama terlebih dahulu.</div>
-          </div>
-          <div class="field" id="f-siswa-pass">
-            <label for="siswa-pass">Kata Sandi</label>
-            <input type="password" id="siswa-pass" placeholder="Kata sandi (NISN)" autocomplete="current-password">
-            <div class="field-error">Kata sandi wajib diisi.</div>
-          </div>
-          <button type="submit" class="btn-submit">Masuk</button>
-          <div class="status-box" id="status-siswa"></div>
-        </form>
-
-        <!-- PANEL GURU & ADMIN -->
-        <form class="panel" id="panel-guru" onsubmit="return AuthUI.submitLogin(event, 'guru')" novalidate>
-          <div class="field" id="f-guru-nama">
-            <label for="guru-nama">Nama</label>
-            <select id="guru-nama">
-              <option value="">Pilih nama...</option>
-            </select>
-            <div class="field-error">Pilih nama terlebih dahulu.</div>
-          </div>
-          <div class="field" id="f-guru-pass">
-            <label for="guru-pass">Kata Sandi</label>
-            <input type="password" id="guru-pass" placeholder="••••••••" autocomplete="current-password">
-            <div class="field-error">Kata sandi wajib diisi.</div>
-          </div>
-          <button type="submit" class="btn-submit">Masuk</button>
-          <div class="status-box" id="status-guru"></div>
-        </form>
+        <div class="school-list" id="school-list" aria-live="polite">
+          <div class="empty-state">Memuat daftar sekolah…</div>
+        </div>
+        <div class="status-line" id="status-line"></div>
       </div>
-
-      <div class="auth-footer">
-        Lupa kata sandi? Hubungi wali kelas atau admin sekolah.
+      <div class="footer-links">
+        Admin pusat?
+        <a href="login.html?mode=admin" id="link-admin">Masuk sebagai Admin</a>
       </div>
-
     </div>
   </section>
-
 </div>
 
-<script>
-  // ═══════ DATA AKUN (dipakai untuk mengisi dropdown) ═══════
-  // Catatan: email di sini adalah ID login internal, BUKAN alamat email sungguhan.
-  // Sumber kebenaran akun tetap Firebase Authentication — daftar ini hanya untuk
-  // menampilkan pilihan nama di dropdown sebelum memanggil Firebase Auth.
-  const SISWA = [
-    { nama: 'Abi Ibadurrohman', kelas: '6A', email: 'abi.ibadurrohman@sdm01tka2026.id' },
-    { nama: 'Al-Ghifari Azzam Khoirusshalih Mahika', kelas: '6A', email: 'alghifari.azzam.khoirusshalih.mahika@sdm01tka2026.id' },
-    { nama: 'Daenzel Zhafran', kelas: '6A', email: 'daenzel.zhafran@sdm01tka2026.id' },
-    { nama: 'Davindra Arfino Erwansyah', kelas: '6A', email: 'davindra.arfino.erwansyah@sdm01tka2026.id' },
-    { nama: 'Dzaky Abdul Rauf', kelas: '6A', email: 'dzaky.abdul.rauf@sdm01tka2026.id' },
-    { nama: 'Farannisa Humaira Mumtaz', kelas: '6A', email: 'farannisa.humaira.mumtaz@sdm01tka2026.id' },
-    { nama: 'Fayakuun Abdullah Wikrama', kelas: '6A', email: 'fayakuun.abdullah.wikrama@sdm01tka2026.id' },
-    { nama: 'Gibran Praja Al Fatih', kelas: '6A', email: 'gibran.praja.al.fatih@sdm01tka2026.id' },
-    { nama: 'Hafiz Ali Al Fatih', kelas: '6A', email: 'hafiz.ali.al.fatih@sdm01tka2026.id' },
-    { nama: 'Hafiza Khaira Lubna', kelas: '6A', email: 'hafiza.khaira.lubna@sdm01tka2026.id' },
-    { nama: 'Kanzaki Luvry Amirza', kelas: '6A', email: 'kanzaki.luvry.amirza@sdm01tka2026.id' },
-    { nama: 'Luqman Syafii', kelas: '6A', email: 'luqman.syafii@sdm01tka2026.id' },
-    { nama: 'Mirza Ukail Bunia', kelas: '6A', email: 'mirza.ukail.bunia@sdm01tka2026.id' },
-    { nama: 'Muhammad Abdus Salam Firanda', kelas: '6A', email: 'muhammad.abdus.salam.firanda@sdm01tka2026.id' },
-    { nama: 'Muhammad Arkan Alfarizi', kelas: '6A', email: 'muhammad.arkan.alfarizi@sdm01tka2026.id' },
-    { nama: 'Muhammad Danish Alfiero', kelas: '6A', email: 'muhammad.danish.alfiero@sdm01tka2026.id' },
-    { nama: 'Muhammad Wirabumi', kelas: '6A', email: 'muhammad.wirabumi@sdm01tka2026.id' },
-    { nama: 'Naila Azharina Zhafira', kelas: '6A', email: 'naila.azharina.zhafira@sdm01tka2026.id' },
-    { nama: 'Najla Fiesya Callista', kelas: '6A', email: 'najla.fiesya.callista@sdm01tka2026.id' },
-    { nama: 'Naufal Adrian Ramadhani', kelas: '6A', email: 'naufal.adrian.ramadhani@sdm01tka2026.id' },
-    { nama: 'Oryza Adilla Yasin', kelas: '6A', email: 'oryza.adilla.yasin@sdm01tka2026.id' },
-    { nama: 'Qisya Hamizan Chasril', kelas: '6A', email: 'qisya.hamizan.chasril@sdm01tka2026.id' },
-    { nama: 'Safiya Azzahra Elmeira Kandow', kelas: '6A', email: 'safiya.azzahra.elmeira.kandow@sdm01tka2026.id' },
-    { nama: 'Sinan Abhinaya Tsabit', kelas: '6A', email: 'sinan.abhinaya.tsabit@sdm01tka2026.id' },
-    { nama: 'Syabila Aisyatuz Zahra', kelas: '6A', email: 'syabila.aisyatuz.zahra@sdm01tka2026.id' },
-    { nama: 'Yasfa Qudsiyyah', kelas: '6A', email: 'yasfa.qudsiyyah@sdm01tka2026.id' },
-    { nama: 'Agisha Bellvania Raeka Hermansyah', kelas: '6B', email: 'agisha.bellvania.raeka.hermansyah@sdm01tka2026.id' },
-    { nama: 'Ahmad Rayhan Nurhadi', kelas: '6B', email: 'ahmad.rayhan.nurhadi@sdm01tka2026.id' },
-    { nama: 'Aisyah Ayudia Inara', kelas: '6B', email: 'aisyah.ayudia.inara@sdm01tka2026.id' },
-    { nama: 'Alendru Naizar', kelas: '6B', email: 'alendru.naizar@sdm01tka2026.id' },
-    { nama: 'Alisha Marwa Shofia', kelas: '6B', email: 'alisha.marwa.shofia@sdm01tka2026.id' },
-    { nama: 'Arkarilo Alkhawarizmi Laami', kelas: '6B', email: 'arkarilo.alkhawarizmi.laami@sdm01tka2026.id' },
-    { nama: 'Awlia Ramadhani Handoko', kelas: '6B', email: 'awlia.ramadhani.handoko@sdm01tka2026.id' },
-    { nama: 'Dhabita Arissa Mahera', kelas: '6B', email: 'dhabita.arissa.mahera@sdm01tka2026.id' },
-    { nama: 'Fathan Ghani Abidenur', kelas: '6B', email: 'fathan.ghani.abidenur@sdm01tka2026.id' },
-    { nama: 'Ibrahim Abbas Al Ukasyah Hasibuan', kelas: '6B', email: 'ibrahim.abbas.al.ukasyah.hasibuan@sdm01tka2026.id' },
-    { nama: 'La Ode Muhammad Fakhri Akbar', kelas: '6B', email: 'la.ode.muhammad.fakhri.akbar@sdm01tka2026.id' },
-    { nama: 'Maliq Rizky Javier', kelas: '6B', email: 'maliq.rizky.javier@sdm01tka2026.id' },
-    { nama: 'Mohammad Rayyan Bagjapura', kelas: '6B', email: 'mohammad.rayyan.bagjapura@sdm01tka2026.id' },
-    { nama: 'Muhammad Abdullah Azzam', kelas: '6B', email: 'muhammad.abdullah.azzam@sdm01tka2026.id' },
-    { nama: 'Muhammad Abidzar Al Ghifari', kelas: '6B', email: 'muhammad.abidzar.al.ghifari@sdm01tka2026.id' },
-    { nama: 'Muhammad Alzam Hanif', kelas: '6B', email: 'muhammad.alzam.hanif@sdm01tka2026.id' },
-    { nama: 'Muhammad Kafiluddin Jundori', kelas: '6B', email: 'muhammad.kafiluddin.jundori@sdm01tka2026.id' },
-    { nama: 'Naufal Ibrohim', kelas: '6B', email: 'naufal.ibrohim@sdm01tka2026.id' },
-    { nama: 'Raziq Hanan Achmad', kelas: '6B', email: 'raziq.hanan.achmad@sdm01tka2026.id' },
-    { nama: 'Sabiq Alkhairy Rahman', kelas: '6B', email: 'sabiq.alkhairy.rahman@sdm01tka2026.id' },
-    { nama: 'Syafira Putri Kartadisastra', kelas: '6B', email: 'syafira.putri.kartadisastra@sdm01tka2026.id' },
-    { nama: 'Syifa Aulia Azkiya', kelas: '6B', email: 'syifa.aulia.azkiya@sdm01tka2026.id' },
-    { nama: 'Tangguh Hafiz Pratama', kelas: '6B', email: 'tangguh.hafiz.pratama@sdm01tka2026.id' },
-    { nama: 'Uwais Al Fatih', kelas: '6B', email: 'uwais.al.fatih@sdm01tka2026.id' },
-    { nama: 'Vania Amira Zhafirah', kelas: '6B', email: 'vania.amira.zhafirah@sdm01tka2026.id' },
-    { nama: 'Zakiyah Fathinah Fauziyah', kelas: '6B', email: 'zakiyah.fathinah.fauziyah@sdm01tka2026.id' },
-    // ── Akun dummy khusus uji coba sistem (bukan siswa sungguhan) ──
-    { nama: 'Dummy 1', kelas: 'Test Sistem', email: 'dummy1@sdm01tka2026.id' },
-    { nama: 'Dummy 2', kelas: 'Test Sistem', email: 'dummy2@sdm01tka2026.id' },
-  ];
-
-  const GURU = [
-    { nama: 'Arif Azwar Anas', peran: 'admin', email: 'arif@admintka2026.id' },
-    { nama: 'Ratih Yuniati', peran: 'guru', email: 'ratih@gurutka2026.id' },
-    { nama: 'Asuroh Susanti', peran: 'guru', email: 'santi@gurutka2026.id' },
-  ];
-
-  const AuthUI = {
-    init() {
-      // isi dropdown siswa, dikelompokkan per kelas
-      const kelasList = [...new Set(SISWA.map(s => s.kelas))].sort();
-      const selSiswa = document.getElementById('siswa-nama');
-      kelasList.forEach(kelas => {
-        const group = document.createElement('optgroup');
-        group.label = (kelas === 'Test Sistem') ? 'Test Sistem' : ('Kelas ' + kelas);
-        SISWA.filter(s => s.kelas === kelas).forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.email;
-          opt.textContent = s.nama;
-          group.appendChild(opt);
-        });
-        selSiswa.appendChild(group);
-      });
-
-      // isi dropdown guru & admin
-      const selGuru = document.getElementById('guru-nama');
-      GURU.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.email;
-        opt.textContent = g.nama;
-        selGuru.appendChild(opt);
-      });
-    },
-
-    switchTab(name) {
-      document.getElementById('tab-siswa').classList.toggle('active', name === 'siswa');
-      document.getElementById('tab-guru').classList.toggle('active', name === 'guru');
-      document.getElementById('panel-siswa').classList.toggle('active', name === 'siswa');
-      document.getElementById('panel-guru').classList.toggle('active', name === 'guru');
-    },
-
-    submitLogin(event, role) {
-      event.preventDefault();
-      const isSiswa = role === 'siswa';
-      const namaEl = document.getElementById(isSiswa ? 'siswa-nama' : 'guru-nama');
-      const passEl = document.getElementById(isSiswa ? 'siswa-pass' : 'guru-pass');
-      const fNama = document.getElementById(isSiswa ? 'f-siswa-nama' : 'f-guru-nama');
-      const fPass = document.getElementById(isSiswa ? 'f-siswa-pass' : 'f-guru-pass');
-      const statusBox = document.getElementById(isSiswa ? 'status-siswa' : 'status-guru');
-
-      fNama.classList.remove('has-error');
-      fPass.classList.remove('has-error');
-      statusBox.classList.remove('show');
-
-      let valid = true;
-      if (!namaEl.value) { fNama.classList.add('has-error'); valid = false; }
-      if (!passEl.value) { fPass.classList.add('has-error'); valid = false; }
-      if (!valid) return false;
-
-      statusBox.textContent = 'Memeriksa...';
-      statusBox.classList.add('show');
-
-      // Firebase login di-handle oleh modul terpisah di bawah (type=module)
-      window.__pendingLogin = { email: namaEl.value, password: passEl.value, role: role, statusBox: statusBox };
-      if (window.__doFirebaseLogin) window.__doFirebaseLogin();
-      return false;
-    }
-  };
-
-  AuthUI.init();
-</script>
-
 <script type="module">
-  import { isConfigured, auth, signInWithEmailAndPassword, resolveHomeByRole } from './assets/firebase-init.js';
+  import { isConfigured } from './assets/firebase-init.js';
+  import { listSekolahAktif } from './assets/firebase-init.js';
+  import {
+    setSekolah,
+    setAdminMode,
+    SEKOLAH_SEED,
+  } from './assets/sekolah-context.js';
 
-  // Update pill status
-  const pill = document.querySelector('.dev-pill');
-  if (isConfigured && pill) {
-    pill.innerHTML = '<span class="dot" style="background:#057a55"></span>Terhubung ke Firebase';
-    pill.style.background = '#def7ec';
-    pill.style.color = '#046c4e';
-    pill.style.borderColor = '#a7f3d0';
-  }
+  const listEl = document.getElementById('school-list');
+  const statusEl = document.getElementById('status-line');
+  const searchEl = document.getElementById('cari-sekolah');
+  let schools = [];
 
-  window.__doFirebaseLogin = async function() {
-    const p = window.__pendingLogin;
-    if (!p) return;
-    const { email, password, statusBox } = p;
-
-    if (!isConfigured) {
-      statusBox.textContent = 'Firebase belum dikonfigurasi. Isi firebase-config.js terlebih dahulu.';
+  function render(filter = '') {
+    const q = filter.trim().toLowerCase();
+    const filtered = schools.filter((s) => {
+      if (!q) return true;
+      return (s.nama || '').toLowerCase().includes(q)
+        || (s.kode || '').toLowerCase().includes(q)
+        || (s.alamat || '').toLowerCase().includes(q);
+    });
+    if (!filtered.length) {
+      listEl.innerHTML = '<div class="empty-state">Tidak ada sekolah yang cocok.</div>';
       return;
     }
+    listEl.innerHTML = filtered.map((s) => `
+      <button type="button" class="school-btn" data-id="${escapeAttr(s.id)}">
+        <span class="school-icon">🏫</span>
+        <span>
+          <span class="school-name">${escapeHtml(s.nama)}</span>
+          <span class="school-meta">${escapeHtml(s.alamat || s.kode || '')}</span>
+        </span>
+      </button>
+    `).join('');
+    listEl.querySelectorAll('.school-btn').forEach((btn) => {
+      btn.addEventListener('click', () => pilihSekolah(btn.getAttribute('data-id')));
+    });
+  }
 
-    try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      const home = await resolveHomeByRole(cred.user.uid);
-      if (!home) {
-        statusBox.textContent = 'Akun ini belum terdaftar sebagai siswa atau staf. Hubungi admin.';
-        return;
-      }
-      window.location.href = home;
-    } catch (err) {
-      const code = err.code || '';
-      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/invalid-email') {
-        statusBox.textContent = 'Nama atau kata sandi salah. Coba lagi.';
-      } else if (code === 'auth/too-many-requests') {
-        statusBox.textContent = 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
-      } else if (code === 'auth/network-request-failed') {
-        statusBox.textContent = 'Koneksi bermasalah. Periksa internet lalu coba lagi.';
-      } else {
-        statusBox.textContent = 'Gagal masuk: ' + (err.message || code);
-      }
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/'/g, '&#39;');
+  }
+
+  function pilihSekolah(id) {
+    const s = schools.find((x) => x.id === id);
+    if (!s) {
+      statusEl.textContent = 'Sekolah tidak ditemukan.';
+      statusEl.className = 'status-line err';
+      return;
     }
-  };
-</script>
+    setAdminMode(false);
+    setSekolah(s);
+    statusEl.textContent = 'Membuka halaman masuk…';
+    statusEl.className = 'status-line';
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      window.location.href = next;
+    } else {
+      window.location.href = 'login.html';
+    }
+  }
 
+  document.getElementById('link-admin').addEventListener('click', () => {
+    setAdminMode(true);
+  });
+
+  searchEl.addEventListener('input', () => render(searchEl.value));
+
+  (async function init() {
+    schools = await listSekolahAktif(SEKOLAH_SEED);
+    if (!schools.length) schools = SEKOLAH_SEED.slice();
+    render();
+    if (!isConfigured) {
+      statusEl.textContent = 'Mode offline: daftar sekolah dari seed lokal (Firebase belum dikonfigurasi).';
+    }
+  })();
+</script>
 </body>
 </html>
