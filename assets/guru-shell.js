@@ -149,6 +149,7 @@ function buildTopbarHTML(active, staff) {
   <button type="button" class="btn-menu" id="btn-menu" aria-label="Buka menu">☰</button>
   <div class="topbar-title">${title}</div>
   ${adminTools}
+  <div id="tka-notif-slot" class="tka-notif-slot"></div>
 </header>
 `;
 }
@@ -321,6 +322,17 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
 
   if (staff && staff.peran === 'admin') {
     initAdminSekolahPicker();
+  }
+
+  // Lonceng notifikasi (admin: pengajuan baru; guru: status usulan)
+  const notifSlot = document.getElementById('tka-notif-slot');
+  if (notifSlot) {
+    import('./notifikasi.js')
+      .then(({ mountNotifikasiBell }) => {
+        const uid = (auth.currentUser && auth.currentUser.uid) || staff?.uid || null;
+        return mountNotifikasiBell(notifSlot, { ...staff, uid });
+      })
+      .catch((err) => console.warn('Notifikasi tidak dimuat:', err));
   }
 }
 

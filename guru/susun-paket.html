@@ -446,7 +446,7 @@
       let pool = filterBankSoal(raw, currentStaff);
       // Fase 2: guru latihan hanya soal miliknya sendiri
       if (isGuruLatihanMode()) {
-        const uid = (auth.currentUser && auth.currentUser.uid) || '';
+        const uid = (currentStaff && (currentStaff.id || currentStaff.uid)) || (auth.currentUser && auth.currentUser.uid) || '';
         pool = pool.filter((s) => s.createdBy === uid);
       }
       allSoal = pool;
@@ -628,7 +628,7 @@
       items = filterBySekolah(items, sid);
       // Fase 2: guru hanya paket latihan miliknya
       if (isGuruLatihanMode()) {
-        const uid = (auth.currentUser && auth.currentUser.uid) || '';
+        const uid = (currentStaff && (currentStaff.id || currentStaff.uid)) || (auth.currentUser && auth.currentUser.uid) || '';
         items = items.filter((p) => {
           const j = p.jenis || 'latihan';
           if (j === 'tryout') return false;
@@ -668,7 +668,7 @@
   async function startEdit(p) {
     if (!p) return;
     if (isGuruLatihanMode()) {
-      const uid = (auth.currentUser && auth.currentUser.uid) || '';
+      const uid = (currentStaff && (currentStaff.id || currentStaff.uid)) || (auth.currentUser && auth.currentUser.uid) || '';
       if ((p.jenis || 'latihan') === 'tryout') {
         alert('Paket try out hanya dikelola admin.');
         return;
@@ -735,7 +735,7 @@
     let jenis = document.getElementById('jenis-paket').value;
     if (isGuruLatihanMode()) {
       jenis = 'latihan';
-      const uid = (auth.currentUser && auth.currentUser.uid) || '';
+      const uid = (currentStaff && (currentStaff.id || currentStaff.uid)) || (auth.currentUser && auth.currentUser.uid) || '';
       const bukanMilik = ids.filter((id) => {
         const s = selected[id] || allSoal.find((x) => x.id === id);
         return s && s.createdBy && s.createdBy !== uid;
@@ -792,7 +792,7 @@
           : 'Perubahan tersimpan. Paket nonaktif — disembunyikan dari siswa.';
       } else {
         payload.createdAt = serverTimestamp();
-        payload.createdBy = currentStaff?.uid || auth.currentUser?.uid || null;
+        payload.createdBy = currentStaff?.id || currentStaff?.uid || auth.currentUser?.uid || null;
         await addDoc(collection(db, 'packages'), payload);
         status.textContent = payload.aktif
           ? 'Paket baru tersimpan & aktif.'

@@ -133,3 +133,41 @@ export function filterBankSoal(docs, userDoc) {
     return belongsToSekolah(d, sid);
   });
 }
+
+/**
+ * Normalisasi subjectId agar cocok antar form, bank, dan data lama.
+ * → 'matematika' | 'bahasa-indonesia' | string lain
+ */
+export function normalizeSubjectId(raw) {
+  const x = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-');
+  if (!x) return '';
+  if (x === 'bi' || x === 'bindo' || x === 'bahasa-indonesia' || x.includes('indonesia')) {
+    return 'bahasa-indonesia';
+  }
+  if (x === 'mtk' || x === 'matematika' || x.includes('matematika')) {
+    return 'matematika';
+  }
+  return x;
+}
+
+/**
+ * Normalisasi kompleksitas ke label kanonik bank soal.
+ * L1 / L1-Pemahaman → L1-Pemahaman; dst.
+ */
+export function normalizeKompleksitas(raw) {
+  const t = String(raw || '').trim();
+  if (!t) return '';
+  if (/^L1/i.test(t)) return 'L1-Pemahaman';
+  if (/^L2/i.test(t)) return 'L2-Aplikasi';
+  if (/^L3/i.test(t)) return 'L3-Penalaran';
+  return t;
+}
+
+/** uid staf dari dokumen staff (id) atau auth */
+export function staffUid(staff, authUser) {
+  return (staff && (staff.uid || staff.id)) || (authUser && authUser.uid) || null;
+}

@@ -56,6 +56,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
   <div class="top">
     <h1>Antrian Try Out</h1>
     <div style="display:flex;gap:14px;align-items:center">
+      <div id="tka-notif-slot"></div>
       <a href="./index.html">← Admin Pusat</a>
       <a href="../guru/">Panel Guru</a>
     </div>
@@ -76,6 +77,12 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { notifGuruStatusPengajuan, mountNotifikasiBell } from '../assets/notifikasi.js';
+  import {
+    normalizeSubjectId,
+    normalizeKompleksitas,
+    staffUid,
+  } from '../assets/sekolah-scope.js';
   import {
     collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, increment, writeBatch
   } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
@@ -139,7 +146,16 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 
   async function loadPool() {
     const snap = await getDocs(collection(db, 'soalPublik'));
-    poolSoal = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    poolSoal = snap.docs.map((d) => {
+      const x = d.data();
+      return {
+        id: d.id,
+        ...x,
+        subjectId: normalizeSubjectId(x.subjectId || x.mapel || ''),
+        kompleksitas: normalizeKompleksitas(x.kompleksitas || ''),
+        tipeMateri: (x.tipeMateri || '').trim() || '(tanpa materi)',
+      };
+    });
   }
 
   async function loadPengajuan() {
@@ -153,22 +169,22 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
    * Prioritas: kaliDipakaiTryout terendah (0 dulu), acak di dalam tingkat yang sama.
    */
   function generateFor(p) {
-    const subjectId = p.subjectId;
+    const subjectId = normalizeSubjectId(p.subjectId);
     const picked = [];
     const pickedSet = new Set();
     const shortages = [];
 
     for (const slot of (p.komposisi || [])) {
-      const materi = (slot.tipeMateri || '').trim();
-      const komp = (slot.kompleksitas || '').trim();
+      const materi = (slot.tipeMateri || '').trim() || '(tanpa materi)';
+      const komp = normalizeKompleksitas(slot.kompleksitas || '');
       const need = Number(slot.jumlah) || 0;
       if (!need) continue;
 
       let candidates = poolSoal.filter((s) => {
-        if (subjectId && s.subjectId !== subjectId && s.mapel !== subjectId) return false;
+        if (subjectId && normalizeSubjectId(s.subjectId || s.mapel) !== subjectId) return false;
         const m = (s.tipeMateri || '').trim() || '(tanpa materi)';
         if (m !== materi) return false;
-        if ((s.kompleksitas || '').trim() !== komp) return false;
+        if (normalizeKompleksitas(s.kompleksitas || '') !== komp) return false;
         if (pickedSet.has(s.id)) return false;
         return true;
       });
@@ -273,6 +289,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         <div class="actions">
           ${(p.status === 'diajukan' || p.status === 'diproses') ? `
             <button type="button" class="btn btn-primary btn-buka-gen" data-id="${p.id}">${isOpen ? 'Tutup panel' : 'Generate / tinjau'}</button>
+            ${p.status === 'diajukan' ? `<button type="button" class="btn btn-secondary btn-diproses" data-id="${p.id}">Tandai diproses</button>` : ''}
           ` : ''}
         </div>
         ${genHtml}
@@ -337,6 +354,21 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
     el.querySelectorAll('.btn-tolak').forEach((btn) => {
       btn.addEventListener('click', () => tolakPengajuan(btn.dataset.id));
     });
+    el.querySelectorAll('.btn-diproses').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try {
+          await updateDoc(doc(db, 'pengajuanPaket', id), {
+            status: 'diproses',
+            updatedAt: serverTimestamp(),
+          });
+          await loadPengajuan();
+          renderList();
+        } catch (err) {
+          alert('Gagal: ' + err.message);
+        }
+      });
+    });
   }
 
   async function publishPaket(pengajuanId) {
@@ -360,13 +392,13 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         nama,
         jenis: 'tryout',
         questionIds: ids,
-        subjectId: p.subjectId,
+        subjectId: normalizeSubjectId(p.subjectId),
         skorMaksimal: skor,
         totalSkor: skor,
         aktif: true,
         sekolahId: p.sekolahId || null,
         pengajuanId,
-        createdBy: auth.currentUser?.uid || null,
+        createdBy: staffUid(currentStaff, auth.currentUser),
         durasiMenit: Number(p.durasiMenit) || 60,
         maksPercobaan: 1,
         token,
@@ -385,24 +417,35 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         generatedQuestionIds: ids,
         updatedAt: serverTimestamp(),
       });
-      // Fase 5: catat pemakaian di soalPublik + questionPool
+      try {
+        await notifGuruStatusPengajuan({
+          targetUid: p.diajukanOleh,
+          status: 'dipublish',
+          nama: nama,
+          packageId: ref.id,
+          pengajuanId,
+        });
+      } catch (ne) {
+        console.warn('Notifikasi guru gagal:', ne);
+      }
+      // Fase 5: catat pemakaian (soalPublik wajib; questionPool best-effort)
+      const usagePatch = {
+        kaliDipakaiTryout: increment(1),
+        lastUsedTryoutAt: serverTimestamp(),
+        lastUsedPackageId: ref.id,
+      };
       const chunk = 40;
       for (let i = 0; i < ids.length; i += chunk) {
         const batch = writeBatch(db);
         const slice = ids.slice(i, i + chunk);
         for (const qid of slice) {
-          batch.set(doc(db, 'soalPublik', qid), {
-            kaliDipakaiTryout: increment(1),
-            lastUsedTryoutAt: serverTimestamp(),
-            lastUsedPackageId: ref.id,
-          }, { merge: true });
-          batch.set(doc(db, 'questionPool', qid), {
-            kaliDipakaiTryout: increment(1),
-            lastUsedTryoutAt: serverTimestamp(),
-            lastUsedPackageId: ref.id,
-          }, { merge: true });
+          batch.set(doc(db, 'soalPublik', qid), usagePatch, { merge: true });
         }
         await batch.commit();
+        // questionPool: update terpisah agar tidak membuat dokumen kosong
+        await Promise.all(slice.map((qid) =>
+          updateDoc(doc(db, 'questionPool', qid), usagePatch).catch(() => {})
+        ));
       }
       ids.forEach((id) => {
         usedIds.add(id);
@@ -424,10 +467,21 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
   async function tolakPengajuan(id) {
     if (!confirm('Tolak pengajuan ini?')) return;
     try {
+      const p = pengajuan.find((x) => x.id === id);
       await updateDoc(doc(db, 'pengajuanPaket', id), {
         status: 'ditolak',
         updatedAt: serverTimestamp(),
       });
+      try {
+        await notifGuruStatusPengajuan({
+          targetUid: p?.diajukanOleh,
+          status: 'ditolak',
+          nama: p?.nama,
+          pengajuanId: id,
+        });
+      } catch (ne) {
+        console.warn('Notifikasi guru gagal:', ne);
+      }
       await loadPengajuan();
       openGenId = null;
       renderList();
@@ -466,6 +520,13 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         loading.style.display = 'none';
         app.style.display = 'block';
         renderList();
+        const slot = document.getElementById('tka-notif-slot');
+        if (slot) {
+          mountNotifikasiBell(slot, {
+            ...currentStaff,
+            uid: auth.currentUser?.uid,
+          }).catch(() => {});
+        }
       } catch (err) {
         loading.textContent = 'Gagal memuat: ' + err.message;
       }

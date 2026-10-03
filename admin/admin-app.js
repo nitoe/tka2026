@@ -681,4 +681,13 @@ onAuthStateChanged(auth, async (user) => {
   appEl.style.display = 'flex';
   document.getElementById('admin-name').textContent = staff.nama || user.email || 'Admin';
   await loadSekolah();
+  const notifSlot = document.getElementById('tka-notif-slot');
+  if (notifSlot) {
+    try {
+      const { mountNotifikasiBell } = await import('../assets/notifikasi.js');
+      await mountNotifikasiBell(notifSlot, { ...staff, uid: user.uid });
+    } catch (e) {
+      console.warn('Notifikasi admin:', e);
+    }
+  }
 });

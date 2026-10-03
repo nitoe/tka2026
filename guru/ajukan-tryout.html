@@ -151,7 +151,13 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
-  import { resolveSekolahIdForWrite } from '../assets/sekolah-scope.js';
+  import {
+    resolveSekolahIdForWrite,
+    normalizeSubjectId,
+    normalizeKompleksitas,
+    staffUid,
+  } from '../assets/sekolah-scope.js';
+  import { notifAdminPengajuanBaru } from '../assets/notifikasi.js';
   import {
     collection, getDocs, addDoc, serverTimestamp, query, where
   } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
@@ -182,10 +188,11 @@
     stockMap = new Map();
     materiOptions = [];
     const materiSet = new Set();
+    const sid = normalizeSubjectId(subjectId);
     for (const s of poolSoal) {
-      if (subjectId && s.subjectId !== subjectId) continue;
+      if (sid && s.subjectId !== sid) continue;
       const m = (s.tipeMateri || '').trim() || '(tanpa materi)';
-      const k = (s.kompleksitas || '').trim();
+      const k = normalizeKompleksitas(s.kompleksitas || '');
       if (!KOMP.includes(k)) continue;
       materiSet.add(m);
       const key = stockKey(m, k);
@@ -368,9 +375,9 @@
       const x = d.data();
       return {
         id: d.id,
-        subjectId: x.subjectId || x.mapel || '',
-        tipeMateri: x.tipeMateri || '',
-        kompleksitas: x.kompleksitas || '',
+        subjectId: normalizeSubjectId(x.subjectId || x.mapel || ''),
+        tipeMateri: (x.tipeMateri || '').trim() || '(tanpa materi)',
+        kompleksitas: normalizeKompleksitas(x.kompleksitas || ''),
       };
     });
   }
@@ -432,7 +439,7 @@
     const status = document.getElementById('status');
     const btn = document.getElementById('btn-kirim');
     const nama = document.getElementById('nama').value.trim();
-    const subjectId = document.getElementById('subjectId').value;
+    const subjectId = normalizeSubjectId(document.getElementById('subjectId').value);
     const rows = collectKomposisi();
     if (!nama) { alert('Nama pengajuan wajib diisi.'); return; }
     if (!subjectId) { alert('Pilih mata pelajaran.'); return; }
@@ -447,7 +454,10 @@
       nama,
       subjectId,
       komposisi: rows.map(({ tipeMateri, kompleksitas, jumlah, available }) => ({
-        tipeMateri, kompleksitas, jumlah, stokSaatAjukan: available,
+        tipeMateri,
+        kompleksitas: normalizeKompleksitas(kompleksitas),
+        jumlah,
+        stokSaatAjukan: available,
       })),
       totalSoal: rows.reduce((s, r) => s + r.jumlah, 0),
       bukaPada: toIsoLocal(document.getElementById('bukaPada').value),
@@ -456,7 +466,7 @@
       catatan: document.getElementById('catatan').value.trim() || null,
       status: 'diajukan',
       sekolahId: resolveSekolahIdForWrite(currentStaff),
-      diajukanOleh: auth.currentUser?.uid || null,
+      diajukanOleh: staffUid(currentStaff, auth.currentUser),
       diajukanOlehNama: currentStaff?.nama || null,
       packageId: null,
       createdAt: serverTimestamp(),
@@ -465,7 +475,18 @@
     btn.disabled = true;
     status.textContent = 'Mengirim…';
     try {
-      await addDoc(collection(db, 'pengajuanPaket'), payload);
+      const ref = await addDoc(collection(db, 'pengajuanPaket'), payload);
+      try {
+        await notifAdminPengajuanBaru({
+          nama: payload.nama,
+          subjectId: payload.subjectId,
+          diajukanOlehNama: payload.diajukanOlehNama,
+          pengajuanId: ref.id,
+          sekolahId: payload.sekolahId,
+        });
+      } catch (ne) {
+        console.warn('Notifikasi admin gagal:', ne);
+      }
       status.textContent = 'Pengajuan terkirim. Admin akan meninjau dan menyusun paket.';
       document.getElementById('nama').value = '';
       document.getElementById('catatan').value = '';
