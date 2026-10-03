@@ -45,6 +45,9 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 .soal-row.used .tag{color:#b45309}
 .status{font-size:.82rem;font-weight:700;margin-top:8px;min-height:1.2em;color:var(--text-muted)}
 .empty{text-align:center;padding:28px;color:var(--text-muted);font-weight:700}
+.stock-ok{color:#057a55;font-weight:800}.stock-bad{color:#b91c1c;font-weight:800}.stock-warn{color:#b45309;font-weight:800}
+#self-komposisi .komposisi-row{display:grid;grid-template-columns:1.4fr 1fr .7fr auto;gap:8px;align-items:end;margin-bottom:8px}
+@media(max-width:640px){#self-komposisi .komposisi-row{grid-template-columns:1fr 1fr}}
 .loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text-muted)}
 .panel-gen{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
 .panel-gen.show{display:block}
@@ -63,8 +66,67 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
   </div>
   <div class="wrap">
     <div class="card">
+      <h2>Generate try out (tanpa usulan guru)</h2>
+      <p class="hint">Admin menyusun komposisi seperti form pengajuan guru, generate dari pool (admin + semua guru), prioritas soal paling jarang/belum dipakai, lalu publish ke sekolah tujuan.</p>
+      <div class="field-row">
+        <div class="field"><label>Nama paket</label>
+          <input type="text" id="self-nama" placeholder="mis. Try Out Matematika Mandiri" maxlength="120"></div>
+        <div class="field"><label>Sekolah tujuan</label>
+          <select id="self-sekolah"><option value="">— Pilih sekolah —</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Mata pelajaran</label>
+          <select id="self-subject">
+            <option value="">— Pilih —</option>
+            <option value="matematika">Matematika</option>
+            <option value="bahasa-indonesia">Bahasa Indonesia</option>
+          </select></div>
+        <div class="field"><label>Durasi (menit)</label>
+          <input type="number" id="self-durasi" min="15" max="180" value="60"></div>
+      </div>
+      <div id="self-stock-panel" class="hint" style="display:none"></div>
+      <div id="self-stock-wrap" style="display:none;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+          <thead><tr><th style="text-align:left;padding:6px">Materi</th><th>L1</th><th>L2</th><th>L3</th></tr></thead>
+          <tbody id="self-stock-tbody"></tbody>
+        </table>
+      </div>
+      <div id="self-komposisi"></div>
+      <div class="actions" style="margin-bottom:10px">
+        <button type="button" class="btn btn-secondary" id="self-add-row">+ Baris komposisi</button>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Dibuka pada</label>
+          <input type="datetime-local" id="self-buka" step="60"></div>
+        <div class="field"><label>Ditutup pada</label>
+          <input type="datetime-local" id="self-tutup" step="60"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Token (opsional)</label>
+          <input type="text" id="self-token" maxlength="32" placeholder="mis. TO-MTK-ADM"></div>
+        <div class="field"><label>&nbsp;</label>
+          <div class="actions" style="margin:0">
+            <button type="button" class="btn btn-primary" id="self-generate">🎲 Generate &amp; tinjau</button>
+            <button type="button" class="btn btn-ok" id="self-publish" disabled>Publish try out</button>
+          </div>
+        </div>
+      </div>
+      <div id="self-preview" class="soal-list" style="display:none;margin-top:10px"></div>
+      <div class="status" id="self-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pemakaian soal</h2>
+      <p class="hint">Tanda <b>kaliDipakaiTryout</b> disinkron dari semua paket try out yang sudah ada (termasuk yang sudah dijalani siswa). Pakai ini jika soal lama belum bertanda “sudah dipakai”.</p>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="btn-sync-usage">Sinkronkan tanda dipakai dari paket try out</button>
+      </div>
+      <div class="status" id="sync-status"></div>
+    </div>
+
+    <div class="card">
       <h2>Pengajuan dari guru</h2>
-      <p class="hint">Generate memakai pool admin global + soal semua guru. Prioritas soal yang belum pernah dipakai di paket try out. Setelah generate, tinjau daftar soal lalu publish agar siswa sekolah terkait dapat mengerjakan.</p>
+      <p class="hint">Generate memakai pool admin global + soal semua guru. Prioritas soal yang belum / jarang dipakai di paket try out. Setelah generate, tinjau lalu publish.</p>
       <div id="filter-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <button type="button" class="btn btn-secondary filter-btn active" data-f="antrian">Antrian</button>
         <button type="button" class="btn btn-secondary filter-btn" data-f="semua">Semua</button>
@@ -76,7 +138,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
 </div>
 
 <script type="module">
-  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut, listSekolahAktif } from '../assets/firebase-init.js';
   import { notifGuruStatusPengajuan, mountNotifikasiBell } from '../assets/notifikasi.js';
   import {
     normalizeSubjectId,
@@ -84,7 +146,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
     staffUid,
   } from '../assets/sekolah-scope.js';
   import {
-    collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, increment, writeBatch
+    collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, increment, writeBatch, query, where, limit
   } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
 
   const loading = document.getElementById('loading');
@@ -99,6 +161,16 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
   let openGenId = null;
   /** @type {Record<string, string[]>} */
   let generatedMap = {}; // pengajuanId → questionIds
+  /** @type {string[]} */
+  let selfGeneratedIds = [];
+  /** @type {Array<{id:string,nama?:string,kode?:string}>} */
+  let sekolahList = [];
+  const KOMP = ['L1-Pemahaman', 'L2-Aplikasi', 'L3-Penalaran'];
+  let selfStockMap = new Map();
+  let selfMateriOptions = [];
+  let selfRowId = 0;
+  /** packageId → true jika ada attempt (try out dijalani) */
+  let packagesWithAttempts = new Set();
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -126,15 +198,27 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
     const snap = await getDocs(collection(db, 'packages'));
     usedIds = new Set();
     usageCount = new Map();
+    packagesWithAttempts = new Set();
+    const tryoutPackageIds = [];
     snap.docs.forEach((d) => {
       const p = d.data();
       if ((p.jenis || '') === 'tryout') {
+        tryoutPackageIds.push(d.id);
         (p.questionIds || []).forEach((id) => {
           usedIds.add(id);
           usageCount.set(id, (usageCount.get(id) || 0) + 1);
         });
       }
     });
+    // Cek attempt: paket yang sudah dijalani siswa (soft, max ~30 paket)
+    const sample = tryoutPackageIds.slice(0, 40);
+    await Promise.all(sample.map(async (pid) => {
+      try {
+        const aq = query(collection(db, 'attempts'), where('packageId', '==', pid), limit(1));
+        const as = await getDocs(aq);
+        if (!as.empty) packagesWithAttempts.add(pid);
+      } catch (_) {}
+    }));
     // Gabungkan dengan field tersimpan di soal (lebih tinggi menang)
     poolSoal.forEach((s) => {
       const stored = Number(s.kaliDipakaiTryout) || 0;
@@ -142,6 +226,87 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
       usageCount.set(s.id, Math.max(stored, fromPkg));
       if (usageCount.get(s.id) > 0) usedIds.add(s.id);
     });
+  }
+
+  /** Tulis/timpa kaliDipakaiTryout di soalPublik (+ questionPool best-effort). */
+  async function applyUsageCounts(countMap) {
+    const entries = [...countMap.entries()].filter(([, n]) => n > 0);
+    const chunk = 40;
+    for (let i = 0; i < entries.length; i += chunk) {
+      const batch = writeBatch(db);
+      for (const [qid, n] of entries.slice(i, i + chunk)) {
+        batch.set(doc(db, 'soalPublik', qid), {
+          kaliDipakaiTryout: n,
+          lastUsedTryoutAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      await batch.commit();
+      await Promise.all(entries.slice(i, i + chunk).map(([qid, n]) =>
+        updateDoc(doc(db, 'questionPool', qid), { kaliDipakaiTryout: n }).catch(() => {})
+      ));
+    }
+    return entries.length;
+  }
+
+  /** Naikkan pemakaian +1 untuk daftar soal (saat publish baru). */
+  async function recordUsageIncrement(ids, packageId) {
+    const usagePatch = {
+      kaliDipakaiTryout: increment(1),
+      lastUsedTryoutAt: serverTimestamp(),
+      lastUsedPackageId: packageId || null,
+    };
+    const chunk = 40;
+    for (let i = 0; i < ids.length; i += chunk) {
+      const batch = writeBatch(db);
+      const slice = ids.slice(i, i + chunk);
+      for (const qid of slice) {
+        batch.set(doc(db, 'soalPublik', qid), usagePatch, { merge: true });
+      }
+      await batch.commit();
+      await Promise.all(slice.map((qid) =>
+        updateDoc(doc(db, 'questionPool', qid), usagePatch).catch(() => {})
+      ));
+    }
+    ids.forEach((id) => {
+      usedIds.add(id);
+      const next = getUsage(id) + 1;
+      usageCount.set(id, next);
+      const s = poolSoal.find((x) => x.id === id);
+      if (s) s.kaliDipakaiTryout = next;
+    });
+  }
+
+  /** Sinkron absolut dari semua paket try out → field soal. */
+  async function syncUsageFromPackages() {
+    const st = document.getElementById('sync-status');
+    if (st) st.textContent = 'Menghitung dari paket try out…';
+    await loadPool();
+    await loadUsedIds();
+    // usageCount sudah dari paket + field; tulis ulang angka dari paket saja agar akurat
+    const snap = await getDocs(collection(db, 'packages'));
+    const counts = new Map();
+    let pkgN = 0;
+    let dijalani = 0;
+    snap.docs.forEach((d) => {
+      const p = d.data();
+      if ((p.jenis || '') !== 'tryout') return;
+      pkgN++;
+      if (packagesWithAttempts.has(d.id) || p.aktif === false) dijalani++;
+      (p.questionIds || []).forEach((id) => {
+        counts.set(id, (counts.get(id) || 0) + 1);
+      });
+    });
+    if (st) st.textContent = `Menulis tanda ke ${counts.size} soal (dari ${pkgN} paket try out, ~${dijalani} sudah dijalani/selesai)…`;
+    const n = await applyUsageCounts(counts);
+    // refresh memori
+    counts.forEach((c, id) => {
+      usageCount.set(id, c);
+      usedIds.add(id);
+      const s = poolSoal.find((x) => x.id === id);
+      if (s) s.kaliDipakaiTryout = c;
+    });
+    if (st) st.textContent = `Selesai. ${n} soal ditandai kaliDipakaiTryout sesuai riwayat paket try out.`;
+    return n;
   }
 
   async function loadPool() {
@@ -428,31 +593,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
       } catch (ne) {
         console.warn('Notifikasi guru gagal:', ne);
       }
-      // Fase 5: catat pemakaian (soalPublik wajib; questionPool best-effort)
-      const usagePatch = {
-        kaliDipakaiTryout: increment(1),
-        lastUsedTryoutAt: serverTimestamp(),
-        lastUsedPackageId: ref.id,
-      };
-      const chunk = 40;
-      for (let i = 0; i < ids.length; i += chunk) {
-        const batch = writeBatch(db);
-        const slice = ids.slice(i, i + chunk);
-        for (const qid of slice) {
-          batch.set(doc(db, 'soalPublik', qid), usagePatch, { merge: true });
-        }
-        await batch.commit();
-        // questionPool: update terpisah agar tidak membuat dokumen kosong
-        await Promise.all(slice.map((qid) =>
-          updateDoc(doc(db, 'questionPool', qid), usagePatch).catch(() => {})
-        ));
-      }
-      ids.forEach((id) => {
-        usedIds.add(id);
-        usageCount.set(id, getUsage(id) + 1);
-        const s = poolSoal.find((x) => x.id === id);
-        if (s) s.kaliDipakaiTryout = getUsage(id);
-      });
+      await recordUsageIncrement(ids, ref.id);
       await loadPengajuan();
       openGenId = null;
       if (st) st.textContent = 'Published. Paket ID: ' + ref.id;
@@ -490,6 +631,281 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
     }
   }
 
+
+  function selfStockKey(m, k) { return `${m || ''}||${k || ''}`; }
+
+  function rebuildSelfStock(subjectId) {
+    selfStockMap = new Map();
+    selfMateriOptions = [];
+    const sid = normalizeSubjectId(subjectId);
+    const set = new Set();
+    for (const s of poolSoal) {
+      if (sid && normalizeSubjectId(s.subjectId) !== sid) continue;
+      const m = (s.tipeMateri || '').trim() || '(tanpa materi)';
+      const k = normalizeKompleksitas(s.kompleksitas || '');
+      if (!KOMP.includes(k)) continue;
+      set.add(m);
+      const key = selfStockKey(m, k);
+      selfStockMap.set(key, (selfStockMap.get(key) || 0) + 1);
+    }
+    selfMateriOptions = [...set].sort((a, b) => a.localeCompare(b, 'id'));
+    const panel = document.getElementById('self-stock-panel');
+    const wrap = document.getElementById('self-stock-wrap');
+    const tbody = document.getElementById('self-stock-tbody');
+    if (!sid) {
+      panel.style.display = 'none';
+      wrap.style.display = 'none';
+      return;
+    }
+    if (!selfMateriOptions.length) {
+      panel.style.display = 'block';
+      panel.textContent = 'Belum ada soal di pool untuk mapel ini.';
+      wrap.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+    panel.textContent = `Stok pool generate · ${selfMateriOptions.length} tipe materi · prioritas soal jarang/belum dipakai`;
+    wrap.style.display = 'block';
+    tbody.innerHTML = selfMateriOptions.map((m) => {
+      const cells = KOMP.map((k) => {
+        const n = selfStockMap.get(selfStockKey(m, k)) || 0;
+        const cls = n === 0 ? 'stock-bad' : (n < 3 ? 'stock-warn' : 'stock-ok');
+        return `<td class="${cls}" style="padding:6px">${n}</td>`;
+      }).join('');
+      return `<tr><td style="padding:6px">${escapeHtml(m)}</td>${cells}</tr>`;
+    }).join('');
+    // refresh row materi options
+    document.querySelectorAll('#self-komposisi .row-materi').forEach((sel) => {
+      const cur = sel.value;
+      sel.innerHTML = selfMateriOptions.map((m) =>
+        `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('') || '<option value="">—</option>';
+      if (selfMateriOptions.includes(cur)) sel.value = cur;
+      refreshSelfRowStock(sel.closest('.komposisi-row'));
+    });
+  }
+
+  function refreshSelfRowStock(div) {
+    if (!div) return;
+    const materi = div.querySelector('.row-materi')?.value;
+    const komp = div.querySelector('.row-komp')?.value;
+    const jumlah = Number(div.querySelector('.row-jumlah')?.value) || 0;
+    const available = selfStockMap.get(selfStockKey(materi, komp)) || 0;
+    const chip = div.querySelector('.row-stock');
+    if (!chip) return;
+    chip.className = 'chip row-stock';
+    if (!materi) { chip.textContent = 'pilih materi'; return; }
+    if (available === 0 || jumlah > available) {
+      chip.classList.add('ditolak');
+      chip.textContent = available === 0 ? 'stok 0' : `stok ${available} (kurang)`;
+    } else {
+      chip.classList.add(jumlah > available * 0.7 ? 'diajukan' : 'dipublish');
+      chip.textContent = `stok ${available}`;
+    }
+  }
+
+  function addSelfKomposisiRow() {
+    const list = document.getElementById('self-komposisi');
+    const div = document.createElement('div');
+    div.className = 'komposisi-row';
+    const materiOpts = selfMateriOptions.length
+      ? selfMateriOptions.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('')
+      : '<option value="">— pilih mapel dulu —</option>';
+    div.innerHTML = `
+      <div class="field" style="margin:0"><label>Tipe materi</label>
+        <select class="row-materi">${materiOpts}</select></div>
+      <div class="field" style="margin:0"><label>Kompleksitas</label>
+        <select class="row-komp">${KOMP.map((k) => `<option value="${k}">${k}</option>`).join('')}</select></div>
+      <div class="field" style="margin:0"><label>Jumlah</label>
+        <input type="number" class="row-jumlah" min="1" max="50" value="5"></div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;padding-bottom:2px">
+        <span class="chip row-stock">stok —</span>
+        <button type="button" class="btn btn-secondary row-hapus" style="padding:4px 8px;font-size:.72rem">Hapus</button>
+      </div>`;
+    list.appendChild(div);
+    const refresh = () => refreshSelfRowStock(div);
+    div.querySelector('.row-materi').addEventListener('change', refresh);
+    div.querySelector('.row-komp').addEventListener('change', refresh);
+    div.querySelector('.row-jumlah').addEventListener('input', refresh);
+    div.querySelector('.row-hapus').addEventListener('click', () => {
+      div.remove();
+      selfGeneratedIds = [];
+      document.getElementById('self-publish').disabled = true;
+      document.getElementById('self-preview').style.display = 'none';
+    });
+    refresh();
+  }
+
+  function collectSelfKomposisi() {
+    const rows = [];
+    document.querySelectorAll('#self-komposisi .komposisi-row').forEach((div) => {
+      const tipeMateri = div.querySelector('.row-materi').value;
+      const kompleksitas = div.querySelector('.row-komp').value;
+      const jumlah = Number(div.querySelector('.row-jumlah').value) || 0;
+      const available = selfStockMap.get(selfStockKey(tipeMateri, kompleksitas)) || 0;
+      rows.push({
+        tipeMateri,
+        kompleksitas,
+        jumlah,
+        available,
+        ok: !!tipeMateri && jumlah > 0 && jumlah <= available,
+      });
+    });
+    return rows;
+  }
+
+  function toIsoLocal(val) {
+    if (!val) return null;
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
+
+  function renderSelfPreview(ids, shortages) {
+    const box = document.getElementById('self-preview');
+    const st = document.getElementById('self-status');
+    selfGeneratedIds = ids;
+    document.getElementById('self-publish').disabled = !ids.length;
+    if (!ids.length) {
+      box.style.display = 'block';
+      box.innerHTML = '<div class="empty">Tidak ada soal terpilih.</div>';
+      return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = ids.map((id) => {
+      const s = poolSoal.find((x) => x.id === id) || { id };
+      const n = getUsage(id);
+      const q = (s.pertanyaan || '').slice(0, 90);
+      return `<div class="soal-row ${n > 0 ? 'used' : 'unused'}">
+        <div style="flex:1;min-width:0">
+          <div class="tag">${n > 0 ? 'dipakai ' + n + '×' : 'belum dipakai'} · ${escapeHtml(s.tipeMateri || '-')} · ${escapeHtml(s.kompleksitas || '-')} · skor ${s.skor ?? '-'}</div>
+          <div style="font-weight:700;margin-top:2px">${escapeHtml(q)}${(s.pertanyaan || '').length > 90 ? '…' : ''}</div>
+        </div>
+        <button type="button" class="btn btn-secondary self-rm" data-qid="${id}" style="padding:4px 8px;font-size:.72rem">Keluarkan</button>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.self-rm').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selfGeneratedIds = selfGeneratedIds.filter((x) => x !== btn.dataset.qid);
+        renderSelfPreview(selfGeneratedIds, []);
+      });
+    });
+    let msg = `${ids.length} soal · skor maks ${skorMaksimal(ids)}`;
+    if (shortages && shortages.length) {
+      msg += ' · Stok kurang: ' + shortages.map((s) => `${s.tipeMateri} ${s.dapat}/${s.minta}`).join(', ');
+    }
+    st.textContent = msg;
+  }
+
+  document.getElementById('self-subject')?.addEventListener('change', () => {
+    rebuildSelfStock(document.getElementById('self-subject').value);
+    if (!document.querySelector('#self-komposisi .komposisi-row')) addSelfKomposisiRow();
+  });
+  document.getElementById('self-add-row')?.addEventListener('click', () => {
+    if (!document.getElementById('self-subject').value) {
+      alert('Pilih mata pelajaran dulu.');
+      return;
+    }
+    addSelfKomposisiRow();
+  });
+  document.getElementById('self-generate')?.addEventListener('click', () => {
+    const subjectId = normalizeSubjectId(document.getElementById('self-subject').value);
+    const rows = collectSelfKomposisi();
+    if (!subjectId) { alert('Pilih mata pelajaran.'); return; }
+    if (!rows.length) { alert('Tambah komposisi.'); return; }
+    if (rows.some((r) => !r.ok)) {
+      alert('Ada baris stok kurang / belum lengkap.');
+      return;
+    }
+    const fake = {
+      subjectId,
+      komposisi: rows.map(({ tipeMateri, kompleksitas, jumlah }) => ({ tipeMateri, kompleksitas, jumlah })),
+    };
+    const { questionIds, shortages } = generateFor(fake);
+    renderSelfPreview(questionIds, shortages);
+  });
+  document.getElementById('self-publish')?.addEventListener('click', async () => {
+    const ids = selfGeneratedIds.slice();
+    const nama = document.getElementById('self-nama').value.trim();
+    const sekolahId = document.getElementById('self-sekolah').value;
+    const subjectId = normalizeSubjectId(document.getElementById('self-subject').value);
+    const st = document.getElementById('self-status');
+    if (!nama) { alert('Nama paket wajib.'); return; }
+    if (!sekolahId) { alert('Pilih sekolah tujuan.'); return; }
+    if (!ids.length) { alert('Generate dulu.'); return; }
+    if (!confirm(`Publish try out “${nama}” (${ids.length} soal) ke ${sekolahId}?`)) return;
+    st.textContent = 'Menyimpan…';
+    try {
+      const skor = skorMaksimal(ids);
+      const payload = {
+        nama,
+        jenis: 'tryout',
+        questionIds: ids,
+        subjectId,
+        skorMaksimal: skor,
+        totalSkor: skor,
+        aktif: true,
+        sekolahId,
+        pengajuanId: null,
+        sumberGenerate: 'admin-mandiri',
+        createdBy: staffUid(currentStaff, auth.currentUser),
+        durasiMenit: Number(document.getElementById('self-durasi').value) || 60,
+        maksPercobaan: 1,
+        token: document.getElementById('self-token').value.trim() || null,
+        acakSoal: true,
+        acakOpsi: true,
+        bukaPada: toIsoLocal(document.getElementById('self-buka').value),
+        tutupPada: toIsoLocal(document.getElementById('self-tutup').value),
+        tampilkanHasil: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const ref = await addDoc(collection(db, 'packages'), payload);
+      await recordUsageIncrement(ids, ref.id);
+      st.textContent = `Published. Paket ID: ${ref.id}. Pemakaian soal dicatat.`;
+      selfGeneratedIds = [];
+      document.getElementById('self-publish').disabled = true;
+      document.getElementById('self-preview').style.display = 'none';
+      alert('Try out dipublish. Soal ditandai sudah dipakai.');
+    } catch (err) {
+      st.textContent = 'Gagal: ' + err.message;
+      alert('Gagal: ' + err.message);
+    }
+  });
+  document.getElementById('btn-sync-usage')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-sync-usage');
+    btn.disabled = true;
+    try {
+      await syncUsageFromPackages();
+    } catch (err) {
+      document.getElementById('sync-status').textContent = 'Gagal: ' + err.message;
+    }
+    btn.disabled = false;
+  });
+
+  async function loadSekolahOptions() {
+    const sel = document.getElementById('self-sekolah');
+    if (!sel) return;
+    try {
+      sekolahList = await listSekolahAktif([]);
+    } catch {
+      sekolahList = [];
+    }
+    if (!sekolahList.length) {
+      try {
+        const snap = await getDocs(collection(db, 'sekolah'));
+        sekolahList = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          .filter((s) => s.aktif !== false);
+      } catch (_) {}
+    }
+    sel.innerHTML = '<option value="">— Pilih sekolah —</option>' +
+      sekolahList.map((s) => {
+        const id = s.id || s.kode || '';
+        const label = s.nama || s.kode || id;
+        return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+      }).join('');
+  }
+
+
   document.querySelectorAll('.filter-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
@@ -517,6 +933,7 @@ body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-he
         await loadPool();
         await loadUsedIds(); // setelah pool agar gabung kaliDipakaiTryout
         await loadPengajuan();
+        await loadSekolahOptions();
         loading.style.display = 'none';
         app.style.display = 'block';
         renderList();
