@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajukan Try Out – Portal Latihan TKA 2026</title>
+<link rel="stylesheet" href="../assets/theme.css">
+<style>
+  .container { max-width: 920px; margin: 0 auto; padding: 0 0 48px; }
+  .page-header { margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--line, #e2e8f0); }
+  .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #2563eb; margin-bottom: 4px; }
+  .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text, #0f172a); margin-bottom: 4px; letter-spacing: -.02em; }
+  .page-subtitle { color: var(--text-2, #64748b); font-weight: 500; font-size: 0.88rem; line-height: 1.45; }
+  .card {
+    background: var(--surface, #fff); border-radius: var(--radius, 14px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+    padding: 1.15rem 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line, #e2e8f0);
+  }
+  .card h2 { font-size: 0.95rem; font-weight: 750; margin: 0 0 0.85rem; color: var(--text); }
+  .field { margin-bottom: 0.85rem; }
+  .field label {
+    display: block; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+    color: var(--text-3, #94a3b8); margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; font: 600 0.88rem var(--font, inherit); padding: 0.55rem 0.7rem;
+    border-radius: 8px; border: 1px solid var(--line-strong, #cbd5e1); background: #fff; color: var(--text);
+  }
+  .field textarea { min-height: 72px; resize: vertical; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+  .btn {
+    border: none; border-radius: 10px; padding: 0.65rem 1rem;
+    font: 800 0.85rem var(--font, inherit); cursor: pointer; color: #fff;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1e3a8a, #2563eb); }
+  .btn-secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--line); }
+  .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.75rem; border-radius: 8px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .hint { font-size: 0.75rem; font-weight: 600; color: var(--text-3, #94a3b8); line-height: 1.45; margin: 0.25rem 0 0.75rem; }
+  .stock-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .stock-table th, .stock-table td { text-align: left; padding: 0.45rem 0.55rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .stock-table th { background: var(--bg-elev, #f8fafc); font-size: 0.7rem; text-transform: uppercase; color: var(--text-2); font-weight: 700; }
+  .ok { color: #057a55; font-weight: 800; }
+  .warn { color: #b45309; font-weight: 800; }
+  .bad { color: #b91c1c; font-weight: 800; }
+  .chip {
+    display: inline-block; font-size: 0.65rem; font-weight: 800; padding: 2px 8px;
+    border-radius: 6px; background: #f1f5f9; color: #64748b;
+  }
+  .chip.ok { background: #def7ec; color: #057a55; }
+  .chip.bad { background: #fee2e2; color: #b91c1c; }
+  .chip.warn { background: #fef3c7; color: #b45309; }
+  .komposisi-row {
+    display: grid; grid-template-columns: 1.4fr 1fr 0.7fr auto; gap: 8px;
+    align-items: end; margin-bottom: 8px;
+  }
+  @media (max-width: 640px) {
+    .komposisi-row { grid-template-columns: 1fr 1fr; }
+  }
+  .status-line { font-size: 0.82rem; font-weight: 700; margin-top: 0.65rem; min-height: 1.2em; color: var(--text-2); }
+  .empty-state { text-align: center; padding: 1.25rem; color: var(--text-2); font-weight: 600; font-size: 0.88rem; }
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-weight: 600; }
+  .riwayat-item {
+    padding: 0.75rem 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;
+  }
+  .riwayat-item:last-child { border-bottom: none; }
+  .riwayat-item .nama { font-weight: 800; color: var(--text); }
+  .riwayat-item .meta { font-size: 0.75rem; font-weight: 600; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+  .summary-box {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+    padding: 0.75rem 0.9rem; font-size: 0.8rem; font-weight: 600; color: #1e3a8a; line-height: 1.5; margin-bottom: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen">Memeriksa sesi masuk...</div>
+<div id="page" style="display:none;">
+<main class="container">
+  <div class="page-header">
+    <div class="eyebrow">Portal Guru · Try Out</div>
+    <div class="page-title">Ajukan Try Out</div>
+    <div class="page-subtitle">Isi komposisi soal dan jadwal. Sistem menampilkan stok pool generate (pool admin + soal semua guru). Admin yang akan menyusun dan mempublish paket.</div>
+  </div>
+
+  <div class="card">
+    <h2>Form Pengajuan</h2>
+    <div class="field">
+      <label>Nama pengajuan</label>
+      <input type="text" id="nama" placeholder="mis. Try Out Matematika Minggu 2" maxlength="120">
+    </div>
+    <div class="field">
+      <label>Mata pelajaran</label>
+      <select id="subjectId">
+        <option value="">— Pilih —</option>
+        <option value="matematika">Matematika</option>
+        <option value="bahasa-indonesia">Bahasa Indonesia</option>
+      </select>
+    </div>
+
+    <div class="hint">Stok dihitung dari <b>pool generate</b> (soal admin global + soal guru semua sekolah), bukan hanya bank yang Anda lihat.</div>
+    <div id="stock-panel" class="summary-box" style="display:none;">Memuat stok…</div>
+    <div id="stock-wrap" style="display:none; margin-bottom: 1rem; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 10px;">
+      <table class="stock-table">
+        <thead>
+          <tr><th>Tipe materi</th><th>L1</th><th>L2</th><th>L3</th></tr>
+        </thead>
+        <tbody id="stock-tbody"></tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top:0.5rem;">Komposisi diminta</h2>
+    <div class="hint">Tambah baris per kombinasi materi + kompleksitas. Angka merah = stok kurang / kosong.</div>
+    <div id="komposisi-list"></div>
+    <button type="button" class="btn btn-secondary btn-sm" id="btn-tambah-baris">+ Tambah baris</button>
+
+    <div id="komposisi-summary" class="summary-box" style="display:none; margin-top: 0.85rem;"></div>
+
+    <div class="field-row" style="margin-top: 1rem;">
+      <div class="field">
+        <label>Dibuka pada</label>
+        <input type="datetime-local" id="bukaPada" step="60">
+      </div>
+      <div class="field">
+        <label>Ditutup pada</label>
+        <input type="datetime-local" id="tutupPada" step="60">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Durasi (menit)</label>
+        <input type="number" id="durasiMenit" min="15" max="180" value="60">
+      </div>
+      <div class="field">
+        <label>Catatan untuk admin (opsional)</label>
+        <input type="text" id="catatan" placeholder="mis. Fokus geometri" maxlength="200">
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="btn-kirim" style="width:100%; margin-top:0.5rem;">Kirim pengajuan</button>
+    <div class="status-line" id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Riwayat pengajuan saya</h2>
+    <div id="riwayat"><div class="empty-state">Memuat…</div></div>
+  </div>
+</main>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { mountGuruShell } from '../assets/guru-shell.js';
+  import { resolveSekolahIdForWrite } from '../assets/sekolah-scope.js';
+  import {
+    collection, getDocs, addDoc, serverTimestamp, query, where
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+  const KOMP = ['L1-Pemahaman', 'L2-Aplikasi', 'L3-Penalaran'];
+  const loading = document.getElementById('loading');
+  const page = document.getElementById('page');
+
+  let currentStaff = null;
+  /** @type {Array<{id:string,subjectId:string,tipeMateri:string,kompleksitas:string}>} */
+  let poolSoal = [];
+  /** Map key `${materi}||${komp}` → count for current subject */
+  let stockMap = new Map();
+  let materiOptions = [];
+  let rowId = 0;
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function stockKey(materi, komp) {
+    return `${materi || ''}||${komp || ''}`;
+  }
+
+  function rebuildStockForSubject(subjectId) {
+    stockMap = new Map();
+    materiOptions = [];
+    const materiSet = new Set();
+    for (const s of poolSoal) {
+      if (subjectId && s.subjectId !== subjectId) continue;
+      const m = (s.tipeMateri || '').trim() || '(tanpa materi)';
+      const k = (s.kompleksitas || '').trim();
+      if (!KOMP.includes(k)) continue;
+      materiSet.add(m);
+      const key = stockKey(m, k);
+      stockMap.set(key, (stockMap.get(key) || 0) + 1);
+    }
+    materiOptions = [...materiSet].sort((a, b) => a.localeCompare(b, 'id'));
+    renderStockTable();
+    refreshAllRowStock();
+    updateKomposisiSummary();
+  }
+
+  function renderStockTable() {
+    const panel = document.getElementById('stock-panel');
+    const wrap = document.getElementById('stock-wrap');
+    const tbody = document.getElementById('stock-tbody');
+    const sid = document.getElementById('subjectId').value;
+    if (!sid) {
+      panel.style.display = 'none';
+      wrap.style.display = 'none';
+      return;
+    }
+    if (!materiOptions.length) {
+      panel.style.display = 'block';
+      panel.textContent = 'Belum ada soal di pool generate untuk mapel ini.';
+      wrap.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+    panel.textContent = `Stok pool generate · ${sid === 'matematika' ? 'Matematika' : 'Bahasa Indonesia'} · ${materiOptions.length} tipe materi`;
+    wrap.style.display = 'block';
+    tbody.innerHTML = materiOptions.map((m) => {
+      const cells = KOMP.map((k) => {
+        const n = stockMap.get(stockKey(m, k)) || 0;
+        const cls = n === 0 ? 'bad' : (n < 3 ? 'warn' : 'ok');
+        return `<td class="${cls}">${n}</td>`;
+      }).join('');
+      return `<tr><td>${escapeHtml(m)}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  function addKomposisiRow(preset) {
+    const id = 'row-' + (++rowId);
+    const list = document.getElementById('komposisi-list');
+    const div = document.createElement('div');
+    div.className = 'komposisi-row';
+    div.dataset.rowId = id;
+    const materiOpts = materiOptions.length
+      ? materiOptions.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('')
+      : '<option value="">— pilih mapel dulu —</option>';
+    div.innerHTML = `
+      <div class="field" style="margin:0">
+        <label>Tipe materi</label>
+        <select class="row-materi">${materiOpts}</select>
+      </div>
+      <div class="field" style="margin:0">
+        <label>Kompleksitas</label>
+        <select class="row-komp">
+          ${KOMP.map((k) => `<option value="${k}">${k.replace(/-/g, ' · ')}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label>Jumlah</label>
+        <input type="number" class="row-jumlah" min="1" max="50" value="5">
+      </div>
+      <div style="padding-bottom:2px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+        <span class="chip row-stock">stok —</span>
+        <button type="button" class="btn btn-secondary btn-sm row-hapus">Hapus</button>
+      </div>
+    `;
+    list.appendChild(div);
+    if (preset) {
+      if (preset.tipeMateri) div.querySelector('.row-materi').value = preset.tipeMateri;
+      if (preset.kompleksitas) div.querySelector('.row-komp').value = preset.kompleksitas;
+      if (preset.jumlah) div.querySelector('.row-jumlah').value = preset.jumlah;
+    }
+    const refresh = () => { refreshRowStock(div); updateKomposisiSummary(); };
+    div.querySelector('.row-materi').addEventListener('change', refresh);
+    div.querySelector('.row-komp').addEventListener('change', refresh);
+    div.querySelector('.row-jumlah').addEventListener('input', refresh);
+    div.querySelector('.row-hapus').addEventListener('click', () => {
+      div.remove();
+      updateKomposisiSummary();
+    });
+    refresh();
+  }
+
+  function refreshRowStock(div) {
+    const materi = div.querySelector('.row-materi').value;
+    const komp = div.querySelector('.row-komp').value;
+    const jumlah = Number(div.querySelector('.row-jumlah').value) || 0;
+    const available = stockMap.get(stockKey(materi, komp)) || 0;
+    const chip = div.querySelector('.row-stock');
+    chip.className = 'chip row-stock';
+    if (!materi) {
+      chip.textContent = 'pilih materi';
+      return { available, jumlah, ok: false };
+    }
+    if (available === 0) {
+      chip.classList.add('bad');
+      chip.textContent = 'stok 0';
+      return { available, jumlah, ok: false };
+    }
+    if (jumlah > available) {
+      chip.classList.add('bad');
+      chip.textContent = `stok ${available} (kurang)`;
+      return { available, jumlah, ok: false };
+    }
+    if (jumlah > available * 0.7) {
+      chip.classList.add('warn');
+      chip.textContent = `stok ${available}`;
+      return { available, jumlah, ok: true };
+    }
+    chip.classList.add('ok');
+    chip.textContent = `stok ${available}`;
+    return { available, jumlah, ok: true };
+  }
+
+  function refreshAllRowStock() {
+    // Update materi dropdown options when subject changes
+    document.querySelectorAll('#komposisi-list .komposisi-row').forEach((div) => {
+      const sel = div.querySelector('.row-materi');
+      const cur = sel.value;
+      sel.innerHTML = materiOptions.length
+        ? materiOptions.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('')
+        : '<option value="">— pilih mapel dulu —</option>';
+      if (materiOptions.includes(cur)) sel.value = cur;
+      refreshRowStock(div);
+    });
+  }
+
+  function collectKomposisi() {
+    const rows = [];
+    document.querySelectorAll('#komposisi-list .komposisi-row').forEach((div) => {
+      const tipeMateri = div.querySelector('.row-materi').value;
+      const kompleksitas = div.querySelector('.row-komp').value;
+      const jumlah = Number(div.querySelector('.row-jumlah').value) || 0;
+      const available = stockMap.get(stockKey(tipeMateri, kompleksitas)) || 0;
+      rows.push({ tipeMateri, kompleksitas, jumlah, available, ok: jumlah > 0 && jumlah <= available && !!tipeMateri });
+    });
+    return rows;
+  }
+
+  function updateKomposisiSummary() {
+    const box = document.getElementById('komposisi-summary');
+    const rows = collectKomposisi();
+    if (!rows.length) {
+      box.style.display = 'none';
+      return;
+    }
+    const total = rows.reduce((s, r) => s + (r.jumlah || 0), 0);
+    const bad = rows.filter((r) => !r.ok);
+    box.style.display = 'block';
+    if (bad.length) {
+      box.style.background = '#fef2f2';
+      box.style.borderColor = '#fecaca';
+      box.style.color = '#991b1b';
+      const detail = bad.map((r) =>
+        `${r.tipeMateri || '?'} · ${r.kompleksitas}: minta ${r.jumlah}, stok ${r.available}`
+      ).join('; ');
+      box.innerHTML = `<b>${bad.length} baris bermasalah</b> (total diminta ${total} soal).<br>${escapeHtml(detail)}`;
+    } else {
+      box.style.background = '#ecfdf5';
+      box.style.borderColor = '#a7f3d0';
+      box.style.color = '#065f46';
+      box.innerHTML = `<b>Komposisi layak</b> — total <b>${total}</b> soal, stok mencukupi untuk semua baris.`;
+    }
+  }
+
+  function toIsoLocal(val) {
+    if (!val) return null;
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
+
+  async function loadPool() {
+    const snap = await getDocs(collection(db, 'soalPublik'));
+    // Pool generate = seluruh soal (admin global + semua guru)
+    poolSoal = snap.docs.map((d) => {
+      const x = d.data();
+      return {
+        id: d.id,
+        subjectId: x.subjectId || x.mapel || '',
+        tipeMateri: x.tipeMateri || '',
+        kompleksitas: x.kompleksitas || '',
+      };
+    });
+  }
+
+  async function loadRiwayat() {
+    const el = document.getElementById('riwayat');
+    try {
+      const uid = auth.currentUser?.uid;
+      const snap = await getDocs(collection(db, 'pengajuanPaket'));
+      let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      items = items.filter((p) => p.diajukanOleh === uid);
+      items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-state">Belum ada pengajuan.</div>';
+        return;
+      }
+      const statusLabel = {
+        diajukan: ['Diajukan', 'warn'],
+        diproses: ['Diproses', 'warn'],
+        ditolak: ['Ditolak', 'bad'],
+        dipublish: ['Dipublish', 'ok'],
+      };
+      el.innerHTML = items.map((p) => {
+        const [lab, cls] = statusLabel[p.status] || [p.status || '—', ''];
+        const komposisi = (p.komposisi || [])
+          .map((k) => `${k.jumlah}× ${k.tipeMateri} (${k.kompleksitas})`)
+          .join(' · ');
+        return `<div class="riwayat-item">
+          <div>
+            <div class="nama">${escapeHtml(p.nama || p.id)}</div>
+            <div class="meta">${escapeHtml(p.subjectId || '')} · ${escapeHtml(komposisi)}
+              ${p.bukaPada ? '<br>Jadwal: ' + escapeHtml(String(p.bukaPada).slice(0, 16)) : ''}
+            </div>
+          </div>
+          <span class="chip ${cls}">${escapeHtml(lab)}</span>
+        </div>`;
+      }).join('');
+    } catch (err) {
+      el.innerHTML = `<div class="empty-state">Gagal memuat: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('subjectId').addEventListener('change', () => {
+    rebuildStockForSubject(document.getElementById('subjectId').value);
+    const list = document.getElementById('komposisi-list');
+    if (!list.children.length) addKomposisiRow();
+    else refreshAllRowStock();
+  });
+
+  document.getElementById('btn-tambah-baris').addEventListener('click', () => {
+    if (!document.getElementById('subjectId').value) {
+      alert('Pilih mata pelajaran dulu.');
+      return;
+    }
+    addKomposisiRow();
+  });
+
+  document.getElementById('btn-kirim').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const btn = document.getElementById('btn-kirim');
+    const nama = document.getElementById('nama').value.trim();
+    const subjectId = document.getElementById('subjectId').value;
+    const rows = collectKomposisi();
+    if (!nama) { alert('Nama pengajuan wajib diisi.'); return; }
+    if (!subjectId) { alert('Pilih mata pelajaran.'); return; }
+    if (!rows.length) { alert('Tambah minimal satu baris komposisi.'); return; }
+    const invalid = rows.filter((r) => !r.ok);
+    if (invalid.length) {
+      alert('Ada baris dengan stok kurang atau data belum lengkap. Perbaiki dulu sebelum mengirim.');
+      updateKomposisiSummary();
+      return;
+    }
+    const payload = {
+      nama,
+      subjectId,
+      komposisi: rows.map(({ tipeMateri, kompleksitas, jumlah, available }) => ({
+        tipeMateri, kompleksitas, jumlah, stokSaatAjukan: available,
+      })),
+      totalSoal: rows.reduce((s, r) => s + r.jumlah, 0),
+      bukaPada: toIsoLocal(document.getElementById('bukaPada').value),
+      tutupPada: toIsoLocal(document.getElementById('tutupPada').value),
+      durasiMenit: Number(document.getElementById('durasiMenit').value) || 60,
+      catatan: document.getElementById('catatan').value.trim() || null,
+      status: 'diajukan',
+      sekolahId: resolveSekolahIdForWrite(currentStaff),
+      diajukanOleh: auth.currentUser?.uid || null,
+      diajukanOlehNama: currentStaff?.nama || null,
+      packageId: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    btn.disabled = true;
+    status.textContent = 'Mengirim…';
+    try {
+      await addDoc(collection(db, 'pengajuanPaket'), payload);
+      status.textContent = 'Pengajuan terkirim. Admin akan meninjau dan menyusun paket.';
+      document.getElementById('nama').value = '';
+      document.getElementById('catatan').value = '';
+      document.getElementById('komposisi-list').innerHTML = '';
+      addKomposisiRow();
+      await loadRiwayat();
+    } catch (err) {
+      status.textContent = 'Gagal: ' + err.message;
+    }
+    btn.disabled = false;
+  });
+
+  if (!isConfigured) {
+    loading.textContent = 'Firebase belum dikonfigurasi.';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.href = '../index.html'; return; }
+      currentStaff = await getStaffDoc(user.uid);
+      if (!currentStaff) { await signOut(auth); location.href = '../index.html'; return; }
+      loading.style.display = 'none';
+      page.style.display = 'block';
+      mountGuruShell({ active: 'ajukan', staff: currentStaff });
+      try {
+        await loadPool();
+        await loadRiwayat();
+      } catch (err) {
+        document.getElementById('status').textContent = 'Gagal muat data: ' + err.message;
+      }
+    });
+  }
+</script>
+</body>
+</html>

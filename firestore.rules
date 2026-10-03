@@ -91,6 +91,20 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // Pengajuan try out oleh guru → ditinjau admin (fase 3+)
+    match /pengajuanPaket/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.diajukanOleh == request.auth.uid
+        && request.resource.data.status == 'diajukan';
+      allow update: if isAdmin()
+        || (isStaff()
+            && resource.data.diajukanOleh == request.auth.uid
+            && resource.data.status == 'diajukan'
+            && request.resource.data.status == 'diajukan');
+      allow delete: if isAdmin();
+    }
+
     match /liveSessions/{sessionId} {
       allow read: if isStaff();
       allow create, update: if isSignedIn()

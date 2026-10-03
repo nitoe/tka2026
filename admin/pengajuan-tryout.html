@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Antrian Try Out – Admin Pusat TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1a56db;--primary-dark:#12296b;--green:#057a55;--text:#1f2a37;--text-muted:#6b7280;--bg:#f0f4ff;--white:#fff;--border:#e2e8f0;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.top{background:#0f1b3d;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top a{color:#93c5fd;font-weight:700;text-decoration:none;font-size:.85rem}
+.top h1{font-family:'Baloo 2',cursive;font-size:1.15rem}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card h2{font-family:'Baloo 2',cursive;font-size:1.05rem;color:var(--primary-dark);margin-bottom:12px}
+.hint{font-size:.8rem;font-weight:600;color:var(--text-muted);line-height:1.45;margin-bottom:12px}
+.item{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.item-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.nama{font-weight:800;font-size:.95rem}
+.meta{font-size:.78rem;font-weight:600;color:var(--text-muted);margin-top:4px;line-height:1.45}
+.chip{display:inline-block;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:6px}
+.chip.diajukan{background:#fef3c7;color:#b45309}
+.chip.diproses{background:#dbeafe;color:#1d4ed8}
+.chip.dipublish{background:#def7ec;color:#057a55}
+.chip.ditolak{background:#fee2e2;color:#b91c1c}
+.btn{border:none;border-radius:10px;padding:8px 14px;font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#12296b,#1a56db);color:#fff}
+.btn-secondary{background:#f1f5f9;color:var(--text);border:1.5px solid var(--border)}
+.btn-danger{background:#fee2e2;color:#b91c1c}
+.btn-ok{background:#def7ec;color:#057a55}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;font:600 .88rem Nunito,sans-serif;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.field-row{grid-template-columns:1fr}}
+.soal-list{max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin:10px 0}
+.soal-row{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem;align-items:flex-start}
+.soal-row:last-child{border-bottom:none}
+.soal-row .tag{font-size:.65rem;font-weight:800;color:#64748b}
+.soal-row.unused .tag{color:#057a55}
+.soal-row.used .tag{color:#b45309}
+.status{font-size:.82rem;font-weight:700;margin-top:8px;min-height:1.2em;color:var(--text-muted)}
+.empty{text-align:center;padding:28px;color:var(--text-muted);font-weight:700}
+.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text-muted)}
+.panel-gen{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+.panel-gen.show{display:block}
+</style>
+</head>
+<body>
+<div id="loading" class="loading">Memeriksa sesi admin…</div>
+<div id="app" style="display:none">
+  <div class="top">
+    <h1>Antrian Try Out</h1>
+    <div style="display:flex;gap:14px;align-items:center">
+      <a href="./index.html">← Admin Pusat</a>
+      <a href="../guru/">Panel Guru</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="card">
+      <h2>Pengajuan dari guru</h2>
+      <p class="hint">Generate memakai pool admin global + soal semua guru. Prioritas soal yang belum pernah dipakai di paket try out. Setelah generate, tinjau daftar soal lalu publish agar siswa sekolah terkait dapat mengerjakan.</p>
+      <div id="filter-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button type="button" class="btn btn-secondary filter-btn active" data-f="antrian">Antrian</button>
+        <button type="button" class="btn btn-secondary filter-btn" data-f="semua">Semua</button>
+        <button type="button" class="btn btn-secondary filter-btn" data-f="dipublish">Sudah publish</button>
+      </div>
+      <div id="list"><div class="empty">Memuat…</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import {
+    collection, getDocs, doc, updateDoc, addDoc, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+  const loading = document.getElementById('loading');
+  const app = document.getElementById('app');
+  let currentStaff = null;
+  let pengajuan = [];
+  let poolSoal = []; // full soalPublik
+  let usedIds = new Set();
+  let filterMode = 'antrian';
+  let openGenId = null;
+  /** @type {Record<string, string[]>} */
+  let generatedMap = {}; // pengajuanId → questionIds
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  async function loadUsedIds() {
+    const snap = await getDocs(collection(db, 'packages'));
+    usedIds = new Set();
+    snap.docs.forEach((d) => {
+      const p = d.data();
+      if ((p.jenis || '') === 'tryout') {
+        (p.questionIds || []).forEach((id) => usedIds.add(id));
+      }
+    });
+  }
+
+  async function loadPool() {
+    const snap = await getDocs(collection(db, 'soalPublik'));
+    poolSoal = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  async function loadPengajuan() {
+    const snap = await getDocs(collection(db, 'pengajuanPaket'));
+    pengajuan = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    pengajuan.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }
+
+  /**
+   * Generate questionIds sesuai komposisi.
+   * Prioritas: belum dipakai try out, lalu baru yang sudah dipakai.
+   */
+  function generateFor(p) {
+    const subjectId = p.subjectId;
+    const picked = [];
+    const pickedSet = new Set();
+    const shortages = [];
+
+    for (const slot of (p.komposisi || [])) {
+      const materi = (slot.tipeMateri || '').trim();
+      const komp = (slot.kompleksitas || '').trim();
+      const need = Number(slot.jumlah) || 0;
+      if (!need) continue;
+
+      let candidates = poolSoal.filter((s) => {
+        if (subjectId && s.subjectId !== subjectId && s.mapel !== subjectId) return false;
+        const m = (s.tipeMateri || '').trim() || '(tanpa materi)';
+        if (m !== materi) return false;
+        if ((s.kompleksitas || '').trim() !== komp) return false;
+        if (pickedSet.has(s.id)) return false;
+        return true;
+      });
+
+      const unused = shuffle(candidates.filter((s) => !usedIds.has(s.id)));
+      const used = shuffle(candidates.filter((s) => usedIds.has(s.id)));
+      const ordered = unused.concat(used);
+
+      let got = 0;
+      for (const s of ordered) {
+        if (got >= need) break;
+        picked.push(s.id);
+        pickedSet.add(s.id);
+        got++;
+      }
+      if (got < need) {
+        shortages.push({ tipeMateri: materi, kompleksitas: komp, minta: need, dapat: got });
+      }
+    }
+    return { questionIds: picked, shortages };
+  }
+
+  function skorMaksimal(ids) {
+    return ids.reduce((sum, id) => {
+      const s = poolSoal.find((x) => x.id === id);
+      return sum + (Number(s?.skor) || 0);
+    }, 0);
+  }
+
+  function renderList() {
+    const el = document.getElementById('list');
+    let items = pengajuan;
+    if (filterMode === 'antrian') {
+      items = items.filter((p) => p.status === 'diajukan' || p.status === 'diproses');
+    } else if (filterMode === 'dipublish') {
+      items = items.filter((p) => p.status === 'dipublish');
+    }
+    if (!items.length) {
+      el.innerHTML = '<div class="empty">Tidak ada pengajuan pada filter ini.</div>';
+      return;
+    }
+    el.innerHTML = items.map((p) => {
+      const komposisi = (p.komposisi || [])
+        .map((k) => `${k.jumlah}× ${escapeHtml(k.tipeMateri)} (${escapeHtml(k.kompleksitas)})`)
+        .join(' · ');
+      const genIds = generatedMap[p.id] || p.generatedQuestionIds || [];
+      const isOpen = openGenId === p.id;
+      let genHtml = '';
+      if (isOpen) {
+        const rows = genIds.map((id) => {
+          const s = poolSoal.find((x) => x.id === id) || { id };
+          const used = usedIds.has(id);
+          const q = (s.pertanyaan || '').slice(0, 90);
+          return `<div class="soal-row ${used ? 'used' : 'unused'}">
+            <div style="flex:1;min-width:0">
+              <div class="tag">${used ? 'pernah dipakai' : 'baru'} · ${escapeHtml(s.tipeMateri || '-')} · ${escapeHtml(s.kompleksitas || '-')} · skor ${s.skor ?? '-'}</div>
+              <div style="font-weight:700;margin-top:2px">${escapeHtml(q)}${(s.pertanyaan || '').length > 90 ? '…' : ''}</div>
+              <div style="font-size:.68rem;color:#94a3b8;font-weight:600">${escapeHtml(id)}</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-rm" data-pid="${p.id}" data-qid="${id}">Keluarkan</button>
+          </div>`;
+        }).join('');
+        genHtml = `<div class="panel-gen show">
+          <div class="hint">${genIds.length} soal terpilih · skor maks ${skorMaksimal(genIds)}. Hijau = belum pernah di try out.</div>
+          <div class="soal-list">${rows || '<div class="empty">Belum ada soal. Klik Generate.</div>'}</div>
+          <div class="field-row">
+            <div class="field"><label>Nama paket</label>
+              <input type="text" id="nama-paket-${p.id}" value="${escapeHtml(p.nama || '')}"></div>
+            <div class="field"><label>Token (opsional)</label>
+              <input type="text" id="token-${p.id}" placeholder="mis. TO-MTK-01" maxlength="32"></div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-secondary btn-regen" data-id="${p.id}">🎲 Generate ulang</button>
+            <button type="button" class="btn btn-ok btn-publish" data-id="${p.id}" ${genIds.length ? '' : 'disabled'}>Publish try out</button>
+            <button type="button" class="btn btn-danger btn-tolak" data-id="${p.id}">Tolak</button>
+          </div>
+          <div class="status" id="st-${p.id}"></div>
+        </div>`;
+      }
+      return `<div class="item" data-id="${p.id}">
+        <div class="item-head">
+          <div>
+            <div class="nama">${escapeHtml(p.nama || p.id)} <span class="chip ${escapeHtml(p.status || '')}">${escapeHtml(p.status || '—')}</span></div>
+            <div class="meta">
+              ${escapeHtml(p.subjectId || '')} · ${escapeHtml(p.diajukanOlehNama || p.diajukanOleh || '')}
+              · sekolah ${escapeHtml(p.sekolahId || '—')}
+              · total diminta ${p.totalSoal || 0}
+              <br>${komposisi || '—'}
+              ${p.bukaPada ? '<br>Jadwal: ' + escapeHtml(String(p.bukaPada).slice(0, 16)) : ''}
+              ${p.catatan ? '<br>Catatan: ' + escapeHtml(p.catatan) : ''}
+              ${p.packageId ? '<br>Paket: ' + escapeHtml(p.packageId) : ''}
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          ${(p.status === 'diajukan' || p.status === 'diproses') ? `
+            <button type="button" class="btn btn-primary btn-buka-gen" data-id="${p.id}">${isOpen ? 'Tutup panel' : 'Generate / tinjau'}</button>
+          ` : ''}
+        </div>
+        ${genHtml}
+      </div>`;
+    }).join('');
+
+    el.querySelectorAll('.btn-buka-gen').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        if (openGenId === id) {
+          openGenId = null;
+        } else {
+          openGenId = id;
+          if (!generatedMap[id] || !generatedMap[id].length) {
+            const p = pengajuan.find((x) => x.id === id);
+            if (p) {
+              const { questionIds, shortages } = generateFor(p);
+              generatedMap[id] = questionIds;
+              if (shortages.length) {
+                setTimeout(() => {
+                  const st = document.getElementById('st-' + id);
+                  if (st) {
+                    st.textContent = 'Peringatan stok: ' + shortages.map((s) =>
+                      `${s.tipeMateri}/${s.kompleksitas} minta ${s.minta} dapat ${s.dapat}`
+                    ).join('; ');
+                  }
+                }, 0);
+              }
+            }
+          }
+        }
+        renderList();
+      });
+    });
+    el.querySelectorAll('.btn-regen').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const p = pengajuan.find((x) => x.id === id);
+        if (!p) return;
+        const { questionIds, shortages } = generateFor(p);
+        generatedMap[id] = questionIds;
+        renderList();
+        const st = document.getElementById('st-' + id);
+        if (st) {
+          st.textContent = shortages.length
+            ? 'Generate ulang. Stok kurang: ' + shortages.map((s) => `${s.tipeMateri} ${s.dapat}/${s.minta}`).join(', ')
+            : `Generate ulang: ${questionIds.length} soal.`;
+        }
+      });
+    });
+    el.querySelectorAll('.btn-rm').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.pid;
+        const qid = btn.dataset.qid;
+        generatedMap[pid] = (generatedMap[pid] || []).filter((x) => x !== qid);
+        renderList();
+      });
+    });
+    el.querySelectorAll('.btn-publish').forEach((btn) => {
+      btn.addEventListener('click', () => publishPaket(btn.dataset.id));
+    });
+    el.querySelectorAll('.btn-tolak').forEach((btn) => {
+      btn.addEventListener('click', () => tolakPengajuan(btn.dataset.id));
+    });
+  }
+
+  async function publishPaket(pengajuanId) {
+    const p = pengajuan.find((x) => x.id === pengajuanId);
+    if (!p) return;
+    const ids = generatedMap[pengajuanId] || [];
+    if (!ids.length) {
+      alert('Belum ada soal. Generate dulu.');
+      return;
+    }
+    if (!confirm(`Publish try out dengan ${ids.length} soal untuk sekolah ${p.sekolahId || '—'}?`)) return;
+    const st = document.getElementById('st-' + pengajuanId);
+    const namaEl = document.getElementById('nama-paket-' + pengajuanId);
+    const tokenEl = document.getElementById('token-' + pengajuanId);
+    const nama = (namaEl && namaEl.value.trim()) || p.nama || 'Try Out';
+    const token = (tokenEl && tokenEl.value.trim()) || null;
+    if (st) st.textContent = 'Menyimpan paket…';
+    try {
+      const skor = skorMaksimal(ids);
+      const payload = {
+        nama,
+        jenis: 'tryout',
+        questionIds: ids,
+        subjectId: p.subjectId,
+        skorMaksimal: skor,
+        totalSkor: skor,
+        aktif: true,
+        sekolahId: p.sekolahId || null,
+        pengajuanId,
+        createdBy: auth.currentUser?.uid || null,
+        durasiMenit: Number(p.durasiMenit) || 60,
+        maksPercobaan: 1,
+        token,
+        acakSoal: true,
+        acakOpsi: true,
+        bukaPada: p.bukaPada || null,
+        tutupPada: p.tutupPada || null,
+        tampilkanHasil: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const ref = await addDoc(collection(db, 'packages'), payload);
+      await updateDoc(doc(db, 'pengajuanPaket', pengajuanId), {
+        status: 'dipublish',
+        packageId: ref.id,
+        generatedQuestionIds: ids,
+        updatedAt: serverTimestamp(),
+      });
+      // tandai used
+      ids.forEach((id) => usedIds.add(id));
+      await loadPengajuan();
+      openGenId = null;
+      if (st) st.textContent = 'Published. Paket ID: ' + ref.id;
+      renderList();
+      alert('Try out dipublish. Siswa sekolah terkait dapat melihat paket aktif.');
+    } catch (err) {
+      if (st) st.textContent = 'Gagal: ' + err.message;
+      alert('Gagal publish: ' + err.message);
+    }
+  }
+
+  async function tolakPengajuan(id) {
+    if (!confirm('Tolak pengajuan ini?')) return;
+    try {
+      await updateDoc(doc(db, 'pengajuanPaket', id), {
+        status: 'ditolak',
+        updatedAt: serverTimestamp(),
+      });
+      await loadPengajuan();
+      openGenId = null;
+      renderList();
+    } catch (err) {
+      alert('Gagal: ' + err.message);
+    }
+  }
+
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterMode = btn.dataset.f;
+      renderList();
+    });
+  });
+
+  if (!isConfigured) {
+    loading.textContent = 'Firebase belum dikonfigurasi.';
+  } else {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        location.href = '../login.html?mode=admin';
+        return;
+      }
+      currentStaff = await getStaffDoc(user.uid);
+      if (!currentStaff || currentStaff.peran !== 'admin') {
+        await signOut(auth);
+        location.href = '../login.html?mode=admin';
+        return;
+      }
+      try {
+        await Promise.all([loadPool(), loadUsedIds(), loadPengajuan()]);
+        loading.style.display = 'none';
+        app.style.display = 'block';
+        renderList();
+      } catch (err) {
+        loading.textContent = 'Gagal memuat: ' + err.message;
+      }
+    });
+  }
+</script>
+</body>
+</html>

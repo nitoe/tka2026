@@ -22,12 +22,16 @@ const NAV = [
   { id: 'monitor', href: './monitor-tryout.html', icon: '📡', label: 'Monitor Langsung' },
   { id: 'bank',      href: './bank-soal.html',     icon: '🗂️', label: 'Bank Soal' },
   { id: 'susun',     href: './susun-paket.html',   icon: '🧩', label: 'Susun Paket' },
+  { id: 'ajukan',    href: './ajukan-tryout.html', icon: '📝', label: 'Ajukan Try Out' },
 ];
 
-/** Label menu susun: guru = Latihan TKA; admin = Susun Paket penuh */
+/** Label menu: guru = Latihan TKA + Ajukan Try Out; admin = Susun Paket (tanpa ajukan) */
 function navForStaff(staff) {
   const isAdmin = staff && staff.peran === 'admin';
-  return NAV.map((n) => {
+  return NAV.filter((n) => {
+    if (n.id === 'ajukan') return !isAdmin;
+    return true;
+  }).map((n) => {
     if (n.id === 'susun') {
       return {
         ...n,
