@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backfill sekolahId – Admin TKA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --primary:#1a56db; --dark:#12296b; --green:#057a55; --red:#dc2626; --muted:#6b7280; --bg:#f0f4ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Nunito',sans-serif; background:var(--bg); color:#1f2a37; min-height:100vh; padding:24px 16px; }
+  .box { max-width:640px; margin:0 auto; background:#fff; border-radius:14px; box-shadow:0 4px 24px rgba(0,0,0,.08); padding:22px; }
+  h1 { font-family:'Baloo 2',cursive; color:var(--dark); font-size:1.25rem; margin-bottom:8px; }
+  .hint { font-size:.82rem; font-weight:600; color:var(--muted); line-height:1.55; margin-bottom:16px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:.68rem; font-weight:800; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .field select, .field input { width:100%; padding:10px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:inherit; font-weight:700; background:#f4f7fb; }
+  .checks { display:flex; flex-direction:column; gap:8px; margin:14px 0; font-weight:700; font-size:.88rem; }
+  .btn { width:100%; border:none; border-radius:10px; padding:12px; font-family:inherit; font-weight:800; color:#fff; background:linear-gradient(135deg,var(--dark),var(--primary)); cursor:pointer; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .log { margin-top:14px; max-height:320px; overflow:auto; font-family:monospace; font-size:.78rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; }
+  .status { margin-top:10px; font-weight:800; font-size:.85rem; }
+  .ok { color:var(--green); } .err { color:var(--red); }
+  a { color:var(--primary); font-weight:800; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Backfill sekolahId</h1>
+  <p class="hint">
+    Menulis field <code>sekolahId</code> ke dokumen yang belum punya field tersebut.
+    Hanya super-admin. Jalankan sekali setelah migrasi multi-sekolah.
+    <br><a href="./index.html">← Panel admin</a>
+  </p>
+  <div id="gate" class="status err" style="display:none;"></div>
+  <div id="ui" style="display:none;">
+    <div class="field">
+      <label>Target sekolahId</label>
+      <input id="target-id" value="SDM01KUKUSAN">
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="c-packages" checked> packages</label>
+      <label><input type="checkbox" id="c-attempts" checked> attempts</label>
+      <label><input type="checkbox" id="c-questionPool" checked> questionPool</label>
+      <label><input type="checkbox" id="c-soalPublik" checked> soalPublik</label>
+      <label><input type="checkbox" id="c-students" checked> students</label>
+      <label><input type="checkbox" id="c-staff" checked> staff (hanya peran guru, tanpa admin)</label>
+      <label><input type="checkbox" id="c-liveSessions"> liveSessions</label>
+    </div>
+    <label style="font-weight:700;font-size:.85rem;display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      <input type="checkbox" id="dry-run" checked> Dry-run (hitung saja, jangan tulis)
+    </label>
+    <button class="btn" id="btn-run">Jalankan</button>
+    <div class="status" id="status"></div>
+    <div class="log" id="log" style="display:none;"></div>
+  </div>
+</div>
+<script type="module">
+  import {
+    isConfigured, auth, db, onAuthStateChanged, getStaffDoc,
+    collection, getDocs, doc, setDoc,
+  } from '../assets/firebase-init.js';
+
+  const gate = document.getElementById('gate');
+  const ui = document.getElementById('ui');
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+
+  function log(msg) {
+    logEl.style.display = 'block';
+    logEl.innerHTML += msg + '<br>';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function backfillCollection(name, targetId, dry, onlyGuruStaff) {
+    const snap = await getDocs(collection(db, name));
+    let need = 0, done = 0, skip = 0;
+    for (const d of snap.docs) {
+      const data = d.data();
+      if (data.sekolahId != null && data.sekolahId !== '') {
+        skip++;
+        continue;
+      }
+      if (onlyGuruStaff && name === 'staff') {
+        if (data.peran === 'admin') { skip++; continue; }
+      }
+      need++;
+      if (!dry) {
+        await setDoc(doc(db, name, d.id), { sekolahId: targetId }, { merge: true });
+        done++;
+      }
+    }
+    log(`${name}: perlu ${need}, ditulis ${done}, dilewati ${skip}${dry ? ' (dry-run)' : ''}`);
+    return { need, done, skip };
+  }
+
+  document.getElementById('btn-run').addEventListener('click', async () => {
+    const targetId = document.getElementById('target-id').value.trim();
+    if (!targetId) { statusEl.textContent = 'Target wajib.'; statusEl.className = 'status err'; return; }
+    const dry = document.getElementById('dry-run').checked;
+    const btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    logEl.innerHTML = '';
+    statusEl.textContent = dry ? 'Dry-run…' : 'Menulis…';
+    statusEl.className = 'status';
+    const cols = [
+      ['packages', 'c-packages', false],
+      ['attempts', 'c-attempts', false],
+      ['questionPool', 'c-questionPool', false],
+      ['soalPublik', 'c-soalPublik', false],
+      ['students', 'c-students', false],
+      ['staff', 'c-staff', true],
+      ['liveSessions', 'c-liveSessions', false],
+    ];
+    try {
+      for (const [name, cid, onlyGuru] of cols) {
+        if (!document.getElementById(cid).checked) continue;
+        await backfillCollection(name, targetId, dry, onlyGuru);
+      }
+      statusEl.textContent = dry ? 'Dry-run selesai. Uncheck dry-run lalu jalankan lagi untuk menulis.' : '✅ Backfill selesai.';
+      statusEl.className = 'status ok';
+    } catch (err) {
+      statusEl.textContent = 'Gagal: ' + (err.message || err.code);
+      statusEl.className = 'status err';
+      log(String(err));
+    }
+    btn.disabled = false;
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!isConfigured) {
+      gate.style.display = 'block';
+      gate.textContent = 'Firebase belum dikonfigurasi.';
+      return;
+    }
+    if (!user) {
+      gate.style.display = 'block';
+      gate.innerHTML = 'Belum login. <a href="../login.html?mode=admin">Login admin</a>';
+      return;
+    }
+    const staff = await getStaffDoc(user.uid);
+    if (!staff || staff.peran !== 'admin') {
+      gate.style.display = 'block';
+      gate.textContent = 'Hanya super-admin.';
+      return;
+    }
+    ui.style.display = 'block';
+  });
+</script>
+</body>
+</html>

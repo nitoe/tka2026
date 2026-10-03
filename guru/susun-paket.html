@@ -297,6 +297,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut } from '../assets/firebase-init.js';
+  import { resolveSekolahIdForWrite, filterBySekolah, resolveSekolahIdForRead } from '../assets/sekolah-scope.js';
   import { mountGuruShell } from '../assets/guru-shell.js';
   import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, where, limit } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
@@ -566,7 +567,10 @@
     const list = document.getElementById('paket-list');
     try {
       const snap = await getDocs(collection(db, 'packages'));
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sid = resolveSekolahIdForRead(currentStaff);
+      // Admin tanpa sekolahId melihat semua; guru difilter
+      if (currentStaff?.peran !== 'admin') items = filterBySekolah(items, sid);
       items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       if (!items.length) {
         list.innerHTML = '<div class="empty-state">Belum ada paket.</div>';
@@ -666,6 +670,7 @@
       skorMaksimal,
       totalSkor: skorMaksimal,
       aktif: document.getElementById('paket-aktif').checked === true,
+      sekolahId: resolveSekolahIdForWrite(currentStaff),
       updatedAt: serverTimestamp(),
     };
     if (jenis === 'tryout') {

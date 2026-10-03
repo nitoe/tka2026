@@ -18,6 +18,8 @@ const NAV = [
 function buildSidebarHTML(active, staff) {
   const nama = (staff && staff.nama) || 'Staf';
   const peran = (staff && staff.peran) || 'guru';
+  const isAdmin = peran === 'admin';
+  const sekolahLabel = (staff && staff.sekolahId) ? staff.sekolahId : (isAdmin ? 'Semua sekolah' : '');
   const items = NAV.map(n => {
     const cls = n.id === active ? 'sidebar-link active' : 'sidebar-link';
     return `<a class="${cls}" href="${n.href}" data-nav="${n.id}">
@@ -25,6 +27,12 @@ function buildSidebarHTML(active, staff) {
       <span>${n.label}</span>
     </a>`;
   }).join('');
+  const adminLink = isAdmin
+    ? `<a class="sidebar-link" href="../admin/" data-nav="admin">
+      <span class="sidebar-icon">⚙️</span>
+      <span>Admin Pusat</span>
+    </a>`
+    : '';
 
   return `
 <aside class="guru-sidebar" id="guru-sidebar" aria-label="Menu utama">
@@ -32,17 +40,18 @@ function buildSidebarHTML(active, staff) {
     <div class="brand-mark">TKA</div>
     <div class="brand-text">
       <div class="brand-name">Portal Latihan TKA</div>
-      <div class="brand-sub">Area guru & admin</div>
+      <div class="brand-sub">${escapeHtml(sekolahLabel || 'Area guru')}</div>
     </div>
   </div>
   <nav class="sidebar-nav">
     <div class="sidebar-section">Menu</div>
     ${items}
+    ${adminLink}
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-user">
       <div class="user-name">${escapeHtml(nama)}</div>
-      <div class="user-role">${escapeHtml(peran)}</div>
+      <div class="user-role">${escapeHtml(peran)}${sekolahLabel && !isAdmin ? ' · ' + escapeHtml(sekolahLabel) : ''}</div>
     </div>
     <button type="button" class="btn-logout" id="btn-logout-shell">Keluar</button>
   </div>
@@ -151,13 +160,14 @@ export function mountGuruShell({ active = 'dashboard', staff = null } = {}) {
     a.addEventListener('click', () => closeSidebar());
   });
 
-  // Logout
+  // Logout → gerbang pilih sekolah
   document.getElementById('btn-logout-shell')?.addEventListener('click', async () => {
     try {
       await signOut(auth);
     } catch (_) {}
     location.href = '../index.html';
   });
+
 
   // Hide any leftover page-level logout buttons
   document.getElementById('btn-logout')?.remove();

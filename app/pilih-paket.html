@@ -41,6 +41,7 @@
 <script type="module">
   import { isConfigured, auth, db, onAuthStateChanged, getStudentDoc, signOut } from '../assets/firebase-init.js';
   import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { resolveSekolahIdForRead, filterBySekolah } from '../assets/sekolah-scope.js';
 
   const loading = document.getElementById('loading');
   const page = document.getElementById('page');
@@ -85,6 +86,7 @@
         if (!user) { location.href = '../index.html'; return; }
         const siswa = await getStudentDoc(user.uid);
         if (!siswa) { await signOut(auth); location.href = '../index.html'; return; }
+        const sekolahId = resolveSekolahIdForRead(siswa);
 
         document.getElementById('page-title').textContent = NAMA_MAPEL[mapel];
         loading.style.display = 'none';
@@ -110,6 +112,9 @@
             .map(d => ({ id: d.id, ...d.data() }))
             .filter(p => p.aktif === true);
         }
+        // Isolasi multi-sekolah (client filter; legacy tanpa field = sekolah default)
+        pakets = filterBySekolah(pakets, sekolahId);
+
 
         const listEl = document.getElementById('paket-list');
         const emptyEl = document.getElementById('empty-state');

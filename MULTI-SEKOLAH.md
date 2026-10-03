@@ -63,3 +63,23 @@ Atau lewat **Admin → Kelola Sekolah** setelah login admin.
   }
 ]
 ```
+
+## Fase 2 (lanjutan)
+
+| Path | Perubahan |
+|------|-----------|
+| `assets/sekolah-scope.js` | Helper filter + resolve sekolahId |
+| `app/pilih-paket.html` | Filter paket per sekolah siswa |
+| `app/kuis.html` | Tulis `sekolahId` di attempts + liveSessions |
+| `guru/susun-paket.html` | Tulis `sekolahId` di paket; daftar paket difilter untuk guru |
+| `assets/guru-shell.js` | Label sekolah + link Admin Pusat |
+| `admin/backfill-sekolah.html` | Tool backfill field `sekolahId` |
+
+### Setelah deploy fase 2
+1. Login admin → buka `/admin/backfill-sekolah.html`
+2. Dry-run dulu, lalu uncheck dry-run dan jalankan dengan target `SDM01KUKUSAN`
+3. Opsional: set `sekolahId` pada dokumen staff guru existing secara manual
+
+### Belum di fase ini
+- Filter bank soal / rekap per sekolah (pola sama: `filterBySekolah`)
+- Rules Firestore memaksa `sekolahId` (masih staff full access)
