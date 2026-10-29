@@ -1,0 +1,10 @@
+# Config Firebase berisi API key — jangan di-commit
+firebase-config.js
+
+# Lokal
+.env
+.env.*
+.firebase/
+*.log
+.DS_Store
+node_modules

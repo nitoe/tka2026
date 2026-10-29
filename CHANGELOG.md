@@ -1,3 +1,13 @@
+## [unreleased] — 2026-10-29
+
+### Security
+- API key Firebase tidak lagi di file yang di-commit.
+- Nilai asli hanya di `firebase-config.js` (masuk `.gitignore`).
+- Template tanpa kunci: `firebase-config.example.js`.
+- `assets/firebase-init.js` tetap mengimpor `../firebase-config.js` — tidak perlu diubah.
+- Setelah clone: salin example → `firebase-config.js`, isi key, deploy. Jangan `git add firebase-config.js`.
+- Wajib: batasi HTTP referrer kunci di Google Cloud Console.
+
 # Changelog
 
 Semua perubahan penting pada proyek ini dicatat di file ini.

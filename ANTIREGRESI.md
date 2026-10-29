@@ -103,3 +103,11 @@ Untuk riwayat lengkap pelajaran dari v0.4–v0.10, lihat commit history. Ringkas
 - [ ] CHANGELOG diupdate
 - [ ] Catatan antiregresi ditambah jika pola baru
 - [ ] File kritis (`kuis.html`, `bank-soal.html`, rules) sudah di-deploy / hard-refresh diverifikasi
+
+## API key Firebase tidak di-commit
+
+- Jangan mengembalikan `apiKey: "AIza…"` ke file yang dilacak Git.
+- Nilai asli hanya di `firebase-config.js` (di-.gitignore). Template: `firebase-config.example.js`.
+- `assets/firebase-init.js` mengimpor `../firebase-config.js`. Jangan ubah path itu.
+- Saat clone baru: salin example, isi key, deploy. `git status` tidak boleh menampilkan `firebase-config.js`.
+- Kunci klien tetap terlihat di browser setelah deploy. Batasi HTTP referrer di Google Cloud Console ke domain TKA.
