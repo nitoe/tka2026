@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export Bank Soal – TKA 2026</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; }
+    .wrap { max-width: 640px; margin: 2rem auto; padding: 0 1rem 3rem; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem 1.35rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+    h1 { font-size: 1.25rem; margin: 0 0 .35rem; }
+    .sub { color: #64748b; font-size: .88rem; margin-bottom: 1rem; line-height: 1.45; }
+    .stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin: 1rem 0; }
+    .stat div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: .75rem; text-align: center; }
+    .stat .n { font-size: 1.4rem; font-weight: 800; color: #1a56db; }
+    .stat .l { font-size: .7rem; font-weight: 600; color: #64748b; }
+    button {
+      appearance: none; border: none; border-radius: 10px; padding: .7rem 1rem;
+      font: 700 .88rem system-ui, sans-serif; cursor: pointer; color: #fff;
+      background: #1a56db; width: 100%; margin-top: .5rem;
+    }
+    button.secondary { background: #0f172a; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .msg { font-size: .85rem; font-weight: 600; margin-top: .75rem; color: #334155; white-space: pre-wrap; }
+    .err { color: #b91c1c; }
+    .ok { color: #047857; }
+    label { display: block; font-size: .75rem; font-weight: 700; color: #64748b; margin: .6rem 0 .25rem; }
+    select, input[type=text] {
+      width: 100%; box-sizing: border-box; padding: .55rem .7rem; border-radius: 8px;
+      border: 1px solid #cbd5e1; font: 600 .88rem system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>⬇️ Export Bank Soal</h1>
+      <p class="sub">Halaman sekali pakai. Login admin/guru → unduh JSON lengkap (kunci + gambar) untuk dipindah ke website baru. Tidak mengubah data di Firebase.</p>
+      <div id="auth-box">
+        <div class="msg" id="auth-status">Memeriksa sesi…</div>
+      </div>
+    </div>
+
+    <div class="card" id="panel" style="display:none;">
+      <div class="msg" id="user-line"></div>
+      <div class="stat">
+        <div><div class="n" id="n-total">–</div><div class="l">Total</div></div>
+        <div><div class="n" id="n-mtk">–</div><div class="l">Matematika</div></div>
+        <div><div class="n" id="n-bi">–</div><div class="l">B. Indonesia</div></div>
+      </div>
+
+      <label for="filter-mapel">Filter mapel (opsional)</label>
+      <select id="filter-mapel">
+        <option value="">Semua mapel</option>
+        <option value="matematika">Matematika</option>
+        <option value="bahasa-indonesia">Bahasa Indonesia</option>
+      </select>
+
+      <button type="button" id="btn-load">Muat ulang dari Firestore</button>
+      <button type="button" class="secondary" id="btn-export" disabled>⬇️ Unduh JSON (siap migrasi)</button>
+      <div class="msg" id="status"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      isConfigured, auth, db, onAuthStateChanged, getStaffDoc, signOut
+    } from '../assets/firebase-init.js';
+    import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+
+    const el = (id) => document.getElementById(id);
+    let allSoal = [];
+
+    function downloadBlob(filename, blob) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+
+    function serializeSoal(s) {
+      const out = {
+        id: s.id,
+        subjectId: s.subjectId || '',
+        tipeMateri: s.tipeMateri || '',
+        kompleksitas: s.kompleksitas || '',
+        tipe: s.tipe || 'pg',
+        stimulus: s.stimulus || '',
+        pertanyaan: s.pertanyaan || '',
+        skor: s.skor != null ? Number(s.skor) : 1,
+        opsi: Array.isArray(s.opsi) ? s.opsi.slice() : [],
+        kunciJawaban: s.kunciJawaban,
+      };
+      if (s.rows) out.rows = s.rows;
+      if (s.cols) out.cols = s.cols;
+      if (s.bacaan) out.bacaan = s.bacaan;
+      if (s.bacaanId) out.bacaanId = s.bacaanId;
+      if (s.stimulusImage) out.stimulusImage = s.stimulusImage;
+      if (s.sourceImportId) out.sourceImportId = s.sourceImportId;
+      if (s.sekolahId) out.sekolahId = s.sekolahId;
+      if (s.sumber) out.sumber = s.sumber;
+      if (s.createdBy) out.createdBy = s.createdBy;
+      if (s.kaliDipakaiTryout != null) out.kaliDipakaiTryout = Number(s.kaliDipakaiTryout) || 0;
+      Object.keys(out).forEach((k) => { if (out[k] === undefined) delete out[k]; });
+      return out;
+    }
+
+    function updateStats(list) {
+      el('n-total').textContent = list.length;
+      el('n-mtk').textContent = list.filter((s) => s.subjectId === 'matematika').length;
+      el('n-bi').textContent = list.filter((s) => s.subjectId === 'bahasa-indonesia').length;
+    }
+
+    async function loadSoal() {
+      el('status').textContent = 'Mengunduh questionPool…';
+      el('status').className = 'msg';
+      el('btn-export').disabled = true;
+      const snap = await getDocs(collection(db, 'questionPool'));
+      allSoal = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      updateStats(allSoal);
+      el('status').textContent = `Siap: ${allSoal.length} soal di memori. Pilih filter lalu unduh.`;
+      el('status').className = 'msg ok';
+      el('btn-export').disabled = allSoal.length === 0;
+    }
+
+    function doExport() {
+      const mapel = el('filter-mapel').value;
+      const list = mapel ? allSoal.filter((s) => s.subjectId === mapel) : allSoal.slice();
+      if (!list.length) {
+        el('status').textContent = 'Tidak ada soal untuk diekspor.';
+        el('status').className = 'msg err';
+        return;
+      }
+      const payload = {
+        _meta: {
+          app: 'tka2026',
+          exportedAt: new Date().toISOString(),
+          scope: mapel || 'semua',
+          jumlah: list.length,
+          catatan: 'Array "soal" berisi field lengkap termasuk kunciJawaban dan stimulusImage (base64).',
+        },
+        soal: list.map(serializeSoal),
+      };
+      const stamp = new Date().toISOString().slice(0, 10);
+      const name = mapel
+        ? `TKA2026-bank-soal-${mapel}-${stamp}.json`
+        : `TKA2026-bank-soal-semua-${stamp}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      downloadBlob(name, blob);
+      el('status').textContent = `Berhasil: ${list.length} soal → ${name}`;
+      el('status').className = 'msg ok';
+    }
+
+    if (!isConfigured || !auth || !db) {
+      el('auth-status').innerHTML = '<span class="err">Firebase belum dikonfigurasi. Pastikan firebase-config.js ada di root repo dan sudah diisi API key.</span>';
+    } else {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          el('auth-status').innerHTML = 'Belum login. <a href="../login.html">Login dulu</a>, lalu buka lagi halaman ini.';
+          el('panel').style.display = 'none';
+          return;
+        }
+        const staff = await getStaffDoc(user.uid);
+        if (!staff) {
+          el('auth-status').innerHTML = '<span class="err">Akun ini bukan staff (guru/admin). Export hanya untuk staff.</span>';
+          el('panel').style.display = 'none';
+          return;
+        }
+        el('auth-status').textContent = 'Sesi aktif.';
+        el('panel').style.display = '';
+        el('user-line').textContent = `Login: ${staff.nama || user.email} (${staff.peran || 'staff'})`;
+        try {
+          await loadSoal();
+        } catch (err) {
+          el('status').textContent = 'Gagal memuat: ' + (err && err.message ? err.message : err);
+          el('status').className = 'msg err';
+        }
+      });
+    }
+
+    el('btn-load').addEventListener('click', () => {
+      loadSoal().catch((err) => {
+        el('status').textContent = 'Gagal: ' + (err && err.message ? err.message : err);
+        el('status').className = 'msg err';
+      });
+    });
+    el('btn-export').addEventListener('click', doExport);
+  </script>
+</body>
+</html>
